@@ -165,7 +165,15 @@ void DrawContours(int , void*) {
 
 int main(int argc, char* argv[])
 {
-    VideoCapture cap("video6.mpg");
+  // Take filename from command line; if not specified, use the
+  // Achille-hardcoded one
+  string filename;
+  if (argc == 2) {
+    filename = argv[1];
+  } else {
+    filename = "video6.mpg";
+  }
+  VideoCapture cap(filename);
     
     if ( !cap.isOpened() ) {
          cout << "Cannot open the video file" << endl;
