@@ -36,7 +36,7 @@ int main(int, char**)
     KF.statePost.at<float>(3) = 0;
     
     setIdentity(KF.measurementMatrix);
-	setIdentity(KF.processNoiseCov, Scalar::all(1e-2));
+	setIdentity(KF.processNoiseCov, Scalar::all(1e-1));
 	//setIdentity(KF.measurementNoiseCov, Scalar::all(1e-1));
 	setIdentity(KF.measurementNoiseCov, Scalar::all(1));
 	setIdentity(KF.errorCovPost, Scalar::all(.1));
@@ -46,7 +46,7 @@ int main(int, char**)
 	{
 		t++;
 		
-		if ((int)t%4==0) {
+		if ((int)t%30==0) {
 			float angle;
 			
 			angle=theRNG().uniform(0, 100);

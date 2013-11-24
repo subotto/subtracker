@@ -13,7 +13,10 @@ using namespace std;
 
 Mat frame, filtered, displayed;
 
-int param1=60, param2=15;
+vector<vector<Point> > contours;
+vector<Vec4i> hierarchy;
+
+int param1=60, param2=15, treshold1=29, treshold2=54;
 
 vector< pair<Point,double> > old_p;	// Probabilities of the old frame
 vector< pair<Point,double> > new_p; // Probabilities of the new frame
@@ -60,15 +63,21 @@ void DrawCircles(int , void*) {
 		  roi=roi & Rect(0,0, filtered.cols, filtered.rows);
 		 
 		 
-		  rectangle(displayed, roi, Scalar(0,255,0));
+		  
 		 // cout << "x: " << center.x << " y: " << center.y << " radius: " << radius << endl;
 		  //cout << "height: " << 
 		  //cout << "x: " << roi.x << " y: " << roi.y
 			//<< " w: " << roi.width << " h: " << roi.height << endl;
 		  
 		  Mat roi_mat=filtered(roi);
-		  imshow("ROI",roi_mat);
-		  int nonzero=countNonZero(roi_mat);
+		  Mat circle_mat=Mat::zeros(roi_mat.size(), roi_mat.type());
+		  
+		  circle(circle_mat, Point2f(radius, radius), radius, Scalar(255), -1);
+		  
+		  bitwise_and(roi_mat, circle_mat, circle_mat);
+		  imshow("roi", circle_mat);
+		  
+		  int nonzero=countNonZero(circle_mat);
 		  
 		  int circle_area=3.14*radius*radius;
 		  
@@ -76,6 +85,9 @@ void DrawCircles(int , void*) {
 		  cout << "Non zero: " << nonzero << " area: " << circle_area << endl;
 		  
 		  double density = ((double)nonzero)/circle_area;
+		  if (density > 0.2) {			  
+			rectangle(displayed, roi, Scalar(0,255,0));
+		  }
 		  if (density > 0.6) {			  
 			  // circle center
 			  circle( displayed, center, 3, Scalar(0,255,0), -1, 8, 0 );
@@ -85,60 +97,8 @@ void DrawCircles(int , void*) {
 			  // circle outline
 			  circle( displayed, center, radius, Scalar(0,0,255), 3, 8, 0 );
 		  }
-		  wp_p.push_back( min( density, 1.0 ) );
-		  sum += min( density, 1.0 );
-		  
-		  new_p.push_back( pair<Point,double> (center, 0.0) );
 	   }
 	   
-	   if ( old_p.empty() ) {
-		   for ( int i = 0; i < circles.size(); i++ ) {
-		       new_p[i].second = 1.0 / circles.size();
-		   }
-	   }
-	   else for ( int j = 0; j < old_p.size(); j++ ) {
-		   double total = 0.0;
-		   
-		   // Find new_p based on old_p
-		   
-		   for ( int i = 0; i < circles.size(); i++ ) {
-			  double old_prob = old_p[j].second;
-			  Point old_center = old_p[j].first;
-			  Point center = new_p[i].first;
-					  
-			  total += exp(-norm(old_center-center)*norm(old_center-center)/(2*sigma*sigma));
-		   }
-		   
-		   for ( int i = 0; i < circles.size(); i++ ) {
-			   assert( total > 0.00000001 );
-			   
-			   double old_prob = old_p[j].second;
-			   Point old_center = old_p[j].first;
-			   Point center = new_p[i].first;
-			   new_p[i].second += old_prob * exp(-norm(old_center-center)*norm(old_center-center)/(2*sigma*sigma)) / total;
-		   }
-	   }
-	   
-	   assert( circles.size() == new_p.size() );
-	   for ( int i = 0; i < circles.size(); i++ ) {
-		   if ( sum < 0.00001 ) {
-			   wp_p[i] = 0.0 / circles.size();
-		   }
-		   else wp_p[i] = wp_p[i] / sum;
-		   new_p[i] = pair<Point,double>( new_p[i].first, lambda*(new_p[i].second) + (1-lambda)*wp_p[i] );
-	   }
-	   
-	   old_p.clear();
-	   old_p.resize( new_p.size() );
-	   copy( new_p.begin(), new_p.end(), old_p.begin() );
-	   
-	   sort(new_p.begin(), new_p.end(), cmp);
-	   
-	   for( size_t i = 0; i < min ((int)new_p.size(), 3); i++ ) {
-		   cout << "radius: " << new_p[i].second << endl;
-	       //circle( displayed, new_p[i].first,  10, Scalar(255,0,0), 1, 8, 0 );
-	       //circle( displayed, new_p[i].first, (int) 100*new_p[i].second, Scalar(0,255,0), -1, 8, 0 );
-	   }
 	   
 	   
 	   
@@ -156,7 +116,7 @@ void FilterFrame() {
 	
 	Mat white_image;
 	bitwise_not(saturation, white_image);
-	threshold( white_image, white_image, 240, 255, 0);
+	threshold( white_image, white_image, 220, 255, 0);
 	
 	threshold( value, value, 150, 255, 0);
 	
@@ -170,10 +130,42 @@ void FilterFrame() {
 
 }
 
+void DrawContours(int , void*) {
+	
+	Mat hsv, saturation, value;
+	vector<Mat>  channels;
+	
+	cvtColor(frame, hsv, CV_BGR2HSV);
+	split(hsv, channels);
+
+	saturation=channels[1];
+	value=channels[2];
+	
+	blur(value, value, Size(3,3));
+	
+	Mat edges;
+	Canny(value, edges, treshold1, treshold2);
+	dilate(edges,edges, Mat());
+	Mat img=filtered.clone();
+	bitwise_not(edges,edges);
+	bitwise_and(filtered, edges, img);	
+	
+	
+    vector<vector<Point> > contours0;
+    findContours( img, contours0, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE);
+
+    contours.resize(contours0.size());
+    for( size_t k = 0; k < contours0.size(); k++ )
+        approxPolyDP(Mat(contours0[k]), contours[k], 3, true);
+        
+    drawContours( img, contours, -1, Scalar(128,255,255),
+                  3, CV_AA, hierarchy, 3 );
+    imshow("Contours", img);
+}
 
 int main(int argc, char* argv[])
 {
-    VideoCapture cap("video1_b.mpg");
+    VideoCapture cap("video6.mpg");
     
     if ( !cap.isOpened() ) {
          cout << "Cannot open the video file" << endl;
@@ -187,18 +179,22 @@ int main(int argc, char* argv[])
 	namedWindow("Slides",CV_WINDOW_NORMAL);
 	createTrackbar( "param1", "Slides", &param1, 256, DrawCircles );
 	createTrackbar( "param2", "Slides", &param2, 256, DrawCircles );
+	createTrackbar( "treshold1", "Slides", &treshold1, 256, DrawContours );
+	createTrackbar( "treshold2", "Slides", &treshold2, 256, DrawContours );
 	
 	namedWindow("OriginalImage",CV_WINDOW_NORMAL);
 	//namedWindow("Saturation",CV_WINDOW_NORMAL);
 	//namedWindow("Value",CV_WINDOW_NORMAL);
 	namedWindow("FilteredImage",CV_WINDOW_NORMAL);
+	namedWindow("Contours",CV_WINDOW_NORMAL);
 	namedWindow("Displayed",CV_WINDOW_NORMAL);
-	namedWindow("ROI",CV_WINDOW_NORMAL);
+	//namedWindow("ROI",CV_WINDOW_NORMAL);
 	
 	cap >> frame; 
 	FilterFrame();
 	DrawCircles(0, NULL);
-
+	
+	
 	imshow("OriginalImage", frame);
 	imshow("FilteredImage", filtered);
 	imshow("Displayed", displayed);
@@ -218,6 +214,7 @@ int main(int argc, char* argv[])
 			}
 			FilterFrame();
 			DrawCircles(0, NULL);
+			DrawContours(0, NULL);
 			imshow("OriginalImage", frame);
 			imshow("FilteredImage", filtered);
 			imshow("Displayed", displayed);
