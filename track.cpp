@@ -1,6 +1,7 @@
 #include "opencv2/video/tracking.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
+#include "opencv2/photo/photo.hpp"
 
 #include <iostream>
 #include <ctype.h>
@@ -11,16 +12,27 @@
 using namespace cv;
 using namespace std;
 
-Mat frame, filtered, displayed;
+VideoCapture cap;
+
+Mat raw_frame, old_raw_frame, frame, old_frame;
+Mat filtered, displayed;
 
 vector<vector<Point> > contours;
 vector<Vec4i> hierarchy;
 
-int param1=60, param2=15, treshold1=29, treshold2=54;
+int selected_contour_index=1;
+vector<Point> selected_contour;
+Rect following_window;
 
-vector< pair<Point,double> > old_p;	// Probabilities of the old frame
-vector< pair<Point,double> > new_p; // Probabilities of the new frame
-vector<double> wp_p;				// White/black probability
+int param1=60, param2=15, threshold1=29, threshold2=54;
+int saturation_threshold=180, value_threshold=187;
+int ball_size=20;
+
+
+int motion_threshold = 20;
+bool erosion=false;
+
+vector<Mat> last_frames;
 
 double sigma = 1000.0;
 double lambda = 0.8;
@@ -28,6 +40,8 @@ double lambda = 0.8;
 bool cmp(pair<Point,double> const &a1, pair<Point,double> const &a2) {
 	return ( a1.second > a2.second );
 }
+
+
 
 void DrawCircles(int , void*) {
 	Mat frame_gray;
@@ -41,12 +55,6 @@ void DrawCircles(int , void*) {
 	HoughCircles( frame_gray, circles, CV_HOUGH_GRADIENT, 1, filtered.rows/4, param1, param2, 13, 20 );
 	cout << circles.size() << endl;
 	
-	cvtColor(filtered, displayed, CV_GRAY2BGR);
-	
-	
-	new_p.clear();
-	wp_p.clear();
-	double sum = 0.0;	// Sum of wp_p values
 	
 	for( size_t i = 0; i < circles.size(); i++ ) {
 		  Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
@@ -104,6 +112,21 @@ void DrawCircles(int , void*) {
 	   
 }
 
+void Motion() {
+	Mat img0, img1, motion;
+	
+	cvtColor(old_frame, img0, CV_BGR2GRAY);
+	cvtColor(frame, img1, CV_BGR2GRAY);
+	
+	GaussianBlur(img0,img0,Size(5,5),0,0);
+	GaussianBlur(img1,img1,Size(5,5),0,0);
+	absdiff(img0,img1,motion);
+	threshold(motion, motion, motion_threshold, 255,THRESH_BINARY);
+	imshow("motion", motion);
+	bitwise_and(motion, filtered, motion);
+	imshow("motion_filteres", motion);
+}
+
 void FilterFrame() {
 	Mat hsv, saturation, value;
 	vector<Mat>  channels;
@@ -116,23 +139,58 @@ void FilterFrame() {
 	
 	Mat white_image;
 	bitwise_not(saturation, white_image);
-	threshold( white_image, white_image, 220, 255, 0);
 	
-	threshold( value, value, 150, 255, 0);
+	blur( white_image, white_image, Size(3, 3));
+	imshow("blurred", white_image);
+	threshold( white_image, white_image, saturation_threshold, 255, 0);
+
+	imshow("value", value);
+	blur( value, value, Size(3, 3));
+	//bilateralFilter( value, value, 3,6,6);
+	imshow("value_denoise", value);
+	
+	threshold( value, value, value_threshold, 255, 0);
+	
+	imshow("value_threshold", value);
 	
 	bitwise_and(white_image, value, filtered);
 
-	erode(filtered, filtered, Mat());
-	erode(filtered, filtered, Mat());
-	dilate(filtered, filtered, Mat());
-	dilate(filtered, filtered, Mat());
-	dilate(filtered, filtered, Mat());
 
+	if (erosion) {
+		erode(filtered, filtered, Mat());
+		//erode(filtered, filtered, Mat());
+		//dilate(filtered, filtered, Mat());
+		//dilate(filtered, filtered, Mat());
+		dilate(filtered, filtered, Mat());
+	}
+	
+
+	cvtColor(filtered, displayed, CV_GRAY2BGR);
+	//filtered=saturation;
+}
+
+void getFrame() {
+	
+	if (!old_frame.empty() && !old_raw_frame.empty()) {		
+		frame.copyTo(old_frame);
+		raw_frame.copyTo(old_raw_frame);
+	}
+	
+	cap >> raw_frame;
+	resize(raw_frame, frame, Size(), 1, 1);
+	
+	if (old_frame.empty() || old_raw_frame.empty()) {
+		old_frame = Mat::zeros(frame.size(),frame.type());
+		old_raw_frame = Mat::zeros(raw_frame.size(),raw_frame.type());
+		
+		frame.copyTo(old_frame);
+		raw_frame.copyTo(old_raw_frame);
+	}
 }
 
 void DrawContours(int , void*) {
 	
-	Mat hsv, saturation, value;
+	/*Mat hsv, saturation, value;
 	vector<Mat>  channels;
 	
 	cvtColor(frame, hsv, CV_BGR2HSV);
@@ -144,23 +202,48 @@ void DrawContours(int , void*) {
 	blur(value, value, Size(3,3));
 	
 	Mat edges;
-	Canny(value, edges, treshold1, treshold2);
+	Canny(value, edges, threshold1, threshold2);
 	dilate(edges,edges, Mat());
 	Mat img=filtered.clone();
 	bitwise_not(edges,edges);
 	bitwise_and(filtered, edges, img);	
 	
+	*/
+	Mat img=Mat::zeros(filtered.size(),filtered.type());
+	filtered.copyTo(img);
 	
     vector<vector<Point> > contours0;
-    findContours( img, contours0, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE);
+    findContours( img, contours0, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE);	
 
     contours.resize(contours0.size());
     for( size_t k = 0; k < contours0.size(); k++ )
-        approxPolyDP(Mat(contours0[k]), contours[k], 3, true);
+        approxPolyDP(Mat(contours0[k]), contours[k], 0.1, true);
         
-    drawContours( img, contours, -1, Scalar(128,255,255),
-                  3, CV_AA, hierarchy, 3 );
-    imshow("Contours", img);
+    drawContours( displayed, contours, -1, Scalar(0,0,255),
+                  1, CV_AA, hierarchy, 3 );
+    
+	for( size_t k = 0; k < contours0.size(); k++ ) {
+		Rect r=boundingRect(contours0[k]);
+		if (r.width < ball_size && r.height < ball_size) {
+			//contours1.push_back(contours0[k]);
+			rectangle(displayed, r, Scalar(0,255,0), 1);
+		}
+	}
+	
+	Rect r=boundingRect(contours0[selected_contour_index]);
+	rectangle(displayed, r, Scalar(255,0,0), 1);
+    
+    //imshow("Contours", displayed);
+}
+
+void ReProcess(int , void*) {
+	FilterFrame();
+	Motion();
+	//DrawCircles(0, NULL);
+	//DrawContours(0, NULL);
+	imshow("OriginalImage", frame);
+	imshow("FilteredImage", filtered);
+	imshow("Displayed", displayed);
 }
 
 int main(int argc, char* argv[])
@@ -173,7 +256,7 @@ int main(int argc, char* argv[])
   } else {
     filename = "video6.mpg";
   }
-  VideoCapture cap(filename);
+  cap.open(filename);
     
     if ( !cap.isOpened() ) {
          cout << "Cannot open the video file" << endl;
@@ -181,14 +264,26 @@ int main(int argc, char* argv[])
     }
 
     //cap.set(CV_CAP_PROP_POS_MSEC, 7000); //start the video at 300ms
+    cap.set(CV_CAP_PROP_POS_FRAMES, 100); //start the video at 300ms
+    //cap.set(CV_CAP_PROP_POS_AVI_RATIO, 0.5);
+    //cap.set( CV_CAP_PROP_POS_FRAMES, 0.); 
+    //for (int i=0; i < 800;i++) {
+	//	cap >> frame;
+//	}
+	cout << "ii " <<cap.get(CV_CAP_PROP_POS_FRAMES) << endl;
+	
     double fps = cap.get(CV_CAP_PROP_FPS); //get the frames per seconds of the video
     cout << "Frame per seconds : " << fps << endl;
 	
 	namedWindow("Slides",CV_WINDOW_NORMAL);
 	createTrackbar( "param1", "Slides", &param1, 256, DrawCircles );
 	createTrackbar( "param2", "Slides", &param2, 256, DrawCircles );
-	createTrackbar( "treshold1", "Slides", &treshold1, 256, DrawContours );
-	createTrackbar( "treshold2", "Slides", &treshold2, 256, DrawContours );
+	createTrackbar( "threshold1", "Slides", &threshold1, 256, DrawContours );
+	createTrackbar( "threshold2", "Slides", &threshold2, 256, DrawContours );
+	createTrackbar( "saturation_threshold", "Slides", &saturation_threshold, 256, ReProcess );
+	createTrackbar( "value_threshold", "Slides", &value_threshold, 256, ReProcess );
+	createTrackbar( "motion_threshold", "Slides", &motion_threshold, 256, ReProcess );
+	createTrackbar( "ball_size", "Slides", &ball_size, 256, ReProcess );
 	
 	namedWindow("OriginalImage",CV_WINDOW_NORMAL);
 	//namedWindow("Saturation",CV_WINDOW_NORMAL);
@@ -198,9 +293,8 @@ int main(int argc, char* argv[])
 	namedWindow("Displayed",CV_WINDOW_NORMAL);
 	//namedWindow("ROI",CV_WINDOW_NORMAL);
 	
-	cap >> frame; 
-	FilterFrame();
-	DrawCircles(0, NULL);
+	getFrame();
+	ReProcess(0,NULL);
 	
 	
 	imshow("OriginalImage", frame);
@@ -215,18 +309,26 @@ int main(int argc, char* argv[])
         switch(c)
         {
         case 'n':
-			cap >> frame; 
-			if (frame.empty())
-			{
-				break;
-			}
-			FilterFrame();
-			DrawCircles(0, NULL);
-			DrawContours(0, NULL);
-			imshow("OriginalImage", frame);
-			imshow("FilteredImage", filtered);
+			getFrame();
+			ReProcess(0, NULL);
+            break;
+        case 'c':
+			DrawContours(0,NULL);
 			imshow("Displayed", displayed);
             break;
+        case 'v':
+			selected_contour_index++;
+			DrawContours(0,NULL);
+			imshow("Displayed", displayed);
+            break;
+        case 's':
+			selected_contour=contours[selected_contour_index];
+			following_window=boundingRect(selected_contour);
+            break;
+        case 'e':
+			erosion=!erosion;
+			ReProcess(0, NULL);
+			break;
         default:
             ;
         }
