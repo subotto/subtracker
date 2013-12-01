@@ -90,7 +90,7 @@ int main(int argc, char* argv[])
         if (c=='n') {
 			vector<Blob> blobs=tracker.ProcessNextFrame();
 			display=tracker.PopFrame();
-			//DrawBlobs(blobs);
+			DrawBlobs(blobs);
 			Point2f estimated=KFTrack(blobs);
 			circle( display, estimated, 2, Scalar(0,255,0), -1, 8, 0 );
 			imshow("Display", display);
