@@ -29,7 +29,7 @@ class BlobsFinder {
 	public:
 		BlobsFinder()
 			: _saturation_threshold(180), _value_threshold(187),
-			_motion_threshold(20), _ball_size(13), 
+			_motion_threshold(20), _ball_size(16), 
 			_erosion(true), _big_blob_distance_filter(false),
 			_big_blob_distance(5)
 		{};

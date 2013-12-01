@@ -8,6 +8,7 @@
 #include <iostream>
 #include <vector>
 #include <deque>
+#include <cstdio>
 
 
 using namespace cv;
@@ -21,9 +22,10 @@ class Node {
 		Blob blob;
 		double badness;
 		int time;
+		Node* previous;
 		
 		Node(Blob blob, int time)
-			: blob(blob), badness(INFTY), time(time)
+			: blob(blob), badness(INFTY), time(time), previous(NULL)
 		{};
 	
 };
@@ -98,17 +100,41 @@ void InsertFrameInTimeline(vector<Blob> blobs, int time) {
 	timeline.push_back(v);
 }
 
-Node ProcessFrame() {
+Node ProcessFrame(int initial_time) {
+	
+	printf("Processing new frame\n");
 	
 	vector<Node> &last = timeline.back();
 	
 	if ( last.empty() ) {
+		// Nessun blob trovato nel frame corrente
 		return Node( Blob( Point2f(0.0,0.0), 0.0, 0.0 ), 0 );
 	}
 	
+	
 	for (int k=0; k < last.size(); k++) {
+		
+		printf("Node %d (time=%d).", k, last[k].time);
+		
+		/*
+		if ( timeline.size() == 1 ) {
+			// Passo base
+			last[k].badness = 0.0;
+		}
+		*/
+		
+		// Passo base
+		last[k].badness = last[k].time - initial_time;
+		last[k].previous = NULL;
+		
 		for (deque< vector<Node> >::iterator i=timeline.begin(); i!=timeline.end(); i++) {
 			
+			// Controllo di non aver raggiunto il frame corrente
+			deque< vector<Node> >::iterator ii=i;
+			ii++;
+			if ( ii == timeline.end() ) break;
+			
+			// Scorro i blob del frame *i
 			vector<Node> &old = *i;
 			
 			for (int j=0; j < i->size(); j++) {
@@ -118,20 +144,32 @@ Node ProcessFrame() {
 				
 				double new_badness = old_badness + ( interval - 1 );
 				
+				
+				// Controllo di località spaziale --- forse Kalman lo rende obsoleto
+				Point2f new_center = last[k].blob.center;
+				Point2f old_center = old[j].blob.center;
+				double max_speed = 10.0; // massimo spostamento tra due frame consecutivi
+				if ( norm(new_center-old_center) > max_speed * interval ) continue;
+				// Fine controllo di località spaziale
+				
+				
 				if ( new_badness < last[k].badness ) {
 					last[k].badness = new_badness;
-					// TODO: salvare il percorso ottimo
+					// Salvare il percorso ottimo
+					last[k].previous = &old[j];
 				}
 				
 			}
 		}
+		
+		printf("Badness = %lf\n", last[k].badness);
 	}
 	
 	double min_badness = INFTY;
 	int best_node_index = 0;
 	
 	for (int k=0; k < last.size(); k++) {
-		if ( min_badness < last[k].badness ) {
+		if ( min_badness > last[k].badness ) {
 			
 			best_node_index = k;
 			min_badness = last[k].badness;
@@ -139,9 +177,19 @@ Node ProcessFrame() {
 		}
 	}
 	
+	printf("Scelgo il nodo %d\n", best_node_index);
+	
 	return last[best_node_index];
 }
 
+void DrawBestPath(Node* path_end) {
+	if ( path_end == NULL ) return;
+	
+	Node n = *path_end;
+	circle(display, n.blob.center, 0.5, Scalar(255,255,0), -1);
+		
+	DrawBestPath(n.previous);
+}
 
 int main(int argc, char* argv[])
 {
@@ -173,7 +221,8 @@ int main(int argc, char* argv[])
 			
 			InsertFrameInTimeline(blobs, time++);
 			
-			Node ball = ProcessFrame();
+			Node ball = ProcessFrame(0);
+			DrawBestPath(&ball);
 			
 			DrawBlobs(blobs);
 			//Point2f estimated=KFTrack(blobs);

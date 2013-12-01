@@ -18,7 +18,10 @@ bool BlobsFinder::Init(string filename) {
          return false;
     }
     
-    GetNewFrame();
+    //GetNewFrame();
+    Mat frame;
+    _cap >> frame;
+    _old_frames.push_back(frame);
 }
 
 bool BlobsFinder::GetNewFrame() {
@@ -91,7 +94,7 @@ Mat BlobsFinder::WhiteMovingMap(Mat white_map, Mat movements_map) {
 	bitwise_and(movements_map, white_map, white_moving_map);
 	dilate(white_moving_map, white_moving_map, Mat());
 	dilate(white_moving_map, white_moving_map, Mat());
-	dilate(white_moving_map, white_moving_map, Mat());
+	//dilate(white_moving_map, white_moving_map, Mat());
 	return white_moving_map;
 }
 
