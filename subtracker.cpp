@@ -7,9 +7,30 @@
 
 #include <iostream>
 #include <vector>
+#include <deque>
+
 
 using namespace cv;
 using namespace std;
+
+double const INFTY = 1e100;
+
+class Node {
+	
+	public:
+		Blob blob;
+		double badness;
+		int time;
+		
+		Node(Blob blob, int time)
+			: blob(blob), badness(INFTY), time(time)
+		{};
+	
+};
+
+
+
+
 
 Mat display;
 
@@ -65,6 +86,63 @@ Point2f KFTrack(vector<Blob>& blobs) {
 	return Point2f(estimated.at<float>(0), estimated.at<float>(1));
 }
 
+
+deque< vector<Node> > timeline;
+
+void InsertFrameInTimeline(vector<Blob> blobs, int time) {
+	vector<Node> v;
+	for (int i=0; i<blobs.size(); i++) {
+		Node n = Node( blobs[i], time );
+		v.push_back(n);
+	}
+	timeline.push_back(v);
+}
+
+Node ProcessFrame() {
+	
+	vector<Node> &last = timeline.back();
+	
+	if ( last.empty() ) {
+		return Node( Blob( Point2f(0.0,0.0), 0.0, 0.0 ), 0 );
+	}
+	
+	for (int k=0; k < last.size(); k++) {
+		for (deque< vector<Node> >::iterator i=timeline.begin(); i!=timeline.end(); i++) {
+			
+			vector<Node> &old = *i;
+			
+			for (int j=0; j < i->size(); j++) {
+				
+				int interval = last[k].time - old[j].time;
+				double old_badness = old[j].badness;
+				
+				double new_badness = old_badness + ( interval - 1 );
+				
+				if ( new_badness < last[k].badness ) {
+					last[k].badness = new_badness;
+					// TODO: salvare il percorso ottimo
+				}
+				
+			}
+		}
+	}
+	
+	double min_badness = INFTY;
+	int best_node_index = 0;
+	
+	for (int k=0; k < last.size(); k++) {
+		if ( min_badness < last[k].badness ) {
+			
+			best_node_index = k;
+			min_badness = last[k].badness;
+			
+		}
+	}
+	
+	return last[best_node_index];
+}
+
+
 int main(int argc, char* argv[])
 {
 
@@ -76,22 +154,30 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	BlobsFinder tracker;
-	tracker.Init(filename);
+	BlobsFinder blobs_finder;
+	blobs_finder.Init(filename);
   
 	KFInit();
 	
 	namedWindow("Display",CV_WINDOW_NORMAL);
+	
+	int time = 0;
 	
 	while (true) {
         char c = (char)waitKey(30);
         if( c == 27 )
             break;
         if (c=='n') {
-			vector<Blob> blobs=tracker.ProcessNextFrame();
-			display=tracker.PopFrame();
+			vector<Blob> blobs=blobs_finder.ProcessNextFrame();
+			display=blobs_finder.PopFrame();
+			
+			InsertFrameInTimeline(blobs, time++);
+			
+			Node ball = ProcessFrame();
+			
 			DrawBlobs(blobs);
-			Point2f estimated=KFTrack(blobs);
+			//Point2f estimated=KFTrack(blobs);
+			Point2f estimated = ball.blob.center;
 			circle( display, estimated, 2, Scalar(0,255,0), -1, 8, 0 );
 			imshow("Display", display);
         }

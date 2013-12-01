@@ -130,14 +130,14 @@ vector<Blob> BlobsFinder::ProcessNextFrame() {
 	
 	/* Create the filtered images. */
 	
-	Mat white_map = this->WhiteMap(_frame_buffer.back());
+	Mat white_map = WhiteMap(_frame_buffer.back());
 	imshow("white", white_map);
-	Mat movements_map = this->MovementsMap(_frame_buffer.back(), _old_frames.back());
+	Mat movements_map = MovementsMap(_frame_buffer.back(), _old_frames.back());
 	imshow("movements", movements_map);
-	Mat white_moving_map = this->WhiteMovingMap(white_map, movements_map);
+	Mat white_moving_map = WhiteMovingMap(white_map, movements_map);
 	imshow("white_moving", white_moving_map);
-	/* Find the blobs */
 	
+	/* Find the blobs */
 	Mat img=Mat::zeros(white_moving_map.size(),white_moving_map.type());
 	white_moving_map.copyTo(img);
 	
