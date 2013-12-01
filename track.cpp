@@ -12,10 +12,37 @@
 using namespace cv;
 using namespace std;
 
+
+class Blob {
+	public:
+		Blob(double x, double y, double radius, double speed) :
+		_x(x), _y(y), _radius(radius), _speed(speed)
+		{};
+		
+		Blob(double x, double y) :
+			_x(x), _y(y), _radius(0), _speed(0)
+		{};
+		
+		Blob(double x, double y, double radius) :
+			_x(x), _y(y), _radius(radius), _speed(0)
+		{};
+		
+		double x() {return _x;}
+		double y() {return _y;}
+		double radius() {return _radius;}
+		double speed() {return _speed;}
+	private:
+		double _x;
+		double _y;
+		double _radius;
+		double _speed;
+		
+};
+
 VideoCapture cap;
 
 Mat raw_frame, old_raw_frame, frame, old_frame;
-Mat filtered, displayed;
+Mat filtered, displayed, motion_filtered;
 
 vector<vector<Point> > contours;
 vector<Vec4i> hierarchy;
@@ -26,22 +53,20 @@ Rect following_window;
 
 int param1=60, param2=15, threshold1=29, threshold2=54;
 int saturation_threshold=180, value_threshold=187;
-int ball_size=20;
+int motion_threshold = 14;
+int ball_size=16;
 
-
-int motion_threshold = 20;
 bool erosion=false;
 
 vector<Mat> last_frames;
 
-double sigma = 1000.0;
-double lambda = 0.8;
+
+vector<Blob> blobs;
+
 
 bool cmp(pair<Point,double> const &a1, pair<Point,double> const &a2) {
 	return ( a1.second > a2.second );
 }
-
-
 
 void DrawCircles(int , void*) {
 	Mat frame_gray;
@@ -113,18 +138,21 @@ void DrawCircles(int , void*) {
 }
 
 void Motion() {
-	Mat img0, img1, motion;
+	Mat img0, img1;
 	
 	cvtColor(old_frame, img0, CV_BGR2GRAY);
 	cvtColor(frame, img1, CV_BGR2GRAY);
 	
 	GaussianBlur(img0,img0,Size(5,5),0,0);
 	GaussianBlur(img1,img1,Size(5,5),0,0);
-	absdiff(img0,img1,motion);
-	threshold(motion, motion, motion_threshold, 255,THRESH_BINARY);
-	imshow("motion", motion);
-	bitwise_and(motion, filtered, motion);
-	imshow("motion_filteres", motion);
+	absdiff(img0,img1,motion_filtered);
+	threshold(motion_filtered, motion_filtered, motion_threshold, 255,THRESH_BINARY);
+	imshow("motion", motion_filtered);
+	imshow("motion_filter", filtered);
+	bitwise_and(motion_filtered, filtered, motion_filtered);
+	dilate(motion_filtered, motion_filtered, Mat());
+	dilate(motion_filtered, motion_filtered, Mat());
+	imshow("motion_filteres", motion_filtered);
 }
 
 void FilterFrame() {
@@ -188,6 +216,71 @@ void getFrame() {
 	}
 }
 
+void DrawMotionContours(int , void*) {
+	
+	Mat img=Mat::zeros(motion_filtered.size(),motion_filtered.type());
+	motion_filtered.copyTo(img);
+	
+    vector<vector<Point> > contours0;
+    findContours( img, contours0, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE);	
+
+    contours.resize(contours0.size());
+    for( size_t k = 0; k < contours0.size(); k++ )
+        approxPolyDP(Mat(contours0[k]), contours[k], 0.1, true);
+        
+    vector<vector<Point> > white_contours0;
+    findContours( filtered, white_contours0, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE);	
+
+	vector<vector<Point> > white_contours;
+    white_contours.resize(white_contours0.size());
+    for( size_t k = 0; k < white_contours0.size(); k++ )
+        approxPolyDP(Mat(white_contours0[k]), white_contours[k], 3, true);
+        
+    drawContours( displayed, white_contours, -1, Scalar(255,0,255),
+                  1, CV_AA, hierarchy, 3 );
+    
+    
+    blobs.clear();
+	for( size_t k = 0; k < contours0.size(); k++ ) {
+		Rect r=boundingRect(contours0[k]);
+		if (r.width > ball_size || r.height > ball_size)
+			continue;
+	
+		Point2f center(r.x+r.width/2,r.y+r.height/2);
+
+
+		bool in_big_white_blob=false;
+		for( size_t h = 0; h < white_contours.size(); h++ ) {
+			Rect white_rect=boundingRect(white_contours[h]);
+			if (white_rect.width < ball_size || white_rect.height < ball_size)
+				continue;
+			
+			
+			double distance = pointPolygonTest(white_contours[h], center, true);
+			cout << "distance " << distance << endl;
+			
+			if (distance > -ball_size/2) {
+				in_big_white_blob=true;
+				break;
+			}
+		}
+		
+		if (in_big_white_blob)
+			continue;
+	
+		rectangle(displayed, r, Scalar(0,255,0), 1);
+		blobs.push_back(Blob(center.x, center.y, max(r.height, r.width)));
+
+	}
+	
+	cout << "Blobs trovate: " << endl;
+	for (int i=0; i<blobs.size(); i++) {
+		cout << "x: " << blobs[i].x() << " y: " << blobs[i].y() << " radius: " << blobs[i].radius() << endl;
+	}
+    
+    //imshow("Contours", displayed);
+}
+
 void DrawContours(int , void*) {
 	
 	/*Mat hsv, saturation, value;
@@ -239,6 +332,7 @@ void DrawContours(int , void*) {
 void ReProcess(int , void*) {
 	FilterFrame();
 	Motion();
+	DrawMotionContours(0,NULL);
 	//DrawCircles(0, NULL);
 	//DrawContours(0, NULL);
 	imshow("OriginalImage", frame);
