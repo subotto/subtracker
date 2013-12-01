@@ -1,0 +1,4 @@
+#!/bin/sh
+
+ffmpeg -i video.avi -ss 00:00:06 -to 00:00:21 -c copy test_slow_game_with_flash.avi
+ffmpeg -i video.avi -ss 00:00:42 -to 00:00:44 -c copy test_fast_ball.avi
