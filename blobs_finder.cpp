@@ -37,7 +37,7 @@ bool BlobsFinder::GetNewFrame() {
 	if (_old_frames.size() > 2)
 		_old_frames.pop_front();
 
-	_frame_buffer.push_back(frame);
+	_frame_buffer.push_back(frame.clone());
 	
 	return true;
 }
