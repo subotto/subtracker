@@ -43,6 +43,8 @@ VideoCapture cap;
 
 Mat raw_frame, old_raw_frame, frame, old_frame;
 Mat filtered, displayed, motion_filtered;
+Mat first_background;
+Mat bg_diff;
 
 vector<vector<Point> > contours;
 vector<Vec4i> hierarchy;
@@ -283,7 +285,7 @@ void DrawMotionContours(int , void*) {
 
 void DrawContours(int , void*) {
 	
-	/*Mat hsv, saturation, value;
+	Mat hsv, saturation, value;
 	vector<Mat>  channels;
 	
 	cvtColor(frame, hsv, CV_BGR2HSV);
@@ -296,13 +298,13 @@ void DrawContours(int , void*) {
 	
 	Mat edges;
 	Canny(value, edges, threshold1, threshold2);
-	dilate(edges,edges, Mat());
-	Mat img=filtered.clone();
-	bitwise_not(edges,edges);
-	bitwise_and(filtered, edges, img);	
+	//dilate(edges,edges, Mat());
+	//Mat img=filtered.clone();
+	//bitwise_not(edges,edges);
+	//bitwise_and(filtered, edges, img);	
+	imshow("edges", edges);
 	
-	*/
-	Mat img=Mat::zeros(filtered.size(),filtered.type());
+	/*Mat img=Mat::zeros(filtered.size(),filtered.type());
 	filtered.copyTo(img);
 	
     vector<vector<Point> > contours0;
@@ -325,7 +327,7 @@ void DrawContours(int , void*) {
 	
 	Rect r=boundingRect(contours0[selected_contour_index]);
 	rectangle(displayed, r, Scalar(255,0,0), 1);
-    
+    */
     //imshow("Contours", displayed);
 }
 
@@ -334,7 +336,7 @@ void ReProcess(int , void*) {
 	Motion();
 	DrawMotionContours(0,NULL);
 	//DrawCircles(0, NULL);
-	//DrawContours(0, NULL);
+	DrawContours(0, NULL);
 	imshow("OriginalImage", frame);
 	imshow("FilteredImage", filtered);
 	imshow("Displayed", displayed);
@@ -390,6 +392,7 @@ int main(int argc, char* argv[])
 	getFrame();
 	ReProcess(0,NULL);
 	
+	first_background=frame.clone();
 	
 	imshow("OriginalImage", frame);
 	imshow("FilteredImage", filtered);
@@ -405,6 +408,8 @@ int main(int argc, char* argv[])
         case 'n':
 			getFrame();
 			ReProcess(0, NULL);
+			absdiff(frame, first_background, bg_diff);
+			imshow("diff", bg_diff);
             break;
         case 'c':
 			DrawContours(0,NULL);

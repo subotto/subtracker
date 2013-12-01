@@ -112,7 +112,6 @@ bool BlobsFinder::isPointNearBigWhiteBlob(cv::Mat white_map, cv::Point2f point) 
 			continue;
 		
 		double distance = pointPolygonTest(white_contours[h], point, true);
-		cout << "distance " << distance << endl;
 		if (distance > -_big_blob_distance) {
 			return true;
 		}
@@ -156,7 +155,7 @@ vector<Blob> BlobsFinder::ProcessNextFrame() {
 		if (_big_blob_distance_filter && isPointNearBigWhiteBlob(white_map, center))
 			continue;
 			
-		blobs.push_back(Blob(center.x, center.y, max(r.height, r.width)));
+		blobs.push_back(Blob(center, max(r.height, r.width)));
 	}
 
 	return blobs;	

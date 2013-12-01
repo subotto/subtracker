@@ -12,13 +12,12 @@
 
 class Blob {
 	public:
-		double x;
-		double y;
+		cv::Point2f center;
 		double radius;
 		double speed;
 	
-		Blob(double x, double y, double radius=0, double speed=0)
-			: x(x), y(y), radius(radius), speed(speed)
+		Blob(cv::Point2f center, double radius=0, double speed=0)
+			: center(center), radius(radius), speed(speed)
 		{};
 		
 	private:
