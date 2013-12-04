@@ -212,7 +212,7 @@ int main(int argc, char* argv[])
 	int time = 0;
 	
 	while (true) {
-        char c = (char)waitKey(30);
+        char c = (char)waitKey(15);
         if( c == 27 )
             break;
         if (c=='n') {
