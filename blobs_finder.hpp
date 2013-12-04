@@ -1,5 +1,5 @@
-#ifndef __TRACKER_H_
-#define __TRACKER_H_
+#ifndef __BLOBS_FINDER_H_
+#define __BLOBS_FINDER_H_
 
 #include "opencv2/video/tracking.hpp"
 #include "opencv2/imgproc/imgproc.hpp"

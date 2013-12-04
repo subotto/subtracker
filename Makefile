@@ -4,8 +4,8 @@ CFLAGS = `pkg-config --cflags opencv` -g -O2
 CPPFLAGS = `pkg-config --cflags opencv` -g -O2
 LIBS = `pkg-config --libs opencv`
 
-HEADERS = blobs_finder.hpp
-OBJECTS = blobs_finder.o subtracker.o
+HEADERS = blobs_finder.hpp blobs_tracker.hpp
+OBJECTS = blobs_finder.o blobs_tracker.o subtracker.o
 
 all: subtracker
 
