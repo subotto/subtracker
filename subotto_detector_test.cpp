@@ -17,12 +17,12 @@ using namespace cv;
 using namespace std;
 using namespace cv::videostab;
 
-int featureCount;
+int featureCount = 1000;
 
-int ransacSize;
-int ransacThresh;
-int ransacEpsilon;
-int ransacProb;
+int ransacSize = 6;
+int ransacThresh = 80;
+int ransacEpsilon = 50;
+int ransacProb = 99;
 
 VideoCapture cap;
 
@@ -33,7 +33,7 @@ string filename;
 
 void draw_features() {
 	GoodFeaturesToTrackDetector fd(featureCount);
-	BriefDescriptorExtractor de;
+	OpponentColorDescriptorExtractor de(new BriefDescriptorExtractor());
 
 	vector<KeyPoint> template_points, frame_points;
 
@@ -66,6 +66,9 @@ void draw_features() {
 
 	cout << motion << endl;
 
+	Mat invMotion;
+	invert(motion, invMotion);
+
 	vector<Point2f> subotto(4);
 	for(int corner = 0; corner < 4; corner++) {
 		float x = corner == 0 || corner == 3 ? 0 : templ.cols;
@@ -77,8 +80,6 @@ void draw_features() {
 		point.at<float>(1, 0) = y;
 		point.at<float>(2, 0) = 1;
 
-		Mat tr;
-		invert(motion, tr);
 		Mat tranformedPoint = motion*point;
 		subotto[corner].x = tranformedPoint.at<float>(0);
 		subotto[corner].y = tranformedPoint.at<float>(1);
@@ -91,8 +92,13 @@ void draw_features() {
 		line(output, subotto[i], subotto[(i+1)%4], Scalar(1));
 	}
 
+	Mat output2;
+
+	warpAffine(frame, output2, invMotion(Range(0,2), Range(0,3)), Size(templ.cols, templ.rows));
+
 	imshow("output", output);
 	imshow("output1", output1);
+	imshow("output2", output2);
 }
 
 void on_change(int pos, void* userdata) {
@@ -103,8 +109,9 @@ void subotto() {
 	cap >> frame;
 
 	namedWindow("slides", CV_WINDOW_AUTOSIZE);
-	namedWindow("output", CV_WINDOW_NORMAL);
-	namedWindow("output1", CV_WINDOW_NORMAL);
+	namedWindow("output", CV_WINDOW_AUTOSIZE);
+	namedWindow("output1", CV_WINDOW_AUTOSIZE);
+	namedWindow("output2", CV_WINDOW_AUTOSIZE);
 
 	createTrackbar("featureCount", "slides", &featureCount, 10000, on_change);
 	createTrackbar("ransacSize", "slides", &ransacSize, 20, on_change);
