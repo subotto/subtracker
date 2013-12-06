@@ -1,154 +1,116 @@
 #include <iostream>
 #include <string>
 
+#include "SubottoDetector.hpp"
+
 #include <opencv2/core/core.hpp>
 #include <opencv2/video/video.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/features2d/features2d.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/photo/photo.hpp>
 #include <opencv2/videostab/videostab.hpp>
 
-namespace {
-	const char* TEMPLATE_FILE = "subotto/subotto.png";
-}
-
 using namespace cv;
 using namespace std;
-using namespace cv::videostab;
-
-int featureCount = 1000;
-
-int ransacSize = 6;
-int ransacThresh = 80;
-int ransacEpsilon = 50;
-int ransacProb = 99;
-
-VideoCapture cap;
-
-Mat frame;
-Mat templ;
-
-string filename;
-
-void draw_features() {
-	GoodFeaturesToTrackDetector fd(featureCount);
-	OpponentColorDescriptorExtractor de(new BriefDescriptorExtractor());
-
-	vector<KeyPoint> template_points, frame_points;
-
-	fd.detect(frame, frame_points);
-	fd.detect(templ, template_points);
-
-	Mat template_description, frame_description;
-
-	de.compute(templ, template_points, template_description);
-	de.compute(frame, frame_points, frame_description);
-
-	BFMatcher matcher(NORM_HAMMING);
-
-	vector<DMatch> matches;
-
-	matcher.match(template_description, frame_description, matches);
-
-	vector<Point2f> points1, points2;
-
-	for (DMatch match : matches) {
-		points1.push_back(template_points[match.queryIdx].pt);
-		points2.push_back(frame_points[match.trainIdx].pt);
-	}
-
-	RansacParams ransacParams = RansacParams(max(6, ransacSize), ransacThresh / 100.f, ransacEpsilon / 100.f, ransacProb / 100.f);
-	Mat motion = estimateGlobalMotionRobust(points1, points2, AFFINE, ransacParams);
-
-	Mat output1;
-	drawMatches(templ, template_points, frame, frame_points, matches, output1);
-
-	cout << motion << endl;
-
-	Mat invMotion;
-	invert(motion, invMotion);
-
-	vector<Point2f> subotto(4);
-	for(int corner = 0; corner < 4; corner++) {
-		float x = corner == 0 || corner == 3 ? 0 : templ.cols;
-		float y = corner == 0 || corner == 1 ? 0 : templ.rows;
-
-		Mat point(3, 1, CV_32F);
-
-		point.at<float>(0, 0) = x;
-		point.at<float>(1, 0) = y;
-		point.at<float>(2, 0) = 1;
-
-		Mat tranformedPoint = motion*point;
-		subotto[corner].x = tranformedPoint.at<float>(0);
-		subotto[corner].y = tranformedPoint.at<float>(1);
-	}
-
-	Mat output;
-
-	frame.copyTo(output);
-	for(int i = 0; i < 4; i++) {
-		line(output, subotto[i], subotto[(i+1)%4], Scalar(1));
-	}
-
-	Mat output2;
-
-	warpAffine(frame, output2, invMotion(Range(0,2), Range(0,3)), Size(templ.cols, templ.rows));
-
-	imshow("output", output);
-	imshow("output1", output1);
-	imshow("output2", output2);
-}
-
-void on_change(int pos, void* userdata) {
-	draw_features();
-}
-
-void subotto() {
-	cap >> frame;
-
-	namedWindow("slides", CV_WINDOW_AUTOSIZE);
-	namedWindow("output", CV_WINDOW_AUTOSIZE);
-	namedWindow("output1", CV_WINDOW_AUTOSIZE);
-	namedWindow("output2", CV_WINDOW_AUTOSIZE);
-
-	createTrackbar("featureCount", "slides", &featureCount, 10000, on_change);
-	createTrackbar("ransacSize", "slides", &ransacSize, 20, on_change);
-	createTrackbar("ransacThresh", "slides", &ransacThresh, 100, on_change);
-	createTrackbar("ransacEpsilon", "slides", &ransacEpsilon, 100, on_change);
-	createTrackbar("ransacProb", "slides", &ransacProb, 100, on_change);
-
-	draw_features();
-
-	char key;
-	while ((key = waitKey(0)) != 23) {
-		switch(key) {
-		case 'n':
-			cap >> frame;
-			draw_features();
-			break;
-		case 'r':
-			cap.open(filename);
-			cap >> frame;
-			draw_features();
-			break;
-		}
-	}
-}
 
 int main(int argc, char* argv[]) {
-	if (argc == 3) {
-		filename = argv[1];
+	string videoName, referenceImageName, referenceImageMaskName;
+	if (argc == 4) {
+		videoName = argv[1];
+		referenceImageName = argv[2];
+		referenceImageMaskName = argv[3];
 	} else {
-		cerr << "Usage: " << argv[0] << " <video> <subotto image>" << endl;
+		cerr << "Usage: " << argv[0] << " <video> <reference subotto> <reference subotto mask>" << endl;
 		return 1;
 	}
 
-	templ = imread(TEMPLATE_FILE);
-	cap.open(filename);
+	VideoCapture cap;
+	cap.open(videoName);
+	Mat referenceImage = imread(referenceImageName);
+	Mat referenceImageMask = imread(referenceImageMaskName, CV_LOAD_IMAGE_GRAYSCALE);
 
-	subotto();
+	SubottoDetector sd(cap, referenceImage, referenceImageMask);
+
+	namedWindow("output1", CV_WINDOW_NORMAL);
+	namedWindow("output2", CV_WINDOW_NORMAL);
+	namedWindow("output3", CV_WINDOW_NORMAL);
+	namedWindow("output4", CV_WINDOW_NORMAL);
+
+	Mat output1, output2, output3, output4;
+
+	const int size = 320;
+
+	bool inited = false;
+	Mat avgBackground;
+
+	VideoWriter w;
+	w.open("./output.avi", CV_FOURCC_DEFAULT, 120, Size(320, 240), true);
+
+    if (!w.isOpened())
+    {
+        cout << "Could not open the output video for write: " << endl;
+        return -1;
+    }
+
+	while(waitKey(1) != 'e') {
+		auto subottoInfo = sd.next();
+
+		Mat frame = subottoInfo->frame;
+		Mat warpedFrame;
+
+		Point2f subottoPoints[] = {
+				Point2f(-1, -1),
+				Point2f(-1, +1),
+				Point2f(+1, -1)
+		};
+
+		Point2f imagePoints[] = {
+				Point2f(0, 0),
+				Point2f(0, size),
+				Point2f(size, 0)
+		};
+
+		Mat unzoomDbl = getAffineTransform(subottoPoints, imagePoints);
+		Mat unzoom;
+		unzoomDbl.convertTo(unzoom, CV_32F);
+
+		warpAffine(frame, warpedFrame, unzoom * subottoInfo->subottoTransformInv, Size(size, size));
+
+		if(!inited) {
+			warpedFrame.copyTo(avgBackground);
+			inited = true;
+		}
+		Mat newAvgBackground;
+
+		const double alpha = 0.02;
+		addWeighted(warpedFrame, alpha, avgBackground, (1 - alpha), 0, newAvgBackground);
+		avgBackground = newAvgBackground;
+
+		Mat warpedFrameFlt, avgBackgroundFlt;
+
+		warpedFrame.convertTo(warpedFrameFlt, CV_32F);
+		avgBackground.convertTo(avgBackgroundFlt, CV_32F);
+
+		Mat difference = warpedFrameFlt - avgBackgroundFlt;
+		Mat squareDifference = difference.mul(difference) / 20000.f;
+
+		frame.copyTo(output1);
+		drawSubottoBorders(output1, *subottoInfo, Scalar(0, 255, 0));
+
+		output2 = warpedFrame;
+		output3 = avgBackground;
+		output4 = squareDifference;
+
+		imshow("output1", output1);
+		imshow("output2", output2);
+		imshow("output3", output3);
+		imshow("output4", output4);
+
+		Mat output;
+		squareDifference.convertTo(output, CV_8UC4);
+
+		w.write(output);
+	}
 
 	return 0;
 }

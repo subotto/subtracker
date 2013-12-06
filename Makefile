@@ -18,6 +18,9 @@ clean:
 subtracker:  $(OBJECTS)
 	$(CPP) $(CPPFLAGS) $(LIBS) -o subtracker $(OBJECTS)
 
+subotto_detector_test: subotto_detector_test.cpp SubottoDetector.o
+	$(CPP) $(CPPFLAGS) $(LIBS) -o subotto_detector_test $< SubottoDetector.o
+
 %.o: %.cpp $(HEADERS) Makefile
 	$(CPP) $(CPPFLAGS) -c $<
 
