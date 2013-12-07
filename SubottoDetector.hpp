@@ -9,17 +9,34 @@
 struct SubottoInfo {
 	cv::Mat frame;
 	cv::Mat subottoTransform;
-	cv::Mat subottoTransformInv;
+};
 
-	cv::Mat referenceImage;
-	std::vector<cv::KeyPoint> referenceImageKeyPoints;
-	std::vector<cv::KeyPoint> frameKeyPoints;
-	std::vector<cv::DMatch> matches;
+struct SubottoDetectorParams {
+	int preliminaryReferenceLevels = 3;
+	int preliminaryReferenceFeatures = 50;
+	int preliminaryFrameLevels = 3;
+	int preliminaryFrameFeatures = 500;
+
+	int preliminaryRansacThreshold = 1000;
+	int preliminaryRansacOutliersRatio = 60;
+
+	int secondaryReferenceLevels = 1;
+	int secondaryReferenceFeatures = 200;
+	int secondaryFrameLevels = 1;
+	int secondaryFrameFeatures = 500;
+
+	int secondaryRansacThreshold = 200;
+
+	int flowReferenceFeatures = 100;
+
+	int stabReferenceFeatures = 100;
+
+	int ransacReprojThreshold = 300;
 };
 
 class SubottoDetector {
 public:
-	SubottoDetector(cv::VideoCapture cap, cv::Mat referenceImage, cv::Mat referenceImageMask);
+	SubottoDetector(cv::VideoCapture cap, cv::Mat referenceImage, cv::Mat referenceImageMask, std::shared_ptr<SubottoDetectorParams> params);
 	virtual ~SubottoDetector();
 
 	std::unique_ptr<SubottoInfo> next();
@@ -27,20 +44,25 @@ public:
 private:
 	cv::VideoCapture cap;
 
-	std::unique_ptr<cv::FeatureDetector> featureDetector;
-	std::unique_ptr<cv::DescriptorExtractor> descriptorExtractor;
-	std::unique_ptr<cv::DescriptorMatcher> descriptorMatcher;
-
 	cv::Mat referenceImage;
 	cv::Mat referenceImageMask;
-	cv::Mat referenceDescriptors;
-	std::vector<cv::KeyPoint> referenceKeyPoints;
+
+	std::shared_ptr<SubottoDetectorParams> params;
 
 	bool hasPreviousFrame;
 	cv::Mat previousFrame;
-	cv::Mat previousSubottoTransform;
+	cv::Mat previousTransform;
 
 	cv::Mat estimateGlobalMotion(const cv::Mat& frame, std::vector<cv::KeyPoint>& frameKeyPoints, std::vector<cv::DMatch>& matches);
+	cv::Mat changeCoordinateSystem(const cv::Mat& estimatedTransform);
+
+	cv::Mat computePreliminaryTransform(const cv::Mat& frame);
+	cv::Mat computeSecondaryCorrection(const cv::Mat& frame);
+	cv::Mat computeOpticalFlowCorrection(const cv::Mat& frame);
+
+	cv::Mat stabilize(const cv::Mat& frame, const cv::Mat& estimatedTransform);
+	cv::Mat applySecondaryCorrection(const cv::Mat& preliminaryTransform, const cv::Mat& frame);
+	cv::Mat applyOpticalFlowCorrection(const cv::Mat& secondaryTransform, const cv::Mat& frame);
 };
 
 void drawSubottoBorders(cv::Mat& outImage, SubottoInfo const& info, cv::Scalar color);

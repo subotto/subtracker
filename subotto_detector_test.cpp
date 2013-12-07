@@ -29,52 +29,70 @@ int main(int argc, char* argv[]) {
 	Mat referenceImage = imread(referenceImageName);
 	Mat referenceImageMask = imread(referenceImageMaskName, CV_LOAD_IMAGE_GRAYSCALE);
 
-	SubottoDetector sd(cap, referenceImage, referenceImageMask);
+	std::shared_ptr<SubottoDetectorParams> params(new SubottoDetectorParams());
+
+	SubottoDetector sd(cap, referenceImage, referenceImageMask, params);
 
 	namedWindow("output1", CV_WINDOW_NORMAL);
 	namedWindow("output2", CV_WINDOW_NORMAL);
 	namedWindow("output3", CV_WINDOW_NORMAL);
 	namedWindow("output4", CV_WINDOW_NORMAL);
 
+	namedWindow("slides");
+
+	createTrackbar("preliminaryReferenceFeatures", "slides", &params->preliminaryReferenceFeatures, 2000);
+	createTrackbar("preliminaryReferenceLevels", "slides", &params->preliminaryReferenceLevels, 10);
+	createTrackbar("preliminaryFrameFeatures", "slides", &params->preliminaryFrameFeatures, 2000);
+	createTrackbar("preliminaryFrameLevels", "slides", &params->preliminaryFrameLevels, 10);
+
+	createTrackbar("preliminaryRansacThreshold", "slides", &params->preliminaryRansacThreshold, 2000);
+	createTrackbar("preliminaryRansacOutliersRatio", "slides", &params->preliminaryRansacOutliersRatio, 100);
+
+	createTrackbar("secondaryReferenceFeatures", "slides", &params->secondaryReferenceFeatures, 2000);
+	createTrackbar("secondaryReferenceLevels", "slides", &params->secondaryReferenceLevels, 10);
+	createTrackbar("secondaryFrameFeatures", "slides", &params->secondaryFrameFeatures, 2000);
+	createTrackbar("secondaryFrameLevels", "slides", &params->secondaryFrameLevels, 10);
+
+	createTrackbar("secondaryRansacThreshold", "slides", &params->secondaryRansacThreshold, 2000);
+
+	createTrackbar("flowReferenceFeatures", "slides", &params->flowReferenceFeatures, 2000);
+	createTrackbar("stabReferenceFeatures", "slides", &params->stabReferenceFeatures, 2000);
+	createTrackbar("ransacReprojThreshold", "slides", &params->ransacReprojThreshold, 5000);
+
 	Mat output1, output2, output3, output4;
 
-	const int size = 320;
+	const Size size(200, 120);
 
 	bool inited = false;
 	Mat avgBackground;
 
-	VideoWriter w;
-	w.open("./output.avi", CV_FOURCC_DEFAULT, 120, Size(320, 240), true);
-
-    if (!w.isOpened())
-    {
-        cout << "Could not open the output video for write: " << endl;
-        return -1;
-    }
-
-	while(waitKey(1) != 'e') {
+	while(waitKey(1)) {
 		auto subottoInfo = sd.next();
 
 		Mat frame = subottoInfo->frame;
 		Mat warpedFrame;
 
 		Point2f subottoPoints[] = {
-				Point2f(-1, -1),
-				Point2f(-1, +1),
-				Point2f(+1, -1)
+				Point2f(-1, -0.6),
+				Point2f(-1, +0.6),
+				Point2f(+1, +0.6),
+				Point2f(+1, -0.6),
 		};
 
 		Point2f imagePoints[] = {
 				Point2f(0, 0),
-				Point2f(0, size),
-				Point2f(size, 0)
+				Point2f(0, size.height),
+				Point2f(size.width, size.height),
+				Point2f(size.width, 0)
 		};
 
-		Mat unzoomDbl = getAffineTransform(subottoPoints, imagePoints);
+		Mat unzoomDbl = getPerspectiveTransform(subottoPoints, imagePoints);
 		Mat unzoom;
 		unzoomDbl.convertTo(unzoom, CV_32F);
 
-		warpAffine(frame, warpedFrame, unzoom * subottoInfo->subottoTransformInv, Size(size, size));
+		Mat subottoTransformInv;
+		invert(subottoInfo->subottoTransform, subottoTransformInv);
+		warpPerspective(frame, warpedFrame, unzoom * subottoTransformInv, size);
 
 		if(!inited) {
 			warpedFrame.copyTo(avgBackground);
@@ -82,8 +100,12 @@ int main(int argc, char* argv[]) {
 		}
 		Mat newAvgBackground;
 
+		Mat backgroundAddendum;
+
+		GaussianBlur(warpedFrame, backgroundAddendum, Size(5,5), 2, 1);
+
 		const double alpha = 0.02;
-		addWeighted(warpedFrame, alpha, avgBackground, (1 - alpha), 0, newAvgBackground);
+		addWeighted(backgroundAddendum, alpha, avgBackground, (1 - alpha), 0, newAvgBackground);
 		avgBackground = newAvgBackground;
 
 		Mat warpedFrameFlt, avgBackgroundFlt;
@@ -108,8 +130,6 @@ int main(int argc, char* argv[]) {
 
 		Mat output;
 		squareDifference.convertTo(output, CV_8UC4);
-
-		w.write(output);
 	}
 
 	return 0;
