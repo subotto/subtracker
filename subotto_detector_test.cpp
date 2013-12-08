@@ -61,7 +61,7 @@ int main(int argc, char* argv[]) {
 
 	Mat output1, output2, output3, output4;
 
-	const Size size(200, 120);
+	const Size size(400, 240);
 
 	bool inited = false;
 	Mat avgBackground;

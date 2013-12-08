@@ -60,11 +60,11 @@ void extractFeaturePoints(Mat referenceImage, Mat mask, Mat frame,
 
 	unique_ptr<FeatureDetector> referenceFeatureDetector(
 			new PyramidAdaptedFeatureDetector(
-					new GoodFeaturesToTrackDetector(params.referenceFeatures),
+					new GoodFeaturesToTrackDetector(params.referenceFeatures, 0.0001, 0),
 					params.referenceLevels));
 	unique_ptr<FeatureDetector> frameFeatureDetector(
 			new PyramidAdaptedFeatureDetector(
-					new GoodFeaturesToTrackDetector(params.frameFeatures),
+					new GoodFeaturesToTrackDetector(params.frameFeatures, 0.0001, 0),
 					params.frameLevels));
 
 	vector<KeyPoint> referenceKeyPoints, frameKeyPoints;
@@ -100,20 +100,33 @@ void extractOpticalFlowPoints(Mat referenceImage, Mat mask, Mat frame,
 		vector<Point_<float>>& referencePoints,
 		vector<Point_<float>>& framePoints, OpticalFlowParams const& params) {
 	unique_ptr<FeatureDetector> featureDetector(
-			new GoodFeaturesToTrackDetector(params.referenceFeatures));
+			new GoodFeaturesToTrackDetector(params.referenceFeatures, 0.0001, 0));
 	unique_ptr<ISparseOptFlowEstimator> optFlowEstimator(
 			new SparsePyrLkOptFlowEstimator());
 
 	vector<KeyPoint> keyPoints;
 	featureDetector->detect(referenceImage, keyPoints, mask);
 
+	vector<Point_<float>> points1, points2;
 	for (KeyPoint keyPoint : keyPoints) {
-		referencePoints.push_back(keyPoint.pt);
+		points1.push_back(keyPoint.pt);
 	}
 
-	Mat status, error;
-	optFlowEstimator->run(referenceImage, frame, referencePoints, framePoints,
-			status, error);
+	if (points1.empty()) {
+		return;
+	}
+
+	vector<uchar> status;
+	optFlowEstimator->run(referenceImage, frame, points1, points2, status, noArray());
+
+	for(int i = 0; i < points1.size(); i++) {
+		if(!status[i]) {
+			continue;
+		}
+
+		referencePoints.push_back(points1[i]);
+		framePoints.push_back(points2[i]);
+	}
 }
 
 void show(string name, Mat image) {
@@ -153,6 +166,10 @@ Mat SubottoDetector::computeSecondaryCorrection(const Mat& frame) {
 	extractFeaturePoints(referenceImage, referenceImageMask, frame,
 			referencePoints, framePoints, matchingParams);
 
+	if(referencePoints.size() < 6) {
+		return Mat::eye(3, 3, CV_32F);
+	}
+
 	Mat secondaryCorrection;
 	findHomography(referencePoints, framePoints, RANSAC,
 			params->secondaryRansacThreshold / 100.f).convertTo(
@@ -171,7 +188,7 @@ Mat SubottoDetector::applySecondaryCorrection(const Mat& transform,
 	warpPerspective(frame, warpedFrame, transformInv, size);
 	show("beforeSecondaryCorrection", warpedFrame);
 
-	Mat secondaryCorrection = computeSecondaryCorrection( warpedFrame);
+	Mat secondaryCorrection = computeSecondaryCorrection(warpedFrame);
 	Mat secondaryTransform = secondaryCorrection * transform;
 
 	return secondaryTransform;
@@ -185,6 +202,10 @@ Mat SubottoDetector::computeOpticalFlowCorrection(const Mat& frame) {
 	extractOpticalFlowPoints(referenceImage, referenceImageMask, frame,
 			referencePoints, framePoints,
 			optFlowParams);
+
+	if(referencePoints.size() < 6) {
+		return Mat::eye(3, 3, CV_32F);
+	}
 
 	Mat optFlowCorrection;
 	findHomography(referencePoints, framePoints, RANSAC).convertTo(
@@ -219,16 +240,13 @@ Mat SubottoDetector::stabilize(const Mat& frame, const Mat& transform) {
 
 	Mat stabilizedTransform;
 
-	Mat transformInv;
-	invert(previousTransform, transformInv);
+	Mat previousTransformInv;
+	invert(previousTransform, previousTransformInv);
 
 	Size size = Size(referenceImage.cols, referenceImage.rows);
 	Mat previousWarpedFrame, currentWarpedFrame;
-	warpPerspective(frame, currentWarpedFrame, transformInv, size);
-	warpPerspective(previousFrame, previousWarpedFrame,
-			transformInv, size);
-
-	show("beforeStabilize", currentWarpedFrame);
+	warpPerspective(frame, currentWarpedFrame, previousTransformInv, size);
+	warpPerspective(previousFrame, previousWarpedFrame, previousTransformInv, size);
 
 	vector<Point_<float>> previousPoints, currentPoints;
 	OpticalFlowParams opticalFlowParams;
@@ -237,8 +255,16 @@ Mat SubottoDetector::stabilize(const Mat& frame, const Mat& transform) {
 			previousPoints, currentPoints, opticalFlowParams);
 
 	Mat motion;
-	findHomography(previousPoints, currentPoints, RANSAC).convertTo(motion,
-			CV_32F);
+
+	imshow("stabilizePrevious", previousWarpedFrame);
+	imshow("stabilizeCurrent", currentWarpedFrame);
+
+	if(previousPoints.size() >= 6) {
+		// motion = estimateGlobalMotionRobust(previousPoints, currentPoints, AFFINE);
+		findHomography(previousPoints, currentPoints, RANSAC).convertTo(motion, CV_32F);
+	} else {
+		motion = Mat::eye(3, 3, CV_32F);
+	}
 
 	Mat movedTransform = motion * previousTransform;
 
@@ -259,16 +285,18 @@ unique_ptr<SubottoInfo> SubottoDetector::next() {
 
 	show("frame", frame);
 
+	Mat subottoTransform;
+
 	Mat preliminaryTransform = computePreliminaryTransform(frame);
 	Mat secondaryTransform = applySecondaryCorrection(preliminaryTransform, frame);
 	Mat estimatedTransform = applyOpticalFlowCorrection(secondaryTransform, frame);
-	Mat stabilizedTransform = stabilize(frame, estimatedTransform);
+	subottoTransform = stabilize(frame, estimatedTransform);
 
 	frame.copyTo(previousFrame);
-	stabilizedTransform.copyTo(previousTransform);
+	subottoTransform.copyTo(previousTransform);
 	hasPreviousFrame = true;
 
-	subottoInfo->subottoTransform = changeCoordinateSystem(stabilizedTransform);
+	subottoInfo->subottoTransform = changeCoordinateSystem(subottoTransform);
 
 	return subottoInfo;
 }
