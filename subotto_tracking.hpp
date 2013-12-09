@@ -11,33 +11,6 @@ struct SubottoReference {
 	cv::Mat mask;
 };
 
-/*
- * Finds the Subotto in a given frame, given a reference image of the Subotto (possibly masked).
- * Has no memory of previous frames.
- * The detection operation is slow, and cannot be run online for every frame.
- *
- * It uses a pipeline of three steps:
- * 	1) Preliminary features matching
- * 	2) Secondary features matching
- * 	3) Optical flow correction
- *
- * Preliminary features matching:
- * Detects the coarse position of the Subotto in the frame, matching a few features.
- * The output of this phase is a linear similarity (translation, rotation and isotropic zoom)
- * which maps roughly the reference image to the frame.
- *
- * Secondary features matching:
- * Improves the position of the Subotto and introduces perspective corrections, matching more features.
- * This phase takes in input the frame warped according to the previous transform
- * and outputs a perspective transform.
- *
- * Optical flow correction:
- * Improves even more the position of the Subotto by estimating the optical flow
- * from the reference image to the warped frame.
- * It takes advantage from the locality of the optical flow, and outputs
- * the final perspective transform.
- */
-
 struct FeatureDetectionParams {
 	int features = 300;
 	int levels = 3;
@@ -99,6 +72,26 @@ struct SubottoTracking {
 	cv::Mat transform;
 };
 
+/*
+ * Finds the Subotto in a given frame, given a reference image of the Subotto (possibly masked).
+ * Has no memory of previous frames.
+ * The detection operation is slow, and cannot be run online for every frame.
+ *
+ * It uses a pipeline of three steps:
+ * 	1) Coarse features matching
+ * 	2) Fine features matching
+ *
+ * Coarse features matching:
+ * Detects the coarse position of the Subotto in the frame, matching a few features.
+ * The output of this phase is a linear similarity (translation, rotation and isotropic zoom)
+ * which maps roughly the reference image to the frame.
+ *
+ * Fine features matching:
+ * Improves the position of the Subotto and introduces perspective corrections, matching more features.
+ * This phase takes in input the frame warped according to the previous transform
+ * and outputs a perspective transform.
+ */
+
 class SubottoDetector {
 public:
 	SubottoDetector(SubottoReference reference, SubottoDetectorParams params);
@@ -112,6 +105,13 @@ private:
 	FeatureDetectionResult referenceFeatures;
 };
 
+/*
+ * Improves the position of the Subotto by estimating the optical flow
+ * from the reference image to the given frame.
+ * It needs an initial transform which should be a good approximation of the real transform.
+ * Indeed, it takes advantage from the locality of the optical flow.
+ * This operations should be fast enough to be run (almost) online.
+ */
 class SubottoFollower {
 public:
 	SubottoFollower(SubottoReference reference, SubottoFollowingParams params);
@@ -125,6 +125,11 @@ private:
 	FeatureDetectionResult referenceFeatures;
 };
 
+/*
+ * Combines a SubottoDetector and a SubottoFollower to track the position of the subotto over time.
+ * It invokes the SubottoDetector only once in a while, ad uses the SubottoFollower to
+ * track the subotto (almost) frame to frame.
+ */
 class SubottoTracker {
 public:
 	SubottoTracker(cv::VideoCapture cap, SubottoReference reference, std::shared_ptr<SubottoTrackingParams> params);
