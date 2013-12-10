@@ -9,18 +9,18 @@ using namespace cv;
 
 unordered_map<string, unique_ptr<int>> intensities;
 
-static void show(string name, Mat image, int initialAlpha = 100) {
+static void show(string name, Mat image, int initialAlpha = 1000) {
 	if(intensities.find(name) == intensities.end()) {
 		intensities[name] = unique_ptr<int>(new int(initialAlpha));
 	}
 
-	float alpha = *intensities[name] / 100.f;
+	float alpha = *intensities[name] / 1000.f;
 	Mat output = image * alpha + 0.5 * (1 - alpha);
 
 	namedWindow("intensities", CV_WINDOW_NORMAL);
 	namedWindow(name, CV_WINDOW_NORMAL);
 
-	createTrackbar(name, "intensities", intensities[name].get(), 10000);
+	createTrackbar(name, "intensities", intensities[name].get(), 100000);
 
 	imshow(name, output);
 }
@@ -49,7 +49,7 @@ Mat BallDensityEstimator::getInput(const BallDensity& density) {
 int tableMeanFrameAlphaInt = 10;
 
 int tableVarianceDiff2AlphaInt = 10;
-int tableVarianceBordersAlphaInt = 50;
+int tableVarianceBordersAlphaInt = 30; // was 50
 int tableVarianceGammaInt = 20;
 
 int tableMeanLaplacianSize = 2;
@@ -57,6 +57,10 @@ int tableDiffLowFilterSize = 80;
 
 int ballColorValueInt = 85;
 int ballColorValueVarianceInt = 190;
+
+int tableProbThresholdInt = 6000;
+
+int expShift = 1000;
 
 BallDensity BallDensityEstimator::next() {
 	BallDensity density;
@@ -71,6 +75,8 @@ BallDensity BallDensityEstimator::next() {
 	createTrackbar("tableDiffLowFilterSize", "slides", &tableDiffLowFilterSize, 100);
 	createTrackbar("ballColorValueInt", "slides", &ballColorValueInt, 100);
 	createTrackbar("ballColorValueVarianceInt", "slides", &ballColorValueVarianceInt, 10000);
+	createTrackbar("tableProbThresholdInt", "slides", &tableProbThresholdInt, 10000);
+	createTrackbar("expShift", "slides", &expShift, 10000);
 
 	density.tracking = subottoTracker->next();
 
@@ -116,22 +122,40 @@ BallDensity BallDensityEstimator::next() {
 	Mat tableProb;
 	transform(tableDiffNorm, tableProb, -Matx<float, 1, 3>(1, 1, 1));
 
+	Mat notTableProbTrunc;
+	threshold(-tableProb, notTableProbTrunc, tableProbThresholdInt / 100.f, 0, CV_THRESH_TRUNC);
+	Mat tableProbTrunc = -notTableProbTrunc;
+
 	Mat ballProb;
 	transform(ballDiffNorm, ballProb, -Matx<float, 1, 3>(1, 1, 1));
+
+	Mat pixelProb = ballProb - tableProbTrunc;
+	Mat posProb;
+	blur(pixelProb, posProb, Size(3, 3));
+
+	double maxPosProb;
+	minMaxLoc(posProb, nullptr, &maxPosProb);
+
+	Mat posProbExp;
+	exp(posProb - maxPosProb + (expShift / 100.f) - 10, posProbExp);
 
 	show("frame", density.tracking.frame);
 	show("input", input);
 	show("tableMean", tableMean);
 	show("tableMeanBorders", tableMeanBorders);
-	show("tableEstimatedVariance", tableEstimatedVariance, 2000);
-	show("tableCorrectedVariance", tableCorrectedVariance, 2000);
-	show("tableDiff", tableDiff, 300);
-	show("tableDiffLow", tableDiffLow, 300);
-	show("tableDiffNoLow2", tableDiffNoLow2, 2000);
-	show("tableDiffNorm", tableDiffNorm, 20);
-	show("ballDiff2", ballDiff2, 2000);
-	show("ballDiffNorm", ballDiffNorm, 20);
-	show("prob", ballProb - tableProb, 5);
+	show("tableEstimatedVariance", tableEstimatedVariance, 20000);
+	show("tableCorrectedVariance", tableCorrectedVariance, 20000);
+	show("tableDiff", tableDiff, 3000);
+	show("tableDiffLow", tableDiffLow, 3000);
+	show("tableDiffNoLow2", tableDiffNoLow2, 20000);
+	show("tableDiffNorm", tableDiffNorm, 200);
+	show("ballDiff2", ballDiff2, 20000);
+	show("ballDiffNorm", ballDiffNorm, 200);
+	show("tableProb", tableProb, 50);
+	show("ballProb", ballProb, 50);
+	show("tableProbTrunc", tableProbTrunc, 50);
+	show("posProb", posProb, 5);
+	show("posProbExp", posProbExp);
 
 	return density;
 }
