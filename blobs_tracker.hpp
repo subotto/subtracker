@@ -29,13 +29,14 @@ class BlobsTracker {
 		void PopFrameFromTimeline();
 		
 		BlobsTracker()
-			: _max_speed(10.0), _max_unseen_distance(50.0)
+			: _max_speed(10.0), _max_unseen_distance(50.0), _distance_constant(0.01)
 		{};
 	
 	private:
 		std::deque< std::vector<Node> > _timeline;
 		double _max_speed; // massimo spostamento tra due frame consecutivi
 		double _max_unseen_distance; // massima distanza a cui si può teletrasportare la pallina
+		double _distance_constant; // costante per decidere la verosimiglianza della pallina spostata
 
 };
 
