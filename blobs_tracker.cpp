@@ -41,15 +41,23 @@ Point2f BlobsTracker::ProcessFrame(int initial_time, int processed_time) {
 					
 					int interval = i-j;
 					double old_badness = _timeline[j][h].badness;
-					double new_badness = old_badness + ( interval - 1 );
+					double delta_badness = interval - 1;
 					
-					// Controllo di località spaziale --- forse Kalman lo rendera' obsoleto
+					// Località spaziale --- forse Kalman la renderà obsoleta
 					Point2f new_center = _timeline[i][k].blob.center;
 					Point2f old_center = _timeline[j][h].blob.center;
-					if ( norm(new_center-old_center) > _max_speed * interval ) continue;
+					double distance = norm(new_center - old_center);
 					
-					if ( norm(new_center-old_center) > _max_unseen_distance ) continue;
-					// Fine controllo di località spaziale
+					// Controllo di località
+					if ( distance > _max_speed * interval ) continue;
+					// if ( distance > _max_unseen_distance ) continue;
+					
+					// Verosimiglianza gaussiana
+					delta_badness += _distance_constant * distance * distance;
+					
+					
+					// Calcolo la nuova badness, e aggiorno se è minore della minima finora trovata
+					double new_badness = old_badness + delta_badness;
 					
 					if ( new_badness < _timeline[i][k].badness ) {
 						_timeline[i][k].badness = new_badness;
