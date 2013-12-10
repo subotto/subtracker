@@ -122,6 +122,14 @@ bool BlobsFinder::isPointNearBigWhiteBlob(cv::Mat white_map, cv::Point2f point) 
 	return false;
 }
 
+void BlobsFinder::UpdateBackground(Mat frame, Mat background) {
+	if (_background.empty()) {
+		_background=frame.clone();
+	}
+	_background=39.0/40* _background + 1.0/40*frame;
+}
+
+
 vector<Blob> BlobsFinder::ProcessNextFrame() {
 	vector<Blob> blobs;
 	
@@ -130,10 +138,27 @@ vector<Blob> BlobsFinder::ProcessNextFrame() {
 		return blobs;
 	}
 	
+	imshow("processed_frame",_frame_buffer.back());
+	
+	UpdateBackground(_frame_buffer.back(), _background);
+	imshow("background",_background);
+	
+	Mat foreground,foreground_mask, foreground_diff;
+	absdiff(_background, _frame_buffer.back(), foreground_diff);
+	imshow("foreground_diff", foreground_diff);
+	inRange(foreground_diff, Scalar(60,60,60), Scalar(256,256,256), foreground_mask);
+	erode(foreground_mask,foreground_mask,Mat());
+	dilate(foreground_mask,foreground_mask,Mat());
+	imshow("foreground_mask", foreground_mask);
+	//bitwise_and(foreground_mask,_frame_buffer.back(), foreground);
+	//imshow("foreground",foreground);
+	
 	/* Create the filtered images. */
 	
 	Mat white_map = WhiteMap(_frame_buffer.back());
 	imshow("white", white_map);
+	bitwise_and(white_map, foreground_mask, white_map);
+	imshow("white_foreground", white_map);
 	Mat movements_map = MovementsMap(_frame_buffer.back(), _old_frames.back());
 	imshow("movements", movements_map);
 	Mat white_moving_map = WhiteMovingMap(white_map, movements_map);
@@ -156,7 +181,7 @@ vector<Blob> BlobsFinder::ProcessNextFrame() {
 		
 		if (_big_blob_distance_filter && isPointNearBigWhiteBlob(white_map, center))
 			continue;
-			
+		
 		blobs.push_back(Blob(center, max(r.height, r.width)));
 	}
 
