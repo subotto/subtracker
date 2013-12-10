@@ -26,7 +26,9 @@ Point2f BlobsTracker::ProcessFrame(int initial_time, int processed_time) {
 	
 	printf("Processing frame %d\n", processed_time);
 	
-	double min_badness = INFTY;
+	 // TODO: aggiustare questa min_badness, che serve a evitare falsi positivi quando non c'è la pallina vera
+	double min_badness = (double)(_timeline.size()) / 1.0;
+	printf("Maximum acceptable badness: %.1lf\n", min_badness);
 	Node *best_node = NULL;
 	
 	for (int i=0; i<_timeline.size(); i++) {
@@ -80,7 +82,10 @@ Point2f BlobsTracker::ProcessFrame(int initial_time, int processed_time) {
 	
 	// Cerco la miglior posizione prevista per il frame richiesto
 	Node *node = best_node;
-	if ( node == NULL || node->time < processed_time ) return NISBA;
+	if ( node == NULL || node->time < processed_time ) {
+		printf("No ball found.\n");
+		return NISBA;
+	}
 	
 	Node *greater = NULL;
 	Node *lower = NULL;
@@ -97,14 +102,22 @@ Point2f BlobsTracker::ProcessFrame(int initial_time, int processed_time) {
 		node = node->previous;
 	}
 	
-	if ( lower == NULL ) return NISBA;
+	if ( lower == NULL ) {
+		printf("No ball found.\n");
+		return NISBA;
+	}
 	
 	// Waiting for great Kalman (Hail, Kalman! Hail!)
 	
-	if ( greater->time == lower->time ) return greater->blob.center;
+	if ( greater->time == lower->time ) {
+		printf("Ball found (exact location). Badness: %.1lf\n", min_badness);
+		return greater->blob.center;
+	}
+	
 	cv::Point2f greater_center = greater->blob.center;
 	cv::Point2f lower_center = lower->blob.center;
 	
+	printf("Ball found (estimated location). Badness: %.1lf\n", min_badness);
 	return ( greater_center*(processed_time - lower->time) + lower_center*(greater->time - processed_time) ) * ( 1.0/(greater->time - lower->time) );
 	
 	
