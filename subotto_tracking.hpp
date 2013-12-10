@@ -72,6 +72,9 @@ struct SubottoTracking {
 	cv::Mat transform;
 };
 
+cv::Mat getCST(cv::Size size);
+cv::Mat getCSTInv(cv::Size size);
+
 /*
  * Finds the Subotto in a given frame, given a reference image of the Subotto (possibly masked).
  * Has no memory of previous frames.
@@ -132,14 +135,14 @@ private:
  */
 class SubottoTracker {
 public:
-	SubottoTracker(cv::VideoCapture cap, SubottoReference reference, std::shared_ptr<SubottoTrackingParams> params);
+	SubottoTracker(cv::VideoCapture cap, SubottoReference reference, SubottoTrackingParams params);
 	virtual ~SubottoTracker();
 
-	std::unique_ptr<SubottoTracking> next();
+	SubottoTracking next();
 private:
 	cv::VideoCapture cap;
 	SubottoReference reference;
-	std::shared_ptr<SubottoTrackingParams> params;
+	SubottoTrackingParams params;
 
 	std::unique_ptr<SubottoDetector> detector;
 	std::unique_ptr<SubottoFollower> follower;

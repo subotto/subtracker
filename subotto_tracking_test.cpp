@@ -102,10 +102,10 @@ int main(int argc, char* argv[]) {
 
 		auto subottoTracking = tracker->next();
 
-		Mat frame = subottoTracking->frame;
+		Mat frame = subottoTracking.frame;
 
 		Mat warpedByte;
-		warpPerspective(frame, warpedByte, subottoTracking->transform * unzoom, size, CV_WARP_INVERSE_MAP);
+		warpPerspective(frame, warpedByte, subottoTracking.transform * unzoom, size, CV_WARP_INVERSE_MAP);
 
 		Mat warped;
 		warpedByte.convertTo(warped, CV_32F, 1 / 255.f);

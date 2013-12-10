@@ -21,6 +21,9 @@ subtracker:  $(OBJECTS)
 subotto_tracking_test: subotto_tracking_test.cpp subotto_tracking.o
 	$(CPP) $(CPPFLAGS) $(LIBS) -o subotto_detector_test $< subotto_tracking.o
 
+ball_density_test: ball_density_test.cpp ball_density.o subotto_tracking.o
+	$(CPP) $(CPPFLAGS) $(LIBS) -o ball_density_test $< ball_density.o subotto_tracking.o
+
 %.o: %.cpp $(HEADERS) Makefile
 	$(CPP) $(CPPFLAGS) -c $<
 

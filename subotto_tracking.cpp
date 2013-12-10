@@ -10,7 +10,7 @@ using namespace std;
 using namespace cv;
 using namespace cv::videostab;
 
-const float subottoHalfWidth = 0.6;
+const float subottoHalfWidth = 0.5;
 
 unique_ptr<FeatureDetector> createFeatureDetector(
 		FeatureDetectionParams params) {
@@ -217,25 +217,25 @@ Mat SubottoFollower::follow(Mat frame, Mat previousTransform) {
 }
 
 SubottoTracker::SubottoTracker(VideoCapture cap, SubottoReference reference,
-		shared_ptr<SubottoTrackingParams> params) :
+		SubottoTrackingParams params) :
 		cap(cap), params(params), reference(reference), detector(
-				new SubottoDetector(reference, params->detectionParams)), follower(
-				new SubottoFollower(reference, params->followingParams)) {
+				new SubottoDetector(reference, params.detectionParams)), follower(
+				new SubottoFollower(reference, params.followingParams)) {
 }
 
 SubottoTracker::~SubottoTracker() {
 }
 
-std::unique_ptr<SubottoTracking> SubottoTracker::next() {
-	std::unique_ptr<SubottoTracking> subottoTracking(new SubottoTracking);
+SubottoTracking SubottoTracker::next() {
+	SubottoTracking subottoTracking;
 	Mat frame;
 
 	cap >> frame;
 
 	Mat subottoTransform;
 
-	bool shouldFollow = frameCount % (params->followingSkipFrames + 1) == 0;
-	bool shouldDetect = frameCount % (params->detectionSkipFrames + 1) == 0;
+	bool shouldFollow = frameCount % (params.followingSkipFrames + 1) == 0;
+	bool shouldDetect = frameCount % (params.detectionSkipFrames + 1) == 0;
 
 	if(!previousTransform.empty()) {
 		previousTransform.copyTo(subottoTransform);
@@ -248,7 +248,7 @@ std::unique_ptr<SubottoTracking> SubottoTracker::next() {
 			followingTransform.copyTo(subottoTransform);
 		} else {
 			accumulateWeighted(followingTransform, subottoTransform,
-					params->followingAlpha / 100.f);
+					params.followingAlpha / 100.f);
 		}
 	}
 
@@ -261,21 +261,21 @@ std::unique_ptr<SubottoTracking> SubottoTracker::next() {
 			followDetectedTransform.copyTo(subottoTransform);
 		} else {
 			accumulateWeighted(followDetectedTransform, subottoTransform,
-					params->detectionAlpha / 100.f);
+					params.detectionAlpha / 100.f);
 		}
 	}
 
 	if (nearTransform.empty()) {
 		subottoTransform.copyTo(nearTransform);
 	} else {
-		float alpha = params->nearTransformSmoothingAlpha / 100.f;
+		float alpha = params.nearTransformSmoothingAlpha / 100.f;
 		accumulateWeighted(subottoTransform, nearTransform, alpha);
 	}
 
 	frameCount++;
 
-	subottoTracking->frame = frame;
-	subottoTracking->transform = subottoTransform;
+	subottoTracking.frame = frame;
+	subottoTracking.transform = subottoTransform;
 
 	subottoTransform.copyTo(previousTransform);
 
