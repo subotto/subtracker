@@ -13,11 +13,11 @@
 using namespace cv;
 using namespace std;
 
-
+/*
 bool operator< (Subnode const &a, Subnode const &b) {
 	return ( a.badness < b.badness );
 }
-
+*/
 
 void BlobsTracker::InsertFrameInTimeline(vector<Blob> blobs, int time) {
 	vector<Node> v;
@@ -45,7 +45,7 @@ Point2f BlobsTracker::ProcessFrame(int initial_time, int processed_time) {
 			_timeline[i][k].badness = i;
 			_timeline[i][k].previous = NULL;
 			
-			_timeline[i][k].subnodes.clear();
+			// _timeline[i][k].subnodes.clear();
 			
 			
 			// Programmazione dinamica
@@ -78,7 +78,7 @@ Point2f BlobsTracker::ProcessFrame(int initial_time, int processed_time) {
 						_timeline[i][k].previous = &_timeline[j][h];
 					}
 					
-					
+					/*
 					// VERSIONE BASATA SULLA VELOCITÀ
 					Point2f speed = (new_center - old_center) * (1.0/interval);
 					
@@ -112,6 +112,7 @@ Point2f BlobsTracker::ProcessFrame(int initial_time, int processed_time) {
 						// Inserisco il migliore nel vector
 						_timeline[i][k].subnodes.push_back ( Subnode( best_badness + delta_badness, speed, &_timeline[j][h], best_l ) );
 					}
+					*/
 					
 				}
 			}
@@ -124,12 +125,14 @@ Point2f BlobsTracker::ProcessFrame(int initial_time, int processed_time) {
 				best_node = &_timeline[i][k];
 			}
 			
+			/*
 			// VERSIONE BASATA SULLA VELOCITÀ
 			// Tengo solamente i tot subnodes con la badness più bassa
 			if ( _timeline[i][k].subnodes.size() > _num_best_nodes ) {
 				nth_element( _timeline[i][k].subnodes.begin(), _timeline[i][k].subnodes.begin() + _num_best_nodes, _timeline[i][k].subnodes.end() );
 				while ( _timeline[i][k].subnodes.size() > _num_best_nodes ) _timeline[i][k].subnodes.pop_back();
 			}
+			*/
 		}
 	}
 	

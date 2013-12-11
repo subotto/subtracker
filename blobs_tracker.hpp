@@ -8,6 +8,7 @@
 
 double const INFTY = 1e100;
 
+/*
 class Node;
 
 class Subnode {
@@ -23,6 +24,7 @@ class Subnode {
 		{};
 	
 };
+*/
 
 class Node {
 	
@@ -32,7 +34,7 @@ class Node {
 		int time;
 		Node* previous;
 		
-		std::vector<Subnode> subnodes;
+		// std::vector<Subnode> subnodes;
 		
 		Node(Blob blob, int time)
 			: blob(blob), badness(INFTY), time(time), previous(NULL)
