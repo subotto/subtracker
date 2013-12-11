@@ -81,8 +81,12 @@ Point2f BlobsTracker::ProcessFrame(int initial_time, int processed_time) {
 	
 	// Cerco la miglior posizione prevista per il frame richiesto
 	Node *node = best_node;
-	if ( node == NULL || node->time < processed_time ) {
-		printf("No ball found.\n");
+	if ( node == NULL ) {
+		printf("No ball found (no path).\n");
+		return NISBA;
+	}
+	if ( node->time < processed_time ) {
+		printf("No ball found (path does not pass through current frame).\n");
 		return NISBA;
 	}
 	
@@ -102,7 +106,7 @@ Point2f BlobsTracker::ProcessFrame(int initial_time, int processed_time) {
 	}
 	
 	if ( lower == NULL ) {
-		printf("No ball found.\n");
+		printf("No ball found (path does not pass through current frame).\n");
 		return NISBA;
 	}
 	
@@ -112,6 +116,16 @@ Point2f BlobsTracker::ProcessFrame(int initial_time, int processed_time) {
 		printf("Ball found (exact location). Badness: %.1lf\n", min_badness);
 		return greater->blob.center;
 	}
+	
+	// Se è richiesta la posizione in un frame molto lontano da quelli in cui passa il percorso, restituisco NISBA.
+	int pre_diff = processed_time - lower->time;
+	int post_diff = greater->time - processed_time;
+	
+	if ( max( pre_diff, post_diff ) > _max_interpolation_time ) {
+		printf("No ball found (interpolation is not reliable).\n");
+		return NISBA;
+	}
+	
 	
 	cv::Point2f greater_center = greater->blob.center;
 	cv::Point2f lower_center = lower->blob.center;

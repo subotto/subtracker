@@ -15,9 +15,10 @@ class Node {
 		double badness;
 		int time;
 		Node* previous;
+		double speed;
 		
 		Node(Blob blob, int time)
-			: blob(blob), badness(INFTY), time(time), previous(NULL)
+			: blob(blob), badness(INFTY), time(time), previous(NULL), speed(0.0)
 		{};
 	
 };
@@ -29,14 +30,15 @@ class BlobsTracker {
 		void PopFrameFromTimeline();
 		
 		BlobsTracker()
-			: _max_speed(10.0), _max_unseen_distance(50.0), _distance_constant(0.01)
+			: _max_speed(10.0), _max_unseen_distance(50.0), _distance_constant(0.01), _max_interpolation_time(80)
 		{};
 	
 	private:
 		std::deque< std::vector<Node> > _timeline;
-		double _max_speed; // massimo spostamento tra due frame consecutivi
+		double _max_speed; // massimo spostamento tra due frame consecutivi perché il movimento sia riconosciuto possibile
 		double _max_unseen_distance; // massima distanza a cui si può teletrasportare la pallina
 		double _distance_constant; // costante per decidere la verosimiglianza della pallina spostata
+		int _max_interpolation_time; // numero massimo di fotogrammi entro i quali si interpola la posizione della pallina
 
 };
 
