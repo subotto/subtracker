@@ -8,6 +8,22 @@
 
 double const INFTY = 1e100;
 
+class Node;
+
+class Subnode {
+	
+	public:
+		double badness;
+		cv::Point2f speed;
+		Node* previous;
+		int previous_subnode;
+		
+		Subnode(double badness, cv::Point2f speed, Node* previous, int previous_subnode)
+			: badness(badness), speed(speed), previous(previous), previous_subnode(previous_subnode)
+		{};
+	
+};
+
 class Node {
 	
 	public:
@@ -15,10 +31,11 @@ class Node {
 		double badness;
 		int time;
 		Node* previous;
-		double speed;
+		
+		std::vector<Subnode> subnodes;
 		
 		Node(Blob blob, int time)
-			: blob(blob), badness(INFTY), time(time), previous(NULL), speed(0.0)
+			: blob(blob), badness(INFTY), time(time), previous(NULL)
 		{};
 	
 };
