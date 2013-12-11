@@ -110,6 +110,8 @@ BallDensity BallDensityEstimator::next() {
 	tableEstimatedVariance.copyTo(i.tableEstimatedVariance);
 	tableMean.copyTo(i.tableMean);
 
+	density.density = i.posProb;
+
 	return density;
 }
 
