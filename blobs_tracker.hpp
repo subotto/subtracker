@@ -47,7 +47,7 @@ class BlobsTracker {
 		void PopFrameFromTimeline();
 		
 		BlobsTracker()
-			: _max_speed(10.0), _max_unseen_distance(50.0), _distance_constant(0.01), _max_interpolation_time(80)
+			: _max_speed(10.0), _max_unseen_distance(50.0), _distance_constant(0.01), _max_interpolation_time(80), _num_best_nodes(3), _constant_speed_range(3.0), _bounce_badness(1.0)
 		{};
 	
 	private:
@@ -56,7 +56,10 @@ class BlobsTracker {
 		double _max_unseen_distance; // massima distanza a cui si può teletrasportare la pallina
 		double _distance_constant; // costante per decidere la verosimiglianza della pallina spostata
 		int _max_interpolation_time; // numero massimo di fotogrammi entro i quali si interpola la posizione della pallina
-
+		
+		int _num_best_nodes; // numero dei migliori nodi di cui viene tenuta traccia
+		double _constant_speed_range; // errore entro il quale la differenza di velocità non genera un rimbalzo
+		double _bounce_badness; // badness da aggiungere quando vi è un rimbalzo
 };
 
 #endif

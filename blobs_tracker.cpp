@@ -8,9 +8,16 @@
 
 #include <cstdio>
 #include <iostream>
+#include <algorithm>
 
 using namespace cv;
 using namespace std;
+
+
+bool operator< (Subnode const &a, Subnode const &b) {
+	return ( a.badness < b.badness );
+}
+
 
 void BlobsTracker::InsertFrameInTimeline(vector<Blob> blobs, int time) {
 	vector<Node> v;
@@ -20,6 +27,7 @@ void BlobsTracker::InsertFrameInTimeline(vector<Blob> blobs, int time) {
 	}
 	_timeline.push_back(v);
 }
+
 
 Point2f BlobsTracker::ProcessFrame(int initial_time, int processed_time) {
 	
@@ -32,9 +40,13 @@ Point2f BlobsTracker::ProcessFrame(int initial_time, int processed_time) {
 	
 	for (int i=0; i<_timeline.size(); i++) {
 		for (int k=0; k<_timeline[i].size(); k++) {
+			
 			// Passo base (collegamenti con il nodo fittizio iniziale)
 			_timeline[i][k].badness = i;
 			_timeline[i][k].previous = NULL;
+			
+			_timeline[i][k].subnodes.clear();
+			
 			
 			// Programmazione dinamica
 			for (int j=0; j<i; j++) {
@@ -65,14 +77,58 @@ Point2f BlobsTracker::ProcessFrame(int initial_time, int processed_time) {
 						// Salvo il percorso ottimo
 						_timeline[i][k].previous = &_timeline[j][h];
 					}
+					
+					
+					// VERSIONE BASATA SULLA VELOCITÀ
+					Point2f speed = (new_center - old_center) * (1.0/interval);
+					
+					if ( _timeline[j][h].subnodes.empty() ) {
+						// Il nodo (j,h) non proveniva da nulla
+						_timeline[i][k].subnodes.push_back ( Subnode( new_badness, speed, &_timeline[j][h], -1 ) );
+					}
+					else {
+						double best_badness = INFTY;
+						int best_l = -1;
+						
+						for (int l=0; l<_timeline[j][h].subnodes.size(); l++) {
+							
+							old_badness = _timeline[j][h].subnodes[l].badness;
+							
+							Point2f old_speed = _timeline[j][h].subnodes[l].speed;
+							Point2f speed_diff = speed - old_speed;
+							double speed_badness = 0.0;
+							
+							if ( norm(speed_diff) > _constant_speed_range ) {
+								speed_badness += _bounce_badness;
+							}
+							
+							if ( old_badness + speed_badness < best_badness ) {
+								best_badness = old_badness + speed_badness;
+								best_l = l;
+							}
+							
+						}
+						
+						// Inserisco il migliore nel vector
+						_timeline[i][k].subnodes.push_back ( Subnode( best_badness + delta_badness, speed, &_timeline[j][h], best_l ) );
+					}
+					
 				}
 			}
 			
 			// Passo finale (collegamenti con il nodo fittizio finale)
+			// TODO: controllare che questa cosa sia effettivamente al posto giusto
 			double candidate_badness = _timeline[i][k].badness + ( _timeline.size() - i - 1 );
 			if ( min_badness > candidate_badness ) {
 				min_badness = candidate_badness;
 				best_node = &_timeline[i][k];
+			}
+			
+			// VERSIONE BASATA SULLA VELOCITÀ
+			// Tengo solamente i tot subnodes con la badness più bassa
+			if ( _timeline[i][k].subnodes.size() > _num_best_nodes ) {
+				nth_element( _timeline[i][k].subnodes.begin(), _timeline[i][k].subnodes.begin() + _num_best_nodes, _timeline[i][k].subnodes.end() );
+				while ( _timeline[i][k].subnodes.size() > _num_best_nodes ) _timeline[i][k].subnodes.pop_back();
 			}
 		}
 	}
