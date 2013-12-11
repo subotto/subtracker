@@ -132,7 +132,7 @@ Point_<float> applyTransform(Point_<float> p, Mat m) {
 	return Point_<float>(tpm.at<float>(0, 0) / w, tpm.at<float>(1, 0) / w);
 }
 
-void show(string name, Mat image) {
+static void show(string name, Mat image) {
 	namedWindow(name, CV_WINDOW_NORMAL);
 	imshow(name, image);
 }

@@ -9,7 +9,7 @@ using namespace cv;
 
 unordered_map<string, unique_ptr<int>> intensities;
 
-static void show(string name, Mat image, int initialAlpha = 1000) {
+void show(string name, Mat image, int initialAlpha) {
 	if(intensities.find(name) == intensities.end()) {
 		intensities[name] = unique_ptr<int>(new int(initialAlpha));
 	}
@@ -27,9 +27,10 @@ static void show(string name, Mat image, int initialAlpha = 1000) {
 
 const Size size(240, 120);
 
-BallDensityEstimator::BallDensityEstimator(unique_ptr<SubottoTracker> subottoTracker)
+BallDensityEstimator::BallDensityEstimator(unique_ptr<SubottoTracker> subottoTracker, BallDensityEstimatorParams params)
 :
-	subottoTracker(move(subottoTracker))
+	subottoTracker(move(subottoTracker)),
+	params(params)
 {
 }
 
@@ -46,116 +47,72 @@ Mat BallDensityEstimator::getInput(const BallDensity& density) {
 	return input;
 }
 
-int tableMeanFrameAlphaInt = 10;
-
-int tableVarianceDiff2AlphaInt = 10;
-int tableVarianceBordersAlphaInt = 30; // was 50
-int tableVarianceGammaInt = 20;
-
-int tableMeanLaplacianSize = 2;
-int tableDiffLowFilterSize = 80;
-
-int ballColorValueInt = 85;
-int ballColorValueVarianceInt = 190;
-
-int tableProbThresholdInt = 6000;
-
-int expShift = 1000;
-
 BallDensity BallDensityEstimator::next() {
 	BallDensity density;
 
-	namedWindow("slides", CV_WINDOW_NORMAL);
-
-	createTrackbar("tableMeanFrameAlphaInt", "slides", &tableMeanFrameAlphaInt, 10000);
-	createTrackbar("tableVarianceDiff2AlphaInt", "slides", &tableVarianceDiff2AlphaInt, 10000);
-	createTrackbar("tableVarianceBordersAlphaInt", "slides", &tableVarianceBordersAlphaInt, 10000);
-	createTrackbar("tableVarianceGammaInt", "slides", &tableVarianceGammaInt, 10000);
-	createTrackbar("tableMeanLaplacianSize", "slides", &tableMeanLaplacianSize, 10);
-	createTrackbar("tableDiffLowFilterSize", "slides", &tableDiffLowFilterSize, 100);
-	createTrackbar("ballColorValueInt", "slides", &ballColorValueInt, 100);
-	createTrackbar("ballColorValueVarianceInt", "slides", &ballColorValueVarianceInt, 10000);
-	createTrackbar("tableProbThresholdInt", "slides", &tableProbThresholdInt, 10000);
-	createTrackbar("expShift", "slides", &expShift, 10000);
-
 	density.tracking = subottoTracker->next();
 
-	Mat input = getInput(density);
+	BallDensityEstimatorInternals& i = lastInternals;
+
+	i.input = getInput(density);
+
+	Size size = i.input.size();
+	int type = i.input.type();
 
 	if(tableMean.empty()) {
-		input.copyTo(tableMean);
-		float v = tableVarianceGammaInt / 10000.f;
+		i.input.copyTo(tableMean);
+		float v = params.tableVarianceGammaInt / 10000.f;
 		Scalar varianceScalar = Scalar(v, v, v);
-		tableEstimatedVariance = Mat(tableMean.size(), tableMean.type(), varianceScalar);
+		tableEstimatedVariance = Mat(size, type, varianceScalar);
 	}
 
-	Mat tableDiff = input - tableMean;
+	i.tableDiff = i.input - tableMean;
 
-	Mat tableDiffLow;
-	blur(tableDiff, tableDiffLow, Size(tableDiffLowFilterSize, tableDiffLowFilterSize));
-	Mat tableDiffNoLow = tableDiff - tableDiffLow;
+	blur(i.tableDiff, i.tableDiffLow, Size(params.tableDiffLowFilterSize, params.tableDiffLowFilterSize));
+	i.tableDiffNoLow = i.tableDiff - i.tableDiffLow;
+	i.tableDiffNoLow2 = i.tableDiffNoLow.mul(i.tableDiffNoLow);
 
-	Mat tableDiffNoLow2 = tableDiffNoLow.mul(tableDiffNoLow);
+	Laplacian(tableMean, i.tableMeanLaplacian, -1, 1 + 2 * params.tableMeanLaplacianSize);
+	i.tableMeanBorders = i.tableMeanLaplacian.mul(i.tableMeanLaplacian);
 
-	Mat tableMeanLaplacian, tableMeanBorders;
-	Laplacian(tableMean, tableMeanLaplacian, -1, 1 + 2 * tableMeanLaplacianSize);
-	tableMeanBorders = tableMeanLaplacian.mul(tableMeanLaplacian);
+	tableEstimatedVariance.copyTo(i.tableCorrectedVariance);
 
-	Mat tableCorrectedVariance;
-	tableEstimatedVariance.copyTo(tableCorrectedVariance);
-	accumulateWeighted(tableMeanBorders, tableCorrectedVariance, tableVarianceBordersAlphaInt / 10000.f);
-	accumulateWeighted(Mat(tableCorrectedVariance.size(), tableCorrectedVariance.type(), Scalar(1, 1, 1)), tableCorrectedVariance, tableVarianceGammaInt / 10000.f);
+	accumulateWeighted(i.tableMeanBorders, i.tableCorrectedVariance, params.tableVarianceBordersAlphaInt / 10000.f);
+	accumulateWeighted(Mat(size, type, Scalar(1, 1, 1)), i.tableCorrectedVariance, params.tableVarianceGammaInt / 10000.f);
 
-	Mat tableDiffNorm = tableDiffNoLow2 / tableCorrectedVariance;
+	i.tableDiffNorm = i.tableDiffNoLow2 / i.tableCorrectedVariance;
 
-	accumulateWeighted(input, tableMean, tableMeanFrameAlphaInt / 10000.f);
-	accumulateWeighted(tableDiffNoLow2, tableEstimatedVariance, tableVarianceDiff2AlphaInt / 10000.f);
+	accumulateWeighted(i.input, tableMean, params.tableMeanFrameAlphaInt / 10000.f);
+	accumulateWeighted(i.tableDiffNoLow2, tableEstimatedVariance, params.tableVarianceDiff2AlphaInt / 10000.f);
 
-	float ballColorValue = ballColorValueInt / 100.f;
-	Mat ballDiff = input - Scalar(ballColorValue, ballColorValue, ballColorValue);
-	Mat ballDiff2 = ballDiff.mul(ballDiff);
+	float ballColorValue = params.ballColorValueInt / 100.f;
+	i.ballDiff = i.input - Scalar(ballColorValue, ballColorValue, ballColorValue);
+	i.ballDiff2 = i.ballDiff.mul(i.ballDiff);
 
-	float ballColorValueVariance = ballColorValueVarianceInt / 10000.f;
+	float ballColorValueVariance = params.ballColorValueVarianceInt / 10000.f;
 
-	Mat ballDiffNorm = ballDiff2 / Mat(ballDiff2.size(), ballDiff2.type(), Scalar(ballColorValueVariance, ballColorValueVariance, ballColorValueVariance));
+	i.ballDiffNorm = i.ballDiff2 / Mat(size, type, Scalar(ballColorValueVariance, ballColorValueVariance, ballColorValueVariance));
 
-	Mat tableProb;
-	transform(tableDiffNorm, tableProb, -Matx<float, 1, 3>(1, 1, 1));
+	i.tableProb;
+	transform(i.tableDiffNorm, i.tableProb, -Matx<float, 1, 3>(1, 1, 1));
 
-	Mat notTableProbTrunc;
-	threshold(-tableProb, notTableProbTrunc, tableProbThresholdInt / 100.f, 0, CV_THRESH_TRUNC);
-	Mat tableProbTrunc = -notTableProbTrunc;
+	i.notTableProbTrunc;
+	threshold(-i.tableProb, i.notTableProbTrunc, params.tableProbThresholdInt / 100.f, 0, CV_THRESH_TRUNC);
+	i.tableProbTrunc = -i.notTableProbTrunc;
 
-	Mat ballProb;
-	transform(ballDiffNorm, ballProb, -Matx<float, 1, 3>(1, 1, 1));
+	i.ballProb;
+	transform(i.ballDiffNorm, i.ballProb, -Matx<float, 1, 3>(1, 1, 1));
 
-	Mat pixelProb = ballProb - tableProbTrunc;
-	Mat posProb;
-	blur(pixelProb, posProb, Size(3, 3));
+	i.pixelProb = i.ballProb - i.tableProbTrunc;
+	i.posProb;
+	blur(i.pixelProb, i.posProb, Size(3, 3));
 
-	double maxPosProb;
-	minMaxLoc(posProb, nullptr, &maxPosProb);
-
-	Mat posProbExp;
-	exp(posProb - maxPosProb + (expShift / 100.f) - 10, posProbExp);
-
-	show("frame", density.tracking.frame);
-	show("input", input);
-	show("tableMean", tableMean);
-	show("tableMeanBorders", tableMeanBorders);
-	show("tableEstimatedVariance", tableEstimatedVariance, 20000);
-	show("tableCorrectedVariance", tableCorrectedVariance, 20000);
-	show("tableDiff", tableDiff, 3000);
-	show("tableDiffLow", tableDiffLow, 3000);
-	show("tableDiffNoLow2", tableDiffNoLow2, 20000);
-	show("tableDiffNorm", tableDiffNorm, 200);
-	show("ballDiff2", ballDiff2, 20000);
-	show("ballDiffNorm", ballDiffNorm, 200);
-	show("tableProb", tableProb, 50);
-	show("ballProb", ballProb, 50);
-	show("tableProbTrunc", tableProbTrunc, 50);
-	show("posProb", posProb, 5);
-	show("posProbExp", posProbExp);
+	tableEstimatedVariance.copyTo(i.tableEstimatedVariance);
+	tableMean.copyTo(i.tableMean);
 
 	return density;
+}
+
+BallDensityEstimatorInternals BallDensityEstimator::getLastInternals() {
+	return lastInternals;
 }
