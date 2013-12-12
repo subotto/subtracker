@@ -7,7 +7,7 @@
 #include <opencv2/video/video.hpp>
 #include <memory>
 
-void show(std::string name, cv::Mat image, int initialAlpha = 1000);
+void show(std::string name, cv::Mat image, int initialAlpha = 1000, int initialGamma = 0);
 
 struct BallDensityEstimatorParams {
 	int tableMeanFrameAlphaInt = 10;
