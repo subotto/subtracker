@@ -3,6 +3,9 @@
 #include <string>
 #include <utility>
 
+#include <cmath>
+
+#include "utility.hpp"
 #include "ball_density.hpp"
 
 using namespace cv;
@@ -66,36 +69,27 @@ ostream& operator<< (ostream& ots, BallDensityLocalMaximum const& a) {
 	return ots << "BallDensityLocalMaximum[" << a.weight << "," << a.position << "]";
 }
 
-int localMaximaLimit = 200;
-int statesLimit = 50;
-
-int localMaximumStdDevInt = 1500;
-int positionModelStdDevInt = 0;
-int velocityModelStdDevInt = 1;
-
-int spawnVelocityStdDevInt = 800;
-
-int spawnPenaltyInt = 5000;
-int bouncePenaltyInt = 300;
-
-float stdDevIntToVar(int stdDevInt) {
-	float stdDev = max(1, stdDevInt) / 1000.f;
-	return stdDev * stdDev;
-}
-
 void testBallTracking() {
 	vector<StateDensityComponent> previousStates;
 
 	namedWindow("trackSlides", CV_WINDOW_NORMAL);
 
-	createTrackbar("localMaximaLimit", "trackSlides", &localMaximaLimit, 200);
-	createTrackbar("statesLimit", "trackSlides", &statesLimit, 200);
-	createTrackbar("spawnPenaltyInt", "trackSlides", &spawnPenaltyInt, 100000);
-	createTrackbar("localMaximumStdDevInt", "trackSlides", &localMaximumStdDevInt, 10000);
-	createTrackbar("positionModelStdDevInt", "trackSlides", &positionModelStdDevInt, 10000);
-	createTrackbar("velocityModelStdDevInt", "trackSlides", &velocityModelStdDevInt, 10000);
-	createTrackbar("spawnVelocityStdDevInt", "trackSlides", &spawnVelocityStdDevInt, 10000);
-	createTrackbar("bouncePenaltyInt", "trackSlides", &bouncePenaltyInt, 10000);
+	Trackbar<int> localMaximaLimit("track", "localMaximaLimit", 200, 0, 1000);
+	Trackbar<int> statesLimit("track", "statesLimit", 50, 0, 1000);
+
+	Trackbar<float> spawnPenalty("track", "spawnPenalty", 100, 0, 100, 0.01);
+	Trackbar<float> localMaximumStdDev("track", "localMaximumStdDev", 1.5, 0.01, 100, 0.01);
+	Trackbar<float> positionModelStdDev("track", "positionModelStdDev", 0, 0.001, 10, 0.001);
+	Trackbar<float> velocityModelStdDev("track", "velocityModelStdDev", 0.01, 0.001, 10, 0.001);
+	Trackbar<float> spawnVelocityStdDev("track", "spawnVelocityStdDev", 0.1, 0.001, 10, 0.001);
+	Trackbar<float> bouncePenalty("track", "bouncePenalty", 4, 0, 100, 0.01);
+
+	Trackbar<float> localMaximaMinDistance("track", "localMaximaMinDistance", 5, 0, 200);
+	Trackbar<float> statesMinDistance("track", "statesMinDistance", 5, 0, 200, 0.01);
+
+	Trackbar<float> statesMinRelativeVelocity("track", "statesMinRelativeVelocity", 2, 0, 200, 0.01);
+	Trackbar<float> statesMinVelocityVarianceDifference("track", "statesMinVelocityVarianceDifference", 5, 0, 200, 0.01);
+	Trackbar<float> statesMinPositionVarianceDifference("track", "statesMinPositionVarianceDifference", 5, 0, 200, 0.01);
 
 	Mat trajReprAvg;
 
@@ -105,16 +99,16 @@ void testBallTracking() {
 			play = !play;
 		}
 
-		float localMaximumVar = stdDevIntToVar(localMaximumStdDevInt);
-		float positionModelVar = stdDevIntToVar(positionModelStdDevInt);
-		float velocityModelVar = stdDevIntToVar(velocityModelStdDevInt);
+		float localMaximumVar = pow(localMaximumStdDev.get(), 2);
+		float positionModelVar = pow(positionModelStdDev.get(), 2);
+		float velocityModelVar = pow(velocityModelStdDev.get(), 2);
 
 		auto ballDensity = densityEstimator->next();
 		auto density = ballDensity.density;
 		auto internals = densityEstimator->getLastInternals();
 
 		Mat dilatedDensity;
-		dilate(density, dilatedDensity, Mat(), Point(-1, -1), 10);
+		dilate(density, dilatedDensity, Mat(), Point(-1, -1), localMaximaMinDistance.get());
 
 		Mat localMaxMask = (density >= dilatedDensity);
 
@@ -132,7 +126,7 @@ void testBallTracking() {
 		sort(localMaxima.begin(), localMaxima.end(), [](BallDensityLocalMaximum a, BallDensityLocalMaximum b) {
 			return a.weight > b.weight;
 		});
-		localMaxima.resize(min(localMaxima.size(), size_t(localMaximaLimit)));
+		localMaxima.resize(min(localMaxima.size(), size_t(localMaximaLimit.get())));
 
 		float maxWeight = -1e6;
 		for(auto s : previousStates) {
@@ -149,10 +143,10 @@ void testBallTracking() {
 		spawn.velocity = Vec<float, 2>(0, 0);
 
 		spawn.positionVariance = 1e6;
-		spawn.velocityVariance = stdDevIntToVar(spawnVelocityStdDevInt);
+		spawn.velocityVariance = pow(spawnVelocityStdDev.get(), 2);
 		spawn.positionVelocityCovariance = 0;
 
-		spawn.weight = - spawnPenaltyInt / 100.f;
+		spawn.weight = -spawnPenalty.get();
 
 		previousStates.push_back(spawn);
 
@@ -245,8 +239,8 @@ void testBallTracking() {
 				StateDensityComponent bounce = cs;
 
 				bounce.velocity = 0;
-				bounce.velocityVariance = stdDevIntToVar(spawnVelocityStdDevInt);
-				bounce.weight -= bouncePenaltyInt / 100.f;
+				bounce.velocityVariance = pow(spawnVelocityStdDev.get(), 2);
+				bounce.weight -= bouncePenalty.get();
 				bounce.bounced = true;
 
 				currentStates.push_back(bounce);
@@ -259,7 +253,7 @@ void testBallTracking() {
 
 		previousStates.clear();
 		for(auto s : currentStates) {
-			if(previousStates.size() >= statesLimit) {
+			if(previousStates.size() >= statesLimit.get()) {
 				break;
 			}
 
@@ -271,9 +265,10 @@ void testBallTracking() {
 			bool dropped = false;
 			for(auto ps : previousStates) {
 				if(
-						norm(s.position - ps.position) < 5 &&
-						norm(s.velocity - ps.velocity) < 1 &&
-						abs(s.velocityVariance - ps.velocityVariance) < 0.2) {
+						norm(s.position - ps.position) < statesMinDistance.get() &&
+						norm(s.velocity - ps.velocity) < statesMinRelativeVelocity.get() &&
+						abs(s.velocityVariance - ps.velocityVariance) < statesMinVelocityVarianceDifference.get() &&
+						abs(s.positionVariance - ps.positionVariance) < statesMinPositionVarianceDifference.get()) {
 					dropped = true;
 					break;
 				}
@@ -346,7 +341,7 @@ void testBallTracking() {
 			trajRepr.copyTo(trajReprAvg);
 		}
 
-		trajReprAvg = 0.8 * trajReprAvg + 0.5 * trajRepr;
+		trajReprAvg = 10 * trajRepr;
 		show("trajReprAvg", internals.input + trajReprAvg);
 
 		Mat localMaxMaskF;
