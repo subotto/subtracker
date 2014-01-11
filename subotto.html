@@ -1,0 +1,103 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Subotto live!</title>
+  </head>
+  <body>
+    <svg width="80%" viewbox="0 0 1150 700" style="border:3px solid black;">
+      <defs>
+        <symbol id="half">
+          <circle cx="200" cy="350" r="80" style="stroke:white; stroke-width:10; fill:rgba(0,0,0,0)" />
+          <rect x="0" y="140" width="250" height="415" style="stroke:white; stroke-width:10; fill:rgb(19,65,33)" />
+          <polygon points="0,45 180,45 0,235" style="fill:white; stroke:white" />
+          <polygon points="0,655 180,655 0,465" style="fill:white; stroke:white" />
+          <line x1="0" y1="235" x2="0" y2="465" style="stroke:black; stroke-width:10" />
+          <line x1="0" y1="205" x2="100" y2="205" style="stroke:white; stroke-width:10" />
+          <line x1="0" y1="495" x2="100" y2="495" style="stroke:white; stroke-width:10" />
+          <line x1="100" y1="200" x2="100" y2="500" style="stroke:white; stroke-width:10" />
+          <circle cx="200" cy="350" r="5" style="fill:white" />
+        </symbol>
+        <symbol id="playerr0">
+          <rect x="62" y="0" width="20" height="50" style="fill:red;" />
+          <line x1="82" y="0" x2="82" y2="50" style="stroke:darkred; stroke-width:3" />
+        </symbol>
+        <symbol id="playerb0">
+          <rect x="62" y="0" width="20" height="50" style="fill:blue;" />
+          <line x1="62" y="0" x2="62" y2="50" style="stroke:darkblue; stroke-width:3" />
+        </symbol>
+      </defs>
+      <g transform="translate(575, 350) ">
+        <rect width="1150" height="700" x="-575" y="-350" style="fill:rgb(19,65,33); stroke-width:0; stroke:rgb(0,0,0)" />
+        <line x1="0" y1="-350" x2="0" y2="350" style="stroke:white; stroke-width:10" />
+        <circle cx="0" cy="0" r="10" style="fill:white" />
+        <circle cx="0" cy="0" r="80" style="stroke:white; stroke-width:10; fill:rgba(0,0,0,0)" />
+        <rect x="-575" y="-350" width="1150" height="45" style="fill:white" />
+        <rect x="-575" y="305" width="1150" height="45" style="fill:white" />
+        <use x="-575" y="-350" xlink:href="#half"/>
+        <use x="-575" y="-350" xlink:href="#half" transform="scale(-1, 1)" />
+        <g transform="translate(-552)" >
+          <rect x="-8" y="-350" width="16" height="700" style="fill:grey" />
+          <g transform="scale(1 1)">
+            <use x="-72" y="-25" xlink:href="#playerr0" />
+          </g>
+        </g>
+        <g transform="translate(552)" >
+          <rect x="-8" y="-350" width="16" height="700" style="fill:grey" />
+          <g transform="scale(1 1)">
+            <use x="-72" y="-25" xlink:href="#playerb0" />
+          </g>
+        </g>
+        <g transform="translate(-397)" >
+          <rect x="-8" y="-350" width="16" height="700" style="fill:grey" />
+          <g transform="scale(1 1)">
+            <use x="-72" y="-165" xlink:href="#playerr0" />
+            <use x="-72" y="125" xlink:href="#playerr0" />
+          </g>
+        </g>
+        <g transform="translate(+397)" >
+          <rect x="-8" y="-350" width="16" height="700" style="fill:grey" />
+          <g transform="scale(1 1)">
+            <use x="-72" y="-165" xlink:href="#playerb0" />
+            <use x="-72" y="125" xlink:href="#playerb0" />
+          </g>
+        </g>
+        <g transform="translate(242)" >
+          <rect x="-8" y="-350" width="16" height="700" style="fill:grey" />
+          <g transform="scale(1 1)">
+            <use x="-72" y="-285" xlink:href="#playerr0" />
+            <use x="-72" y="-25" xlink:href="#playerr0" />
+            <use x="-72" y="235" xlink:href="#playerr0" />
+          </g>
+        </g>
+        <g transform="translate(-242)" >
+          <rect x="-8" y="-350" width="16" height="700" style="fill:grey" />
+          <g transform="scale(1 1)">
+            <use x="-72" y="-285" xlink:href="#playerb0" />
+            <use x="-72" y="-25" xlink:href="#playerb0" />
+            <use x="-72" y="235" xlink:href="#playerb0" />
+          </g>
+        </g>
+        <g transform="translate(-87)" >
+          <rect x="-8" y="-350" width="16" height="700" style="fill:grey" />
+          <g transform="scale(1 1)">
+            <use x="-72" y="-305" xlink:href="#playerr0" />
+            <use x="-72" y="-165" xlink:href="#playerr0" />
+            <use x="-72" y="-25" xlink:href="#playerr0" />
+            <use x="-72" y="115" xlink:href="#playerr0" />
+            <use x="-72" y="255" xlink:href="#playerr0" />
+          </g>
+        </g>
+        <g transform="translate(+87)" >
+          <rect x="-8" y="-350" width="16" height="700" style="fill:grey" />
+          <g transform="scale(1 1)">
+            <use x="-72" y="-305" xlink:href="#playerb0" />
+            <use x="-72" y="-165" xlink:href="#playerb0" />
+            <use x="-72" y="-25" xlink:href="#playerb0" />
+            <use x="-72" y="115" xlink:href="#playerb0" />
+            <use x="-72" y="255" xlink:href="#playerb0" />
+          </g>
+        </g>
+      </g>
+    </svg>
+  </body>
+</html>
