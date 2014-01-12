@@ -23,7 +23,7 @@ subotto_tracking_test: subotto_tracking_test.cpp subotto_tracking.o
 median_test: median_test.cpp median.o
 	$(CPP) $(CPPFLAGS) $(LIBS) -o $@ $< median.o
 
-jobrunner_test: jobrunner_test.cpp jobrunner.o
+jobrunner_test: jobrunner_test.cpp jobrunner.o jobrunner.hpp
 	$(CPP) $(CPPFLAGS) $(LIBS) -o $@ $< jobrunner.o
 
 ball_tracking_test: ball_tracking_test.cpp subotto_tracking.o ball_density.o
