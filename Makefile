@@ -1,8 +1,8 @@
 UNAME := $(shell uname -s)
 CPP = g++
-CFLAGS = `pkg-config --cflags opencv` -g -O2
-CPPFLAGS = `pkg-config --cflags opencv` -g -std=c++11 -O2
-LIBS = `pkg-config --libs opencv`
+CFLAGS = $(shell pkg-config --cflags opencv) -g -O2
+CPPFLAGS = $(shell pkg-config --cflags opencv) -g -std=c++11 -O2
+LIBS = $(shell pkg-config --libs opencv)
 
 HEADERS = blobs_finder.hpp blobs_tracker.hpp
 OBJECTS = blobs_finder.o blobs_tracker.o subtracker.o
@@ -22,6 +22,9 @@ subotto_tracking_test: subotto_tracking_test.cpp subotto_tracking.o
 
 median_test: median_test.cpp median.o
 	$(CPP) $(CPPFLAGS) $(LIBS) -o $@ $< median.o
+
+jobrunner_test: jobrunner_test.cpp jobrunner.o
+	$(CPP) $(CPPFLAGS) $(LIBS) -o $@ $< jobrunner.o
 
 ball_tracking_test: ball_tracking_test.cpp subotto_tracking.o ball_density.o
 	$(CPP) $(CPPFLAGS) $(LIBS) -o ball_tracking_test $< subotto_tracking.o ball_density.o
