@@ -7,33 +7,13 @@
 using namespace std;
 using namespace cv;
 
-unordered_map<string, unique_ptr<int>> showAlpha, showGamma;
-
-void show(string name, Mat image, int initialAlpha, int initialGamma) {
-	if(showAlpha.find(name) == showAlpha.end()) {
-		showAlpha[name] = unique_ptr<int>(new int(initialAlpha));
-		showGamma[name] = unique_ptr<int>(new int(initialGamma));
-	}
-
-	float alpha = *showAlpha[name] / 1000.f;
-	float gamma = *showGamma[name] / 100.f;
-	Mat output = image * alpha + Scalar(gamma, gamma, gamma);
-
-	namedWindow("intensities", CV_WINDOW_NORMAL);
-	namedWindow(name, CV_WINDOW_NORMAL);
-
-	createTrackbar(name + "Alpha", "intensities", showAlpha[name].get(), 100000);
-	createTrackbar(name + "Gamma", "intensities", showGamma[name].get(), 100);
-
-	imshow(name, output);
-}
-
 const Size size(240, 120);
 
 BallDensityEstimator::BallDensityEstimator(unique_ptr<SubottoTracker> subottoTracker, BallDensityEstimatorParams params)
 :
 	subottoTracker(move(subottoTracker)),
-	params(params)
+	params(params),
+	metrics()
 {
 }
 
@@ -44,9 +24,9 @@ BallDensityEstimator::~BallDensityEstimator()
 Mat BallDensityEstimator::getInput(const BallDensity& density) {
 	Mat frame;
 	density.tracking.frame.convertTo(frame, CV_32F, 1 / 255.f);
-	Mat warpTransform = density.tracking.transform * getCSTInv(size);
+	Mat warpTransform = density.tracking.transform * sizeToUnits(metrics, size);
 	Mat input;
-	warpPerspective(frame, input, warpTransform, size, CV_WARP_INVERSE_MAP);
+	warpPerspective(frame, input, warpTransform, size, CV_WARP_INVERSE_MAP | CV_INTER_LINEAR);
 	return input;
 }
 
@@ -55,68 +35,74 @@ BallDensity BallDensityEstimator::next() {
 
 	density.tracking = subottoTracker->next();
 
-	BallDensityEstimatorInternals& i = lastInternals;
+	BallDensityEstimatorInternals& in = lastInternals;
 
-	i.input = getInput(density);
+	in.input = getInput(density);
 
-	Size size = i.input.size();
-	int type = i.input.type();
+	Size size = in.input.size();
+	int type = in.input.type();
 
 	if(tableMean.empty()) {
-		i.input.copyTo(tableMean);
+		in.input.copyTo(tableMean);
 		float v = params.tableVarianceGammaInt / 10000.f;
 		Scalar varianceScalar = Scalar(v, v, v);
 		tableEstimatedVariance = Mat(size, type, varianceScalar);
 	}
 
-	i.tableDiff = i.input - tableMean;
+	in.tableDiff = in.input - tableMean;
 
-	blur(i.tableDiff, i.tableDiffLow, Size(params.tableDiffLowFilterSize, params.tableDiffLowFilterSize));
-	i.tableDiffNoLow = i.tableDiff - i.tableDiffLow;
-	i.tableDiffNoLow2 = i.tableDiffNoLow.mul(i.tableDiffNoLow);
+	Mat tableDiffLowTemp;
+	in.tableDiff.copyTo(tableDiffLowTemp);
+	int boxSize = params.tableDiffLowFilterStdDev * 3 * sqrt(2 * CV_PI) / 4 + 0.5;
+	for(int i = 0; i < 3; i++) {
+		blur(tableDiffLowTemp, in.tableDiffLow, Size(boxSize, boxSize));
+		in.tableDiffLow.copyTo(tableDiffLowTemp);
+	}
 
-	Laplacian(tableMean, i.tableMeanLaplacian, -1, 1 + 2 * params.tableMeanLaplacianSize);
-	i.tableMeanBorders = i.tableMeanLaplacian.mul(i.tableMeanLaplacian);
+	in.tableDiffNoLow = in.tableDiff - in.tableDiffLow;
+	in.tableDiffNoLow2 = in.tableDiffNoLow.mul(in.tableDiffNoLow);
 
-	tableEstimatedVariance.copyTo(i.tableCorrectedVariance);
+	Laplacian(tableMean, in.tableMeanLaplacian, -1, 1 + 2 * params.tableMeanLaplacianSize);
+	in.tableMeanBorders = in.tableMeanLaplacian.mul(in.tableMeanLaplacian);
 
-	accumulateWeighted(i.tableMeanBorders, i.tableCorrectedVariance, params.tableVarianceBordersAlphaInt / 10000.f);
-	accumulateWeighted(Mat(size, type, Scalar(1, 1, 1)), i.tableCorrectedVariance, params.tableVarianceGammaInt / 10000.f);
+	tableEstimatedVariance.copyTo(in.tableCorrectedVariance);
 
-	i.tableDiffNorm = i.tableDiffNoLow2 / i.tableCorrectedVariance;
+	accumulateWeighted(in.tableMeanBorders, in.tableCorrectedVariance, params.tableVarianceBordersAlphaInt / 10000.f);
+	accumulateWeighted(Mat(size, type, Scalar(1, 1, 1)), in.tableCorrectedVariance, params.tableVarianceGammaInt / 10000.f);
 
-	accumulateWeighted(i.input, tableMean, params.tableMeanFrameAlphaInt / 10000.f);
-	accumulateWeighted(i.tableDiffNoLow2, tableEstimatedVariance, params.tableVarianceDiff2AlphaInt / 10000.f);
+	in.tableDiffNorm = in.tableDiffNoLow2 / in.tableCorrectedVariance;
+
+	accumulateWeighted(in.input, tableMean, params.tableMeanFrameAlphaInt / 10000.f);
+	accumulateWeighted(in.tableDiffNoLow2, tableEstimatedVariance, params.tableVarianceDiff2AlphaInt / 10000.f);
 
 	float ballColorValue = params.ballColorValueInt / 100.f;
-	i.ballDiff = i.input - Scalar(ballColorValue, ballColorValue, ballColorValue);
-	i.ballDiff2 = i.ballDiff.mul(i.ballDiff);
+	in.ballDiff = in.input - Scalar(ballColorValue, ballColorValue, ballColorValue);
+	in.ballDiff2 = in.ballDiff.mul(in.ballDiff);
 
 	float ballColorValueVariance = params.ballColorValueVarianceInt / 10000.f;
 
-	i.ballDiffNorm = i.ballDiff2 / Mat(size, type, Scalar(ballColorValueVariance, ballColorValueVariance, ballColorValueVariance));
+	in.ballDiffNorm = in.ballDiff2 / Mat(size, type, Scalar(ballColorValueVariance, ballColorValueVariance, ballColorValueVariance));
 
-	i.tableProb;
-	transform(i.tableDiffNorm, i.tableProb, -Matx<float, 1, 3>(1, 1, 1));
+	log(tableEstimatedVariance, in.logTableEstimatedVariance);
 
-	i.notTableProbTrunc;
-	threshold(-i.tableProb, i.notTableProbTrunc, params.tableProbThresholdInt / 100.f, 0, CV_THRESH_TRUNC);
-	i.tableProbTrunc = -i.notTableProbTrunc;
+	transform(in.tableDiffNorm + in.logTableEstimatedVariance, in.tableProb, -Matx<float, 1, 3>(1, 1, 1));
 
-	i.ballProb;
-	transform(i.ballDiffNorm, i.ballProb, -Matx<float, 1, 3>(1, 1, 1));
+	threshold(-in.tableProb, in.notTableProbTrunc, params.tableProbThresholdInt / 100.f, 0, CV_THRESH_TRUNC);
+	in.tableProbTrunc = -in.notTableProbTrunc;
 
-	i.pixelProb = i.ballProb - i.tableProbTrunc;
-	i.posProb;
-	blur(i.pixelProb, i.posProb, Size(3, 3));
+	transform(in.ballDiffNorm, in.ballProb, -Matx<float, 1, 3>(1, 1, 1));
+	in.ballProb -= 3 * log(ballColorValueVariance);
 
-	tableEstimatedVariance.copyTo(i.tableEstimatedVariance);
-	tableMean.copyTo(i.tableMean);
+	in.pixelProb = in.ballProb - in.tableProbTrunc;
+	blur(in.pixelProb, in.posProb, Size(3, 3));
+
+	tableEstimatedVariance.copyTo(in.tableEstimatedVariance);
+	tableMean.copyTo(in.tableMean);
 
 //	double maxProb;
-//	minMaxLoc(i.posProb, nullptr, &maxProb);
+//	minMaxLoc(in.posProb, nullptr, &maxProb);
 
-	density.density = i.posProb;
+	density.density = in.posProb;
 
 	return density;
 }

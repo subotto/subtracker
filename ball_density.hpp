@@ -7,8 +7,6 @@
 #include <opencv2/video/video.hpp>
 #include <memory>
 
-void show(std::string name, cv::Mat image, int initialAlpha = 1000, int initialGamma = 0);
-
 struct BallDensityEstimatorParams {
 	int tableMeanFrameAlphaInt = 10;
 
@@ -17,12 +15,12 @@ struct BallDensityEstimatorParams {
 	int tableVarianceGammaInt = 20;
 
 	int tableMeanLaplacianSize = 2;
-	int tableDiffLowFilterSize = 80;
+	int tableDiffLowFilterStdDev = 40;
 
 	int ballColorValueInt = 85;
 	int ballColorValueVarianceInt = 190;
 
-	int tableProbThresholdInt = 4000;
+	int tableProbThresholdInt = 2000;
 };
 
 struct BallDensityEstimatorInternals {
@@ -36,6 +34,7 @@ struct BallDensityEstimatorInternals {
 	cv::Mat tableMeanBorders;
 	cv::Mat tableEstimatedVariance;
 	cv::Mat tableCorrectedVariance;
+	cv::Mat logTableEstimatedVariance;
 	cv::Mat tableDiffNorm;
 	cv::Mat ballDiff;
 	cv::Mat ballDiff2;
@@ -64,6 +63,7 @@ private:
 	std::unique_ptr<SubottoTracker> subottoTracker;
 	std::unique_ptr<cv::BackgroundSubtractor> backgroundSubtractor;
 
+	SubottoMetrics metrics;
 	BallDensityEstimatorParams params;
 	BallDensityEstimatorInternals lastInternals;
 

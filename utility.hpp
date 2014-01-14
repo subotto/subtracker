@@ -51,4 +51,6 @@ T Trackbar<T>::get() {
 	return start + cv::getTrackbarPos(trackbarName, windowName) * step;
 }
 
+void show(std::string name, cv::Mat image, int initialAlpha = 1000, int initialGamma = 0);
+
 #endif /* UTILITY_HPP_ */

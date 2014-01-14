@@ -1,5 +1,7 @@
 #include "subotto_tracking.hpp"
 
+#include "subotto_metrics.hpp"
+
 #include <opencv2/core/core.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/videostab/videostab.hpp>
@@ -9,8 +11,6 @@
 using namespace std;
 using namespace cv;
 using namespace cv::videostab;
-
-const float subottoHalfWidth = 0.5;
 
 unique_ptr<FeatureDetector> createFeatureDetector(
 		FeatureDetectionParams params) {
@@ -92,39 +92,6 @@ PointMap opticalFlow(FeatureDetectionResult features, Mat referenceImage,
 	return map;
 }
 
-vector<Point_<float>> getSubottoCorners() {
-	return {
-		Point_<float>(+1, +subottoHalfWidth),
-		Point_<float>(+1, -subottoHalfWidth),
-		Point_<float>(-1, -subottoHalfWidth),
-		Point_<float>(-1, +subottoHalfWidth)
-	};
-}
-
-vector<Point_<float>> getCorners(Size size) {
-	return {
-		Point_<float>(size.width, size.height),
-		Point_<float>(size.width, 0),
-		Point_<float>(0, 0),
-		Point_<float>(0, size.height)
-	};
-}
-
-// cordinate system transform
-Mat getCST(Size fromSize) {
-	Mat coordinateSystemTransform;
-	getPerspectiveTransform(getSubottoCorners(), getCorners(fromSize)).convertTo(
-			coordinateSystemTransform, CV_32F);
-	return coordinateSystemTransform;
-}
-
-Mat getCSTInv(Size fromSize) {
-	Mat coordinateSystemTransform;
-	getPerspectiveTransform(getCorners(fromSize), getSubottoCorners()).convertTo(
-			coordinateSystemTransform, CV_32F);
-	return coordinateSystemTransform;
-}
-
 Point_<float> applyTransform(Point_<float> p, Mat m) {
 	Mat pm = (Mat_<float>(3, 1) << p.x, p.y, 1);
 	Mat tpm = m * pm;
@@ -132,25 +99,10 @@ Point_<float> applyTransform(Point_<float> p, Mat m) {
 	return Point_<float>(tpm.at<float>(0, 0) / w, tpm.at<float>(1, 0) / w);
 }
 
-static void show(string name, Mat image) {
-	namedWindow(name, CV_WINDOW_NORMAL);
-	imshow(name, image);
-}
-
-void showWarpedSubotto(string windowName, Mat frame, Mat transform) {
-	Size size = Size(400, 240);
-
-	Mat imageTransform = transform * getCSTInv(size);
-
-	Mat warpedFrame;
-	warpPerspective(frame, warpedFrame, imageTransform, size,
-			CV_WARP_INVERSE_MAP);
-	show(windowName, warpedFrame);
-}
-
 SubottoDetector::SubottoDetector(SubottoReference reference,
+		SubottoMetrics metrics,
 		SubottoDetectorParams params) :
-		reference(reference), params(params), referenceFeatures(
+		reference(reference), metrics(metrics), params(params), referenceFeatures(
 				detectFeatures(reference.image, reference.mask,
 						params.referenceDetection)) {
 }
@@ -166,11 +118,10 @@ Mat SubottoDetector::detect(Mat frame) {
 	float ransacOutliersRatio = params.coarseRansacOutliersRatio / 100.f;
 
 	RansacParams ransacParams(4, ransacThreshold, ransacOutliersRatio, 0.99f);
-	Mat coarseTransform = estimateGlobalMotionRobust(coarseMap.from,
-			coarseMap.to, LINEAR_SIMILARITY, ransacParams);
+	Mat coarseTransform = estimateGlobalMotionRobust(coarseMap.from, coarseMap.to, LINEAR_SIMILARITY, ransacParams);
 
 	Mat warped;
-	Size size(reference.image.cols, reference.image.rows);
+	Size size(reference.image.size());
 	warpPerspective(frame, warped, coarseTransform, size, CV_WARP_INVERSE_MAP);
 
 	PointMap fineMap = matchFeatures(referenceFeatures, warped,
@@ -180,14 +131,15 @@ Mat SubottoDetector::detect(Mat frame) {
 	findHomography(fineMap.from, fineMap.to, RANSAC, fineRansacThreshold).convertTo(
 			fineCorrection, CV_32F);
 
-	Mat transform = coarseTransform * fineCorrection * getCST(size);
+	Mat transform = coarseTransform * fineCorrection * referenceToSize(reference.metrics, size);
 
 	return transform;
 }
 
 SubottoFollower::SubottoFollower(SubottoReference reference,
+		SubottoMetrics metrics,
 		SubottoFollowingParams params) :
-		reference(reference), params(params), referenceFeatures(
+		reference(reference), params(params), metrics(metrics), referenceFeatures(
 				detectFeatures(reference.image, reference.mask,
 						params.opticalFlow.detection)) {
 }
@@ -199,7 +151,7 @@ Mat SubottoFollower::follow(Mat frame, Mat previousTransform) {
 	Mat warped;
 	Size size(reference.image.cols, reference.image.rows);
 
-	warpPerspective(frame, warped, previousTransform * getCSTInv(size), size,
+	warpPerspective(frame, warped, previousTransform * sizeToReference(reference.metrics, size), size,
 			CV_WARP_INVERSE_MAP);
 
 	PointMap map = opticalFlow(referenceFeatures, reference.image, warped);
@@ -213,14 +165,15 @@ Mat SubottoFollower::follow(Mat frame, Mat previousTransform) {
 				correction, CV_32F);
 	}
 
-	return previousTransform * getCSTInv(size) * correction * getCST(size);
+	return previousTransform * sizeToReference(reference.metrics, size) * correction * referenceToSize(reference.metrics, size);
 }
 
 SubottoTracker::SubottoTracker(VideoCapture cap, SubottoReference reference,
+		SubottoMetrics metrics,
 		SubottoTrackingParams params) :
 		cap(cap), params(params), reference(reference), detector(
-				new SubottoDetector(reference, params.detectionParams)), follower(
-				new SubottoFollower(reference, params.followingParams)) {
+				new SubottoDetector(reference, metrics, params.detectionParams)), follower(
+				new SubottoFollower(reference, metrics, params.followingParams)) {
 }
 
 SubottoTracker::~SubottoTracker() {
@@ -274,10 +227,10 @@ SubottoTracking SubottoTracker::next() {
 
 	frameCount++;
 
+	subottoTransform.copyTo(previousTransform);
+
 	subottoTracking.frame = frame;
 	subottoTracking.transform = subottoTransform;
-
-	subottoTransform.copyTo(previousTransform);
 
 	return subottoTracking;
 }
@@ -293,6 +246,6 @@ void drawSubottoBorders(Mat& outImage, const Mat& transform, Scalar color) {
 
 	for (int corner = 0; corner < subottoCorners.size(); corner++) {
 		line(outImage, subottoCorners[corner],
-				subottoCorners[(corner + 1) % subottoCorners.size()], color);
+				subottoCorners[(corner + 1) % subottoCorners.size()], color, 1, 16);
 	}
 }

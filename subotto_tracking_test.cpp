@@ -3,6 +3,8 @@
 
 #include "subotto_tracking.hpp"
 
+#include "utility.hpp"
+
 #include <opencv2/core/core.hpp>
 #include <opencv2/video/video.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -17,10 +19,12 @@ VideoCapture cap;
 
 shared_ptr<SubottoTrackingParams> trackerParams(new SubottoTrackingParams());
 unique_ptr<SubottoTracker> tracker;
+
 SubottoReference reference;
+SubottoMetrics metrics;
 
 void onChange(int a, void* b) {
-	tracker = unique_ptr<SubottoTracker>(new SubottoTracker(cap, reference, trackerParams));
+	tracker = unique_ptr<SubottoTracker>(new SubottoTracker(cap, reference, metrics, *trackerParams));
 }
 
 int main(int argc, char* argv[]) {
@@ -82,7 +86,21 @@ int main(int argc, char* argv[]) {
 
 	Mat mean;
 	Mat variance;
-	while (waitKey(1)) {
+
+	Trackbar<int> r("color", "R", 0, 0, 255);
+	Trackbar<int> g("color", "G", 0, 0, 255);
+	Trackbar<int> b("color", "B", 0, 0, 255);
+
+	bool play = false;
+	while (true) {
+		int c = waitKey(play);
+
+		if (c == ' ') {
+			play = !play;
+		} else if (c != 'n') {
+			continue;
+		}
+
 		Point2f subottoPoints[] = {
 				Point2f(-1, -0.6),
 				Point2f(-1, +0.6),
@@ -110,11 +128,13 @@ int main(int argc, char* argv[]) {
 		Mat warped;
 		warpedByte.convertTo(warped, CV_32F, 1 / 255.f);
 
-		namedWindow("warped", CV_WINDOW_NORMAL);
-		imshow("warped", warped);
+		Mat highlightedSubotto;
+		frame.copyTo(highlightedSubotto);
+		drawSubottoBorders(highlightedSubotto, subottoTracking.transform, Scalar(b.get(), g.get(), r.get()));
 
-		namedWindow("warped", CV_WINDOW_NORMAL);
-		imshow("warped", warped);
+		show("frame", frame);
+		show("highlighted", highlightedSubotto);
+		show("warped", warped);
 	}
 
 	return 0;

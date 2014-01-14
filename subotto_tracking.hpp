@@ -1,6 +1,8 @@
 #ifndef SUBOTTODETECTOR_H_
 #define SUBOTTODETECTOR_H_
 
+#include "subotto_metrics.hpp"
+
 #include <opencv2/core/core.hpp>
 #include <opencv2/videostab/videostab.hpp>
 
@@ -9,6 +11,7 @@
 struct SubottoReference {
 	cv::Mat image;
 	cv::Mat mask;
+	SubottoReferenceMetrics metrics;
 };
 
 struct FeatureDetectionParams {
@@ -72,9 +75,6 @@ struct SubottoTracking {
 	cv::Mat transform;
 };
 
-cv::Mat getCST(cv::Size size);
-cv::Mat getCSTInv(cv::Size size);
-
 /*
  * Finds the Subotto in a given frame, given a reference image of the Subotto (possibly masked).
  * Has no memory of previous frames.
@@ -97,13 +97,14 @@ cv::Mat getCSTInv(cv::Size size);
 
 class SubottoDetector {
 public:
-	SubottoDetector(SubottoReference reference, SubottoDetectorParams params);
+	SubottoDetector(SubottoReference reference, SubottoMetrics metrics, SubottoDetectorParams params);
 	virtual ~SubottoDetector();
 
 	cv::Mat detect(cv::Mat frame);
 private:
 	SubottoReference reference;
 	SubottoDetectorParams params;
+	SubottoMetrics metrics;
 
 	FeatureDetectionResult referenceFeatures;
 };
@@ -117,13 +118,14 @@ private:
  */
 class SubottoFollower {
 public:
-	SubottoFollower(SubottoReference reference, SubottoFollowingParams params);
+	SubottoFollower(SubottoReference reference, SubottoMetrics metrics, SubottoFollowingParams params);
 	virtual ~SubottoFollower();
 
 	cv::Mat follow(cv::Mat frame, cv::Mat initialTransform);
 private:
 	SubottoReference reference;
 	SubottoFollowingParams params;
+	SubottoMetrics metrics;
 
 	FeatureDetectionResult referenceFeatures;
 };
@@ -135,13 +137,14 @@ private:
  */
 class SubottoTracker {
 public:
-	SubottoTracker(cv::VideoCapture cap, SubottoReference reference, SubottoTrackingParams params);
+	SubottoTracker(cv::VideoCapture cap, SubottoReference reference, SubottoMetrics metrics, SubottoTrackingParams params);
 	virtual ~SubottoTracker();
 
 	SubottoTracking next();
 private:
 	cv::VideoCapture cap;
 	SubottoReference reference;
+	SubottoMetrics metrics;
 	SubottoTrackingParams params;
 
 	std::unique_ptr<SubottoDetector> detector;
