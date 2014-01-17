@@ -32,6 +32,9 @@ ball_tracking_test: ball_tracking_test.cpp subotto_tracking.o ball_density.o uti
 ball_density_test: ball_density_test.cpp ball_density.o subotto_tracking.o subotto_metrics.o
 	$(CPP) $(CPPFLAGS) $(LIBS) -o ball_density_test $< ball_density.o subotto_tracking.o subotto_metrics.o
 
+mock: mock.cpp
+	$(CPP) $< -std=c++11 -o mock
+
 %.o: %.cpp $(HEADERS) Makefile
 	$(CPP) $(CPPFLAGS) -c $<
 
