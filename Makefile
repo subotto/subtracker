@@ -29,6 +29,9 @@ jobrunner_test: jobrunner_test.cpp jobrunner.o jobrunner.hpp
 ball_tracking_test: ball_tracking_test.cpp subotto_tracking.o ball_density.o utility.o subotto_metrics.o
 	$(CPP) $(CPPFLAGS) -o ball_tracking_test $< subotto_tracking.o ball_density.o utility.o subotto_metrics.o $(LIBS)
 
+ball_tracking_giove: ball_tracking_giove.cpp subotto_tracking.o ball_density.o utility.o subotto_metrics.o blobs_tracker.o
+	$(CPP) $(CPPFLAGS) -o ball_tracking_giove $< subotto_tracking.o ball_density.o utility.o subotto_metrics.o blobs_tracker.o $(LIBS)
+
 ball_density_test: ball_density_test.cpp ball_density.o subotto_tracking.o subotto_metrics.o
 	$(CPP) $(CPPFLAGS) -o ball_density_test $< ball_density.o subotto_tracking.o subotto_metrics.o $(LIBS)
 

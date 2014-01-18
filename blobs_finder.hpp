@@ -14,9 +14,10 @@ class Blob {
 		cv::Point2f center;
 		double radius;
 		double speed;
+		double weight;
 	
-		Blob(cv::Point2f center, double radius=0, double speed=0)
-			: center(center), radius(radius), speed(speed)
+		Blob(cv::Point2f center, double radius=0, double speed=0, double weight=0)
+			: center(center), radius(radius), speed(speed), weight(weight)
 		{};
 		
 	private:
