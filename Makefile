@@ -15,22 +15,22 @@ clean:
 	rm *.o
 
 subtracker:  $(OBJECTS)
-	$(CPP) $(CPPFLAGS) $(LIBS) -o subtracker $(OBJECTS)
+	$(CPP) $(CPPFLAGS) -o subtracker $(OBJECTS) $(LIBS)
 
 subotto_tracking_test: subotto_tracking_test.cpp utility.o subotto_tracking.o subotto_metrics.o
-	$(CPP) $(CPPFLAGS) $(LIBS) -o subotto_tracking_test $< utility.o subotto_tracking.o subotto_metrics.o
+	$(CPP) $(CPPFLAGS) -o subotto_tracking_test $< utility.o subotto_tracking.o subotto_metrics.o $(LIBS)
 
 median_test: median_test.cpp median.o
-	$(CPP) $(CPPFLAGS) $(LIBS) -o $@ $< median.o
+	$(CPP) $(CPPFLAGS) -o $@ $< median.o $(LIBS)
 
 jobrunner_test: jobrunner_test.cpp jobrunner.o jobrunner.hpp
-	$(CPP) $(CPPFLAGS) $(LIBS) -o $@ $< jobrunner.o
+	$(CPP) $(CPPFLAGS) -o $@ $< jobrunner.o $(LIBS)
 
 ball_tracking_test: ball_tracking_test.cpp subotto_tracking.o ball_density.o utility.o subotto_metrics.o
-	$(CPP) $(CPPFLAGS) $(LIBS) -o ball_tracking_test $< subotto_tracking.o ball_density.o utility.o subotto_metrics.o
+	$(CPP) $(CPPFLAGS) -o ball_tracking_test $< subotto_tracking.o ball_density.o utility.o subotto_metrics.o $(LIBS)
 
 ball_density_test: ball_density_test.cpp ball_density.o subotto_tracking.o subotto_metrics.o
-	$(CPP) $(CPPFLAGS) $(LIBS) -o ball_density_test $< ball_density.o subotto_tracking.o subotto_metrics.o
+	$(CPP) $(CPPFLAGS) -o ball_density_test $< ball_density.o subotto_tracking.o subotto_metrics.o $(LIBS)
 
 mock: mock.cpp
 	$(CPP) $< -std=c++11 -o mock
@@ -39,4 +39,4 @@ mock: mock.cpp
 	$(CPP) $(CPPFLAGS) -c $<
 
 % : %.cpp
-	$(CPP) $(CPPFLAGS) $(LIBS) -o $@ $<
+	$(CPP) $(CPPFLAGS) -o $@ $< $(LIBS)
