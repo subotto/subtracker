@@ -45,11 +45,11 @@ class Node {
 class BlobsTracker {
 	public:
 		void InsertFrameInTimeline(std::vector<Blob> blobs, int time);
-		cv::Point2f ProcessFrame(int initial_time, int processed_time);
+		cv::Point2f ProcessFrames(int initial_time, int begin_time, int end_time);
 		void PopFrameFromTimeline();
 		
 		BlobsTracker()
-			: _max_speed(10.0), _max_unseen_distance(50.0), _distance_constant(0.01), _max_interpolation_time(80), _num_best_nodes(3), _constant_speed_range(3.0), _bounce_badness(1.0)
+			: _max_speed(10.0), _max_unseen_distance(50.0), _distance_constant(0.1), _max_interpolation_time(80), _num_best_nodes(3), _constant_speed_range(3.0), _bounce_badness(1.0)
 		{};
 	
 	private:

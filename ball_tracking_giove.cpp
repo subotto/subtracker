@@ -2,6 +2,7 @@
 #include <iterator>
 #include <string>
 #include <utility>
+#include <deque>
 
 #include <cmath>
 
@@ -233,14 +234,16 @@ void gioveBallTracking() {
 	bool debug = false;
 	
 	BlobsTracker blobs_tracker;
-
-	int final_time = 0;
 	
 	
 	int timeline_span = 120;
+	int processed_frames = 1;	// number of frames to be processed for each call to ProcessFrame
 	int current_time = 0;
 	int initial_time = 0;
-	int processed_time = 0;
+	
+	namedWindow( "Display", WINDOW_NORMAL );
+	
+	deque<Mat> frames;
 	
 	while (true) {
 		int c = waitKey(play);
@@ -252,14 +255,14 @@ void gioveBallTracking() {
 		if (c == 'd') {
 			debug = !debug;
 		}
-		
-		printf("Qua\n");
 
 		auto ballDensity = densityEstimator->next();
 		auto density = ballDensity.density;
 		auto internals = densityEstimator->getLastInternals();
 		
-		printf("Sono qui!\n");
+		if ( current_time >= timeline_span ) {
+			frames.push_back( internals.input );
+		}
 		
 		auto localMaxima = findLocalMaxima(density, localMaximaMinDistance.get());
 		
@@ -271,16 +274,33 @@ void gioveBallTracking() {
 		vector<Blob> blobs;
 		for (int i=0; i<localMaxima.size(); i++) {
 			blobs.push_back( Blob(localMaxima[i].position, 0.0, 0.0, localMaxima[i].weight) );
+			// printf("Weight: %lf\n", localMaxima[i].weight);
 		}
-		blobs_tracker.InsertFrameInTimeline(blobs, current_time++);
+		printf("Inserting frame %d in timeline.\n", current_time);
+		blobs_tracker.InsertFrameInTimeline(blobs, current_time);
 		
-		if ( current_time > 2*timeline_span ) {
+		if ( current_time >= 2*timeline_span ) {
 			blobs_tracker.PopFrameFromTimeline();
+			int processed_time = initial_time + timeline_span;
+			
+			if ( processed_time % processed_frames == 0 ) {
+				// printf("Initial/Processed: %d %d\n", initial_time, processed_time);
+				Point2f ball = blobs_tracker.ProcessFrames( initial_time, processed_time, processed_time + processed_frames );
+				printf("Ball: (%lf, %lf)\n", ball.x, ball.y);
+				
+				Mat display;
+				assert(!frames.empty());
+				frames.front().copyTo(display);
+				//cvtColor(frames.front(), display, CV_GRAY2RGB);
+				frames.pop_front();
+				circle( display, ball, 2, Scalar(0,255,0), 1 );
+				imshow("Display", display);
+			}
+			
 			initial_time++;
-			processed_time = initial_time + timeline_span;
 		}
-		Point2f ball = blobs_tracker.ProcessFrame( initial_time, processed_time );
 		
+		current_time++;
 	}
 }
 
