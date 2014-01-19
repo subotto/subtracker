@@ -5,6 +5,8 @@ import sys
 
 from data import Session, Log
 
+COMMIT_FREQ = 120
+
 if __name__ == '__main__':
     session = Session()
 
@@ -15,7 +17,7 @@ if __name__ == '__main__':
             log = Log.from_tuple(data)
             session.add(log)
             log_num += 1
-            if log_num % 100 == 0:
+            if log_num % COMMIT_FREQ == 0:
                 session.commit()
     except KeyboardInterrupt:
         pass
