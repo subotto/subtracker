@@ -53,4 +53,39 @@ T Trackbar<T>::get() {
 
 void show(std::string name, cv::Mat image, int initialAlpha = 1000, int initialGamma = 0);
 
+class ColorPicker {
+public:
+	ColorPicker(std::string name, cv::Scalar initial = cv::Scalar(0.f, 0.f, 0.f))
+	:
+		b(name, "blue", initial[0], 0.f, 1.f, 0.01f),
+		g(name, "green", initial[1], 0.f, 1.f, 0.01f),
+		r(name, "red", initial[2], 0.f, 1.f, 0.01f)
+	{}
+
+	cv::Scalar get() {
+		return cv::Scalar(b.get(), g.get(), r.get());
+	}
+private:
+	Trackbar<float> r, g, b;
+};
+
+class ColorQuadraticForm {
+public:
+	ColorQuadraticForm(std::string name, cv::Matx<float, 1, 6> initial = cv::Matx<float, 1, 6>(1.f, 1.f, 1.f, 0.f, 0.f, 0.f))
+	:
+		bb(name, "blue2",      initial.val[0],    0.f, 100.f, 0.01f),
+		gg(name, "green2",     initial.val[1],    0.f, 100.f, 0.01f),
+		rr(name, "red2",       initial.val[2],    0.f, 100.f, 0.01f),
+		bg(name, "blue-green", initial.val[3], -100.f, 100.f, 0.01f),
+		gr(name, "green-red",  initial.val[4], -100.f, 100.f, 0.01f),
+		rb(name, "red-blue",   initial.val[5], -100.f, 100.f, 0.01f)
+	{}
+
+	cv::Matx<float, 1, 6> getScatterTransform() {
+		return cv::Matx<float, 1, 6>(bb.get(), gg.get(), rr.get(), bg.get(), gr.get(), rb.get());
+	}
+private:
+	Trackbar<float> bb, rr, gg, bg, gr, rb;
+};
+
 #endif /* UTILITY_HPP_ */

@@ -179,11 +179,23 @@ SubottoTracker::SubottoTracker(VideoCapture cap, SubottoReference reference,
 SubottoTracker::~SubottoTracker() {
 }
 
+Mat correctDistortion(Mat frameDistorted) {
+	Matx<float, 3, 3> cameraMatrix(160, 0, 160, 0, 160, 120, 0, 0, 1);
+	float k = -0.025;
+
+	Mat frame;
+	undistort(frameDistorted, frame, cameraMatrix, vector<float> {k, 0, 0, 0}, getDefaultNewCameraMatrix(cameraMatrix));
+
+	return frame;
+}
+
 SubottoTracking SubottoTracker::next() {
 	SubottoTracking subottoTracking;
-	Mat frame;
+	Mat frameDistorted;
 
-	cap >> frame;
+	cap >> frameDistorted;
+
+	Mat frame = correctDistortion(frameDistorted);
 
 	Mat subottoTransform;
 

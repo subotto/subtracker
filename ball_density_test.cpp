@@ -2,6 +2,7 @@
 #include <string>
 
 #include "ball_density.hpp"
+#include "utility.hpp"
 
 using namespace cv;
 using namespace std;
