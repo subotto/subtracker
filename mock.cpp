@@ -1,4 +1,4 @@
-#include <iostream>
+#include <cstdio>
 #include <chrono>
 #include <thread>
 #include <cmath>
@@ -7,26 +7,26 @@ using namespace chrono;
 
 int main() {
     int count = 0;
+    auto ref = high_resolution_clock::now();
     while(++count) {
         this_thread::sleep_for(milliseconds(8));
-        auto now = high_resolution_clock::now().time_since_epoch();
-        // angoli:      centesimi di radiante
-        // posizione:   millesimi di unità subotto
-        // tempo:       millesimi di secondo
-        auto ms = duration_cast<milliseconds>(now).count();
-        int palla_x = sin(float(count) / 200) * 400;
-        int palla_y = cos(float(count) / 200) * 400;
-        cout << "palla " << palla_x << " " << palla_y << " " << ms << endl;
+        // angoli:      radianti
+        // posizione:   metri
+        // tempo:       secondi dal tempo di riferimento
+        auto now = high_resolution_clock::now();
+        float ms = float(duration_cast<milliseconds>(now - ref).count()) / 1000;
+        float palla_x = sin(float(count) / 200) * 0.4;
+        float palla_y = cos(float(count) / 200) * 0.4;
+        printf("palla %.3f %.3f %.3f\n", palla_x, palla_y, ms);
         if(rand()%400 == 0) {
-            cout << "tocco " << palla_x << " " << palla_y << " " << ms << endl;
+            printf("tocco %.3f %.3f %.3f\n", palla_x, palla_y, ms);
         }
-        int stecca_pos[8];
-        int stecca_rot[8];
+        float stecca_pos[8];
+        float stecca_rot[8];
         for(int i=0; i<8; i++) {
-            stecca_pos[i] = sin(float(count + i*30) / 300) * (40-4*i);
-            stecca_rot[i] = (4*count + i*40) % 628;
-            cout << "stecca " << i << " "<< stecca_pos[i] << " "
-                 << stecca_rot[i] << " " << ms << endl;
+            stecca_pos[i] = sin(float(count + i*30) / 300) * (0.4-0.04*i);
+            stecca_rot[i] = float((count + i*40) % 628) / 100;
+            printf("stecca %d %.3f %.3f %.3f\n", i, stecca_pos[i], stecca_rot[i], ms);
         }
     }
 }
