@@ -49,19 +49,17 @@ class BlobsTracker {
 		void PopFrameFromTimeline();
 		
 		BlobsTracker()
-			: _max_speed(10.0), _max_unseen_distance(50.0), _distance_constant(0.1), _max_interpolation_time(80), _num_best_nodes(3), _constant_speed_range(3.0), _bounce_badness(1.0)
+			: _fps(120.0), _max_speed(18.0), _max_unseen_distance(0.3), _distance_constant(1000.0), _max_interpolation_time(0.5), _max_badness_per_frame(-7.0)
 		{};
 	
 	private:
 		std::deque< std::vector<Node> > _timeline;
-		double _max_speed; // massimo spostamento tra due frame consecutivi perché il movimento sia riconosciuto possibile
-		double _max_unseen_distance; // massima distanza a cui si può teletrasportare la pallina
+		double _fps; // fotogrammi al secondo
+		double _max_speed; // massima velocita' (in m/s) perché il movimento sia considerato possibile
+		double _max_unseen_distance; // massima distanza (in metri) a cui si può teletrasportare la pallina
 		double _distance_constant; // costante per decidere la verosimiglianza della pallina spostata
-		int _max_interpolation_time; // numero massimo di fotogrammi entro i quali si interpola la posizione della pallina
-		
-		int _num_best_nodes; // numero dei migliori nodi di cui viene tenuta traccia
-		double _constant_speed_range; // errore entro il quale la differenza di velocità non genera un rimbalzo
-		double _bounce_badness; // badness da aggiungere quando vi è un rimbalzo
+		double _max_interpolation_time; // tempo massimo (in secondi) entro il quale si interpola la posizione della pallina
+		double _max_badness_per_frame; // costante per evitare soluzioni con badness troppo alta
 };
 
 #endif

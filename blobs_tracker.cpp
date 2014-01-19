@@ -33,8 +33,8 @@ Point2f BlobsTracker::ProcessFrames(int initial_time, int begin_time, int end_ti
 	
 	printf("Processing frames from %d to %d\n", begin_time, end_time-1);
 	
-	 // TODO: aggiustare questa min_badness, che serve a evitare falsi positivi quando non c'è la pallina vera
-	double min_badness = 0.0;
+	 // questa min_badness serve a evitare falsi positivi quando non c'è la pallina vera
+	double min_badness = _timeline.size() * _max_badness_per_frame;
 	printf("Maximum acceptable badness: %.1lf\n", min_badness);
 	Node *best_node = NULL;
 	
@@ -61,7 +61,8 @@ Point2f BlobsTracker::ProcessFrames(int initial_time, int begin_time, int end_ti
 					double distance = norm(new_center - old_center);
 					
 					// Controllo di località
-					if ( distance > _max_speed * interval ) continue;
+					if ( distance > _max_speed / _fps * interval ) continue;
+					if ( distance > _max_unseen_distance ) continue;
 					
 					// Verosimiglianza gaussiana
 					delta_badness += _distance_constant * distance * distance;
@@ -96,7 +97,7 @@ Point2f BlobsTracker::ProcessFrames(int initial_time, int begin_time, int end_ti
 		// Cerco la miglior posizione prevista per il frame i
 		Node *node = best_node;
 		if ( node == NULL ) {
-			printf("Frame %d: no ball found (no path).\n", i);
+			printf("Frame %d: no ball found (no path with acceptable badness).\n", i);
 			continue;
 		}
 		if ( node->time < i ) {
@@ -136,7 +137,7 @@ Point2f BlobsTracker::ProcessFrames(int initial_time, int begin_time, int end_ti
 		int pre_diff = i - lower->time;
 		int post_diff = greater->time - i;
 	
-		if ( max( pre_diff, post_diff ) > _max_interpolation_time ) {
+		if ( (double)(max( pre_diff, post_diff )) > _max_interpolation_time * _fps ) {
 			printf("Frame %d: no ball found (interpolation is not reliable).\n", i);
 			continue;
 		}
