@@ -46,8 +46,33 @@ class Application:
         session.rollback()
         session.close()
 
+    def select_records(self, record_num, interval):
+        return self.buffer[-record_num:]
+
+    def error(self, environ, start_response):
+        status = '400 Bad Request'
+        response = '400 Bad Request'
+        response_headers = [('Content-Type', 'text/plain; charset=utf-8'),
+                            ('Content-Length', str(len(response)))]
+        start_response(status, response_headers)
+        return [response]
+
     def __call__(self, environ, start_response):
-        json_response = self.encoder.encode(self.buffer).encode('utf-8')
+        # Parse the request
+        if 'QUERY_STRING' in environ and environ['QUERY_STRING'] is not None:
+            query_string = environ['QUERY_STRING']
+            if len(query_string) >= 512:
+                return self.error(environ, start_response)
+            try:
+                request_tuples = [tuple(x.split('=', 1)) for x in environ['QUERY_STRING'].split('&')]
+                request_params = dict([x for x in request_tuples if len(x) == 2])
+                record_num = int(request_params.get('record_num', 24))
+                interval = float(request_params.get('interval', 1.0 / 24))
+            except Exception:
+                #raise
+                return self.error(environ, start_response)
+
+        json_response = self.encoder.encode(self.select_records(record_num, interval)).encode('utf-8')
         status = '200 OK'
         response_headers = [('Content-Type', 'application/json; charset=utf-8'),
                             ('Content-Length', str(len(json_response)))]
