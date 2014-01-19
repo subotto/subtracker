@@ -12,9 +12,11 @@ using namespace chrono;
  *  - tocco   è avvenuto un tocco della pallina in una certa posizione
  *            Parametri: x y
  *  - stecca  la posizione dell'i-esima stecca (coordinata y e angolo)
+ *            la stecca 0 è il portiere rosso, le altre seguono in ordine
  *            Parametri: i y angolo
  *
- *  Ogni evento è nel formato "nome_evento timestamp parametri"
+ *  Ogni evento è nel formato "nome_evento timestamp parametri".
+ *  Gli eventi appaiono ordinati per timestamp.
  *
  *  Le unità di misura usate sono:
  *  - angoli      radianti
