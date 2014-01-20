@@ -2,22 +2,38 @@
 # -*- coding:utf-8 -*-
 
 import sys
+import time
 
 from data import Session, Log
 
-COMMIT_FREQ = 120
+COMMIT_FREQ = 2.0
+
+def my_float(x):
+    if x == '':
+        return None
+    else:
+        return float(x)
 
 if __name__ == '__main__':
     session = Session()
 
-    log_num = 0
+    last_commit = time.time()
     try:
-        for line in sys.stdin:
-            data = [float(x) for x in line.strip().split(",")]
+        while True:
+            line = sys.stdin.readline()
+            if line == '':
+                break
+            data = [my_float(x) for x in line.strip().split(",")]
             log = Log.from_tuple(data)
             session.add(log)
-            log_num += 1
-            if log_num % COMMIT_FREQ == 0:
+            session.flush()
+            now = time.time()
+            if now - last_commit >= COMMIT_FREQ:
+                last_commit = now
                 session.commit()
+
     except KeyboardInterrupt:
         pass
+
+    finally:
+        session.commit()

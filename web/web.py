@@ -3,12 +3,13 @@
 
 import threading
 import time
+import sys
 import json
 
 from data import Session, Log
 
 BUFFER_LEN = 240
-SLEEP_TIME = 0.1
+SLEEP_TIME = 0.5
 
 class LogJSONEncoder(json.JSONEncoder):
 
@@ -38,16 +39,20 @@ class Application:
             last_id = 0
         last_id -= BUFFER_LEN
         while not self.closing:
-            self.buffer += session.query(Log).filter(Log.id > last_id).order_by(Log.id).all()
-            if len(self.buffer) > 0:
-                last_id = self.buffer[-1].id
+            new_data = session.query(Log).filter(Log.id > last_id).order_by(Log.id).all()
+            if len(new_data) > 0:
+                last_id = new_data[-1].id
+            new_data = [x.clone() for x in new_data]
+            #print >> sys.stderr, "Read %d records" % (len(new_data))
+            self.buffer += new_data
             self.buffer = self.buffer[-BUFFER_LEN:]
+            session.rollback()
             time.sleep(SLEEP_TIME)
         session.rollback()
         session.close()
 
-    def select_records(self, record_num, interval):
-        return self.buffer[-record_num:]
+    def select_records(self, last_timestamp):
+        return [x for x in self.buffer if x.timestamp > last_timestamp]
 
     def error(self, environ, start_response):
         status = '400 Bad Request'
@@ -66,13 +71,15 @@ class Application:
             try:
                 request_tuples = [tuple(x.split('=', 1)) for x in environ['QUERY_STRING'].split('&')]
                 request_params = dict([x for x in request_tuples if len(x) == 2])
-                record_num = int(request_params.get('record_num', 24))
-                interval = float(request_params.get('interval', 1.0 / 24))
+                last_timestamp = float(request_params.get('last_timestamp', 0.0))
             except Exception:
                 #raise
                 return self.error(environ, start_response)
 
-        json_response = self.encoder.encode(self.select_records(record_num, interval)).encode('utf-8')
+        obj_response = {
+            'data': self.select_records(last_timestamp),
+            }
+        json_response = self.encoder.encode(obj_response).encode('utf-8')
         status = '200 OK'
         response_headers = [('Content-Type', 'application/json; charset=utf-8'),
                             ('Content-Length', str(len(json_response)))]

@@ -12,6 +12,7 @@ with open('database_url') as fdata:
     database_url = fdata.readline().strip()
 
 # Set isolation level to READ UNCOMMITTED for better responsiveness
+# (but it doesn't work anyway...)
 db = create_engine(database_url, echo=False, isolation_level="READ UNCOMMITTED")
 Session = sessionmaker(db)
 Base = declarative_base(db)
@@ -25,23 +26,25 @@ class Log(Base):
 
     ball_x = Column(Float, nullable=False)
     ball_y = Column(Float, nullable=False)
-    rod_red_0_shift = Column(Float, nullable=False)
-    rod_red_0_angle = Column(Float, nullable=False)
-    rod_red_1_shift = Column(Float, nullable=False)
-    rod_red_1_angle = Column(Float, nullable=False)
-    rod_red_2_shift = Column(Float, nullable=False)
-    rod_red_2_angle = Column(Float, nullable=False)
-    rod_red_3_shift = Column(Float, nullable=False)
-    rod_red_3_angle = Column(Float, nullable=False)
+    rod_red_0_shift = Column(Float, nullable=True)
+    rod_red_0_angle = Column(Float, nullable=True)
+    rod_red_1_shift = Column(Float, nullable=True)
+    rod_red_1_angle = Column(Float, nullable=True)
+    rod_red_2_shift = Column(Float, nullable=True)
+    rod_red_2_angle = Column(Float, nullable=True)
+    rod_red_3_shift = Column(Float, nullable=True)
+    rod_red_3_angle = Column(Float, nullable=True)
 
-    rod_blue_0_shift = Column(Float, nullable=False)
-    rod_blue_0_angle = Column(Float, nullable=False)
-    rod_blue_1_shift = Column(Float, nullable=False)
-    rod_blue_1_angle = Column(Float, nullable=False)
-    rod_blue_2_shift = Column(Float, nullable=False)
-    rod_blue_2_angle = Column(Float, nullable=False)
-    rod_blue_3_shift = Column(Float, nullable=False)
-    rod_blue_3_angle = Column(Float, nullable=False)
+    rod_blue_0_shift = Column(Float, nullable=True)
+    rod_blue_0_angle = Column(Float, nullable=True)
+    rod_blue_1_shift = Column(Float, nullable=True)
+    rod_blue_1_angle = Column(Float, nullable=True)
+    rod_blue_2_shift = Column(Float, nullable=True)
+    rod_blue_2_angle = Column(Float, nullable=True)
+    rod_blue_3_shift = Column(Float, nullable=True)
+    rod_blue_3_angle = Column(Float, nullable=True)
+
+    TUPLE_LEN = 1 + 2 + 2 * 8
 
     def to_tuple(self):
         return (self.timestamp, self.ball_x, self.ball_y,
@@ -54,9 +57,14 @@ class Log(Base):
                 self.rod_blue_2_shift, self.rod_blue_2_angle,
                 self.rod_blue_3_shift, self.rod_blue_3_angle)
 
+    def clone(self):
+        return Log.from_tuple(self.to_tuple())
+
     @staticmethod
     def from_tuple(data):
         log = Log()
+        if len(data) < Log.TUPLE_LEN:
+            data = list(data) + [None] * (Log.TUPLE_LEN - len(data))
         log.timestamp, log.ball_x, log.ball_y, \
             log.rod_red_0_shift, log.rod_red_0_angle, \
             log.rod_red_1_shift, log.rod_red_1_angle, \
