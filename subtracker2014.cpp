@@ -317,8 +317,8 @@ void doIt() {
 
 	BlobsTracker blobs_tracker;
 
-	int timeline_span = 120;
-	int processed_frames = 10;	// number of frames to be processed for each call to ProcessFrame
+	int timeline_span = 30;
+	int processed_frames = 5;	// number of frames to be processed for each call to ProcessFrame
 
 	int current_time = 0;
 	int initial_time = 0;
@@ -350,6 +350,9 @@ void doIt() {
 			rot[bar][side] = 0.f;
 		}
 	}
+	
+	deque< vector<float> > foosmenValues;	// Values to be printed for each frame
+	deque<double> timestamps;				// Timestamp of each frame
 
 	for (int i = 0; ; i++) {
 		int c = waitKey(1);
@@ -365,6 +368,9 @@ void doIt() {
 		auto subotto = tracker->next();
 
 		Mat frame = subotto.frame;
+		
+		// TODO: inserire il vero timestamp!
+		timestamps.push_back(1234.0);
 
 		Mat tableFrame;
 		getTableFrame(frame, tableFrame, tableFrameSize, subotto.transform);
@@ -384,7 +390,8 @@ void doIt() {
 
 		Scalar meanColor[] = {blueColor.get(), redColor.get()};
 		Matx<float, 1, 6> colorPrecision[] = {blueColorPrecision.getScatterTransform(), redColorPrecision.getScatterTransform()};
-
+		
+		
 		for(int side = 0; side < 2; side++) {
 			for(int bar = 0; bar < BARS; bar++) {
 
@@ -462,7 +469,18 @@ void doIt() {
 //			show(side ? "red" : "blue", -probBlurred, 1000, 100);
 //			show(side ? "redT" : "blueT", -probThresh, 400, 50);
 		}
-
+		
+		
+		// Saving values for later...
+		vector<float> foosmenValuesFrame;
+		for(int side = 0; side < 2; side++) {
+			for(int bar = 0; bar < BARS; bar++) {
+				foosmenValuesFrame.push_back( shift[bar][side] );
+				foosmenValuesFrame.push_back( rot[bar][side] );
+			}
+		}
+		foosmenValues.push_back( foosmenValuesFrame );
+		
 		Mat fm;
 		tableFrame.copyTo(fm);
 		drawFoosmen(fm, metrics, foosmenMetrics, shift, rot);
@@ -492,22 +510,26 @@ void doIt() {
 			return a.weight > b.weight;
 		});
 		localMaxima.resize(min(localMaxima.size(), size_t(localMaximaLimit.get())));
-
+		
+		
 		// Cambio le unità di misura secondo le costanti in SubottoMetrics
 		SubottoMetrics metrics;
-		vector<Blob> blobs;
 		for (int i=0; i<localMaxima.size(); i++) {
 			// printf("Coordinate prima: (%lf, %lf)\n", localMaxima[i].position[0], localMaxima[i].position[1]);
-			Vec2f positionMeters = localMaxima[i].position / m2px;
-			// printf("Coordinate dopo:  (%lf, %lf)\n", positionMeters[0], positionMeters[1]);
-			blobs.push_back( Blob(positionMeters, 0.0, 0.0, localMaxima[i].weight) );
+			localMaxima[i].position[0] *= metrics.length / density.cols;
+			localMaxima[i].position[1] *= metrics.width / density.rows;
+			// printf("Coordinate dopo:  (%lf, %lf)\n", localMaxima[i].position[0], localMaxima[i].position[1]);
 		}
-
+		
 		// Inserisco i punti migliori come nuovo frame nella timeline
+		vector<Blob> blobs;
+		for (int i=0; i<localMaxima.size(); i++) {
+			blobs.push_back( Blob(localMaxima[i].position, 0.0, 0.0, localMaxima[i].weight) );
+		}
 		if (debug) fprintf(stderr, "Inserting frame %d in timeline.\n", current_time);
 		blobs_tracker.InsertFrameInTimeline(blobs, current_time);
-
-
+		
+		
 		// Metto da parte il frame per l'eventuale visualizzazione
 		if ( current_time >= timeline_span ) {
 			frames.push_back(tableFrame);
@@ -524,11 +546,26 @@ void doIt() {
 
 				for (int i=0; i<positions.size(); i++) {
 					int frame_id = processed_time + i;
+					
+					assert(!timestamps.empty());
+					double timestamp = timestamps.front();
+					timestamps.pop_front();
+					
+					assert(!foosmenValues.empty());
+					vector<float> foosmenValuesFrame = foosmenValues.front();
+					foosmenValues.pop_front();
 
-					// TODO: stampare il vero timestamp del frame frame_id
-					double timestamp = 10000.0;
-
-					printf("%lf,%lf,%lf\n", timestamp, positions[i].x, positions[i].y);
+					printf("%lf", timestamp);
+					
+					// Controllo che la pallina sia stata effettivamente trovata (la posizione non deve essere NISBA) e la stampo
+					if ( positions[i].x > -0.5 && positions[i].y > -0.5 ) printf(",%lf,%lf", positions[i].x, positions[i].y);
+					else printf(",,");
+					
+					for (int j=0; j<foosmenValuesFrame.size(); j++) {
+						printf(",%f", foosmenValuesFrame[j]);
+					}
+					printf("\n");
+					fflush(stdout);
 				}
 
 				if (debug) {
@@ -538,6 +575,7 @@ void doIt() {
 					assert(!frames.empty());
 					frames.front().copyTo(display);
 					Point2f ball = positions[0];
+					fprintf(stderr,"Ball found: (%lf,%lf)\n", ball.x, ball.y);
 					ball.x /= metrics.length / density.cols;
 					ball.y /= metrics.width / density.rows;
 					circle( display, ball, 2, Scalar(0,255,0), 1 );
