@@ -63,6 +63,8 @@ Trackbar<float> convLength("foosmen", "convLength", 0.060, 0, 0.2, 0.001);
 Trackbar<float> windowLength("foosmen", "windowLength", 0.100, 0, 0.2, 0.001);
 Trackbar<float> goalkeeperWindowLength("foosmen", "goalkeeperWindowLength", 0.010, 0, 0.2, 0.001);
 
+Trackbar<float> rotFactorTrackbar("foosmen", "rotFactor", 30, 0, 100, 0.1);
+
 ColorPicker blueColor("color1", Scalar(0.65f, 0.10f, 0.05f));
 ColorPicker redColor("color2", Scalar(0.05f, 0.25f, 0.50f));
 
@@ -95,13 +97,15 @@ void drawFoosmen(Mat out, SubottoMetrics subottoMetrics, FoosmenMetrics foosmenM
 			line(out, Point(xx, 0), Point(xx, out.rows), Scalar(1.f, 1.f, 1.f));
 
 			for(int i = 0; i < foosmenMetrics.count[bar]; i++) {
-				float y = (0.5f + i - foosmenMetrics.count[bar] / 2.f) * foosmenMetrics.distance[bar];
+				float y = (0.5f + i - foosmenMetrics.count[bar] * 0.5f) * foosmenMetrics.distance[bar];
 				float yy = (0.5f + y / subottoMetrics.width) * out.rows + shift[bar][side];
 
 				line(out, Point(xx - 5, yy), Point(xx + 5, yy), Scalar(0.f, 1.f, 0.f));
 
 				if(rot) {
-					circle(out, Point(xx + rot[bar][side], yy), 3, Scalar(1.f, 1.f, 0.f));
+					float len = 20;
+					float r = rot[bar][side];
+					line(out, Point(xx, yy), Point(xx + sin(r) * len, yy + cos(r) * len), Scalar(1.f, 1.f, 0.f), 1, 16);
 				}
 			}
 		}
@@ -291,81 +295,139 @@ void updateVariance(TableDescription& table, const TableAnalysis& analysis) {
 	accumulateWeighted(scatter, table.variance, 0.005f);
 }
 
-struct FoosmenParams {
-	float sliceLength;
-	float goalkeeperSliceLength;
-};
+struct FoosmenBarMetrics {
+	float m2height;
+	float m2width;
 
-struct FoosmenBarAnalysis {
-	float m2px;
+	int count;
 
 	float xPixels;
+
+	float yPixels;
 	float distancePixels;
 	float marginPixels;
 
 	Range colRange;
 
+	int side;
+	int bar;
+};
+
+struct FoosmenBarAnalysis {
 	Mat tableSlice;
+	Mat tableNLLSlice;
 
 	Mat diff;
 	Mat scatter;
 	Mat nll;
 
 	Mat overlapped;
+
+	float shift;
+	float rot;
 };
 
-void startFoosmenBarAnalysis(SubottoMetrics subottoMetrics, FoosmenMetrics foosmenMetrics, int side, int bar, FoosmenBarAnalysis &analysis, Mat tableFrame) {
-	Size size = tableFrame.size();
+struct FoosmenRunningAverage {
+	float shift[BARS][2];
+	float rot[BARS][2];
 
-	analysis.m2px = size.height / subottoMetrics.width;
+	FoosmenRunningAverage() {
+		for(int side = 0; side < 2; side++) {
+			for(int bar = 0; bar < BARS; bar++) {
+				shift[bar][side] = 0.f;
+				rot[bar][side] = 0.f;
+			}
+		}
+	}
+};
 
-	int count = foosmenMetrics.count[bar];
+void setUpFoosmenMetrics() {
+	foosmenMetrics.barx[GOALKEEPER] = goalkeeperx.get();
+	foosmenMetrics.barx[BAR2] = bar2x.get();
+	foosmenMetrics.barx[BAR5] = bar5x.get();
+	foosmenMetrics.barx[BAR3] = bar3x.get();
 
-	analysis.xPixels = barx(side, bar, size, subottoMetrics, foosmenMetrics);
-	analysis.distancePixels = analysis.m2px * foosmenMetrics.distance[bar];
-	analysis.marginPixels = size.height - (count-1) * analysis.distancePixels;
+	foosmenMetrics.distance[GOALKEEPER] = goalkeeperdistance.get();
+	foosmenMetrics.distance[BAR2] = bar2distance.get();
+	foosmenMetrics.distance[BAR5] = bar5distance.get();
+	foosmenMetrics.distance[BAR3] = bar3distance.get();
+}
 
-	int l = bar == GOALKEEPER ? -analysis.m2px * goalkeeperWindowLength.get() : -analysis.m2px * windowLength.get();
-	int r = analysis.m2px * windowLength.get();
+void computeFoosmenBarMetrics(SubottoMetrics subottoMetrics, FoosmenMetrics foosmenMetrics, int side, int bar, Size size, FoosmenBarMetrics& barMetrics) {
+	barMetrics.side = side;
+	barMetrics.bar = bar;
+
+	barMetrics.m2height = size.height / subottoMetrics.width;
+	barMetrics.m2width = size.width / subottoMetrics.length;
+
+	barMetrics.xPixels = barx(side, bar, size, subottoMetrics, foosmenMetrics);
+	barMetrics.yPixels = size.height / 2;
+
+	barMetrics.count = foosmenMetrics.count[bar];
+	barMetrics.distancePixels = barMetrics.m2height * foosmenMetrics.distance[bar];
+	barMetrics.marginPixels = size.height - (barMetrics.count - 1) * barMetrics.distancePixels;
+
+	int l = bar == GOALKEEPER ? -barMetrics.m2width * goalkeeperWindowLength.get() : -barMetrics.m2width * windowLength.get();
+	int r = barMetrics.m2width * windowLength.get();
 
 	if(!side) {
 		l = -l;
 		r = -r;
 	}
 
-	analysis.colRange = Range(analysis.xPixels + min(l,r), analysis.xPixels + max(l,r));
-	analysis.tableSlice = tableFrame(Range::all(), analysis.colRange);
+	barMetrics.colRange = Range(barMetrics.xPixels + min(l,r), barMetrics.xPixels + max(l,r));
 }
 
-void computeLL(int side, int bar, FoosmenBarAnalysis &analysis) {
+void startFoosmenBarAnalysis(FoosmenBarMetrics barMetrics, FoosmenBarAnalysis &analysis, Mat tableFrame, const TableAnalysis& tableAnalysis) {
+	Size size = tableFrame.size();
+	analysis.tableSlice = tableFrame(Range::all(), barMetrics.colRange);
+	analysis.tableNLLSlice = tableAnalysis.nll(Range::all(), barMetrics.colRange);
+}
+
+void computeLL(FoosmenBarMetrics barMetrics, FoosmenBarAnalysis &analysis) {
 	Scalar meanColor[] = {blueColor.get(), redColor.get()};
 	Matx<float, 1, 6> colorPrecision[] = {blueColorPrecision.getScatterTransform(), redColorPrecision.getScatterTransform()};
 
-	analysis.diff = analysis.tableSlice - meanColor[side];
+	analysis.diff = analysis.tableSlice - meanColor[barMetrics.side];
 	computeScatter(analysis.diff, analysis.scatter);
 
 	Mat distance;
-	transform(analysis.scatter, distance, colorPrecision[side]);
+	transform(analysis.scatter, distance, colorPrecision[barMetrics.side]);
 
 	Mat distanceTresh;
 	threshold(distance, distanceTresh, foosmenProbThresh.get(), 0, THRESH_TRUNC);
 
-	blur(distanceTresh, analysis.nll, Size(analysis.m2px * convLength.get(), analysis.m2px * convWidth.get()));
+	// TODO: subtract properly scaled analysis.tableNLLSlice
+	blur(distanceTresh, analysis.nll, Size(barMetrics.m2height * convLength.get(), barMetrics.m2height * convWidth.get()));
 }
 
-void computeOverlapped(int side, int bar, FoosmenMetrics foosmenMetrics, Size size, FoosmenBarAnalysis &analysis) {
-	analysis.overlapped.create(analysis.marginPixels, analysis.colRange.size(), CV_32F);
+void computeOverlapped(FoosmenBarMetrics barMetrics, FoosmenBarAnalysis &analysis) {
+	analysis.overlapped.create(barMetrics.marginPixels, barMetrics.colRange.size(), CV_32F);
 	analysis.overlapped.setTo(0.f);
 
-	int count = foosmenMetrics.count[bar];
+	for(int i = 0; i < barMetrics.count; i++) {
+		float shift = 0.5f + i - barMetrics.count * 0.5f;
 
-	for(int i = 0; i < count; i++) {
-		float y = (0.5f + i - count * 0.5f) * analysis.distancePixels;
-		int yy = size.height / 2 + y - analysis.marginPixels / 2;
+		float y = shift * barMetrics.distancePixels;
+		int yy = barMetrics.yPixels + y - barMetrics.marginPixels / 2;
 
-		Mat slice = analysis.nll(Range(yy, int(yy + analysis.marginPixels)), Range::all());
+		Mat slice = analysis.nll(Range(yy, int(yy + barMetrics.marginPixels)), Range::all());
 		analysis.overlapped += slice;
 	}
+}
+
+void findFoosmen(FoosmenBarMetrics barMetrics, FoosmenBarAnalysis &analysis) {
+	Point2f m;
+	m = subpixelMinimum(analysis.overlapped);
+
+	float rotFactor = rotFactorTrackbar.get();
+
+	analysis.shift = (m.y - barMetrics.marginPixels / 2.f) / barMetrics.m2height;
+	analysis.rot = (barMetrics.colRange.start + m.x - barMetrics.xPixels) * 2.f / barMetrics.m2width * rotFactor;
+
+//	stringstream ss;
+//	ss << barMetrics.side << "-bar-" << barMetrics.bar;
+//	show(ss.str(), analysis.overlapped, 200);
 }
 
 vector<BallDensityLocalMaximum> findLocalMaxima(Mat density, int radius) {
@@ -390,8 +452,6 @@ vector<BallDensityLocalMaximum> findLocalMaxima(Mat density, int radius) {
 
 	Mat selectedDilated;
 	dilate(localMaxMaskF.mul(density) - 1e3 * (1 - localMaxMaskF), selectedDilated, Mat(), Point(-1, -1), 1);
-
-//	show("selected", selectedDilated, 10, 20);
 
 	return localMaxima;
 }
@@ -426,15 +486,18 @@ void doIt() {
 	TableAnalysis tableAnalysis;
 	BallAnalysis ballAnalysis;
 
+	FoosmenBarMetrics barsMetrics[BARS][2];
+	FoosmenBarAnalysis barsAnalysis[BARS][2];
+
 	Mat density;
 
-	float shift[BARS][2];
-	float rot[BARS][2];
+	float barsShift[BARS][2];
+	float barsRot[BARS][2];
 
 	for(int side = 0; side < 2; side++) {
 		for(int bar = 0; bar < BARS; bar++) {
-			shift[bar][side] = 0.f;
-			rot[bar][side] = 0.f;
+			barsShift[bar][side] = 0.f;
+			barsRot[bar][side] = 0.f;
 		}
 	}
 	
@@ -463,66 +526,7 @@ void doIt() {
 		
 		Mat tableFrame;
 		getTableFrame(frame, tableFrame, tableFrameSize, subotto.transform);
-
 		Size size = tableFrame.size();
-		float m2px = size.height / metrics.width;
-
-		foosmenMetrics.barx[GOALKEEPER] = goalkeeperx.get();
-		foosmenMetrics.barx[BAR2] = bar2x.get();
-		foosmenMetrics.barx[BAR5] = bar5x.get();
-		foosmenMetrics.barx[BAR3] = bar3x.get();
-
-		foosmenMetrics.distance[GOALKEEPER] = goalkeeperdistance.get();
-		foosmenMetrics.distance[BAR2] = bar2distance.get();
-		foosmenMetrics.distance[BAR5] = bar5distance.get();
-		foosmenMetrics.distance[BAR3] = bar3distance.get();
-
-		Scalar meanColor[] = {blueColor.get(), redColor.get()};
-		Matx<float, 1, 6> colorPrecision[] = {blueColorPrecision.getScatterTransform(), redColorPrecision.getScatterTransform()};
-		
-		for(int side = 0; side < 2; side++) {
-			for(int bar = 0; bar < BARS; bar++) {
-				FoosmenBarAnalysis analysis;
-
-				startFoosmenBarAnalysis(metrics, foosmenMetrics, side, bar, analysis, tableFrame);
-				computeLL(side, bar, analysis);
-				computeOverlapped(side, bar, foosmenMetrics, size, analysis);
-
-				Point2f m;
-				m = subpixelMinimum(analysis.overlapped);
-
-				float cShift = m.y - analysis.marginPixels / 2.f;
-				float shiftAlpha = 0.5f;
-				shift[bar][side] = (1 - shiftAlpha) * shift[bar][side] + shiftAlpha * cShift;
-
-				float cRot = (analysis.colRange.start + m.x - analysis.xPixels) * 5.f;
-				float rotAlpha = 0.2f;
-				rot[bar][side] = (1 - rotAlpha) * rot[bar][side] + rotAlpha * cRot;
-			}
-
-//			show(side ? "diffRed" : "diffBlue", diff, 500, 50);
-//			show(side ? "red" : "blue", -probBlurred, 1000, 100);
-//			show(side ? "redT" : "blueT", -probThresh, 400, 50);
-		}
-		
-		
-		// Saving values for later...
-		if ( current_time >= timeline_span ) {
-			vector<float> foosmenValuesFrame;
-			for(int side = 0; side < 2; side++) {
-				for(int bar = 0; bar < BARS; bar++) {
-					foosmenValuesFrame.push_back( shift[bar][side] );
-					foosmenValuesFrame.push_back( rot[bar][side] );
-				}
-			}
-			foosmenValues.push_back( foosmenValuesFrame );
-		}
-		
-		
-		Mat fm;
-		tableFrame.copyTo(fm);
-		drawFoosmen(fm, metrics, foosmenMetrics, shift, rot);
-		show("fm", fm);
 
 		startTableAnalysis(tableFrame, table, tableAnalysis);
 		computeFilteredDiff(tableAnalysis);
@@ -542,6 +546,50 @@ void doIt() {
 			computeCorrectedVariance(table);
 		}
 
+		setUpFoosmenMetrics();
+
+		for(int side = 0; side < 2; side++) {
+			for(int bar = 0; bar < BARS; bar++) {
+				FoosmenBarMetrics& barMetrics = barsMetrics[bar][side];
+				FoosmenBarAnalysis& analysis = barsAnalysis[bar][side];
+
+				computeFoosmenBarMetrics(metrics, foosmenMetrics, side, bar, size, barMetrics);
+
+				startFoosmenBarAnalysis(barMetrics, analysis, tableFrame, tableAnalysis);
+				computeLL(barMetrics, analysis);
+				computeOverlapped(barMetrics, analysis);
+				findFoosmen(barMetrics, analysis);
+
+				float& shift = barsShift[bar][side];
+				float& rot = barsRot[bar][side];
+
+				float shiftAlpha = 0.5f;
+				shift = (1-shiftAlpha) * shift + shiftAlpha * analysis.shift;
+
+				float rotAlpha = 0.2f;
+				rot = (1-rotAlpha) * rot + rotAlpha * analysis.rot;
+			}
+		}
+
+		// Saving values for later...
+		if ( current_time >= timeline_span ) {
+			vector<float> foosmenValuesFrame;
+			for(int side = 0; side < 2; side++) {
+				for(int bar = 0; bar < BARS; bar++) {
+					foosmenValuesFrame.push_back( barsShift[bar][side] );
+					foosmenValuesFrame.push_back( barsRot[bar][side] );
+				}
+			}
+			foosmenValues.push_back( foosmenValuesFrame );
+		}
+
+		if(debug) {
+			Mat tableFoosmen;
+			tableFrame.copyTo(tableFoosmen);
+			drawFoosmen(tableFoosmen, metrics, foosmenMetrics, barsShift, barsRot);
+			show("tableFoosmen", tableFoosmen);
+		}
+
 		auto localMaxima = findLocalMaxima(density, localMaximaMinDistance.get());
 
 		nth_element(localMaxima.begin(), localMaxima.begin() + min(localMaxima.size(), size_t(localMaximaLimit.get())), localMaxima.end(), [](BallDensityLocalMaximum a, BallDensityLocalMaximum b) {
@@ -549,7 +597,7 @@ void doIt() {
 		});
 		localMaxima.resize(min(localMaxima.size(), size_t(localMaximaLimit.get())));
 		
-		
+
 		// Cambio le unità di misura secondo le costanti in SubottoMetrics
 		SubottoMetrics metrics;
 		for (int i=0; i<localMaxima.size(); i++) {

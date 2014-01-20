@@ -1,7 +1,7 @@
 UNAME := $(shell uname -s)
 CPP = g++
 CFLAGS = $(shell pkg-config --cflags opencv) -g -O2
-CPPFLAGS = $(shell pkg-config --cflags opencv) -g -std=c++11 -O2
+CPPFLAGS = $(shell pkg-config --cflags opencv) -g -std=c++11
 LIBS = $(shell pkg-config --libs opencv)
 
 HEADERS = blobs_finder.hpp blobs_tracker.hpp utility.hpp
