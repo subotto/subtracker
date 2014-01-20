@@ -29,28 +29,6 @@ void onChange(int a, void* b) {
 	densityEstimator = unique_ptr<BallDensityEstimator>(new BallDensityEstimator(move(subottoTracker), params));
 }
 
-struct State {
-	float logLikelihood2;
-
-	Vec<float, 2> pos;
-	Vec<float, 2> vel;
-
-	float posVar;
-	float velVar;
-	float posVelCov;
-
-	bool bounced = false;
-	float secondsSinceLastBounce = 0;
-
-	bool ballLost = false;
-
-	shared_ptr<State> previous;
-
-	Mat var() {
-		return (Mat_<float>(2, 2) << posVar, posVelCov, posVelCov, velVar);
-	}
-};
-
 struct BallDensityLocalMaximum {
 	float weight;
 	Vec<float, 2> position;
@@ -63,18 +41,6 @@ struct BallDensityLocalMaximum {
 		: BallDensityLocalMaximum(0, 0)
 	{}
 };
-
-ostream& operator<< (ostream& ots, State const& a) {
-	ots << "StateDensityComponent[" << endl;
-	ots << "  weight: " << a.logLikelihood2 << endl;
-	ots << "  position: " << a.pos << endl;
-	ots << "  velocity: " << a.vel << endl;
-	ots << "  positionVariance: " << a.posVar << endl;
-	ots << "  velocityVariance: " << a.velVar << endl;
-	ots << "  posVelCov: " << a.posVelCov << endl;
-	ots << "]";
-	return ots;
-}
 
 ostream& operator<< (ostream& ots, BallDensityLocalMaximum const& a) {
 	return ots << "BallDensityLocalMaximum[" << a.weight << "," << a.position << "]";
@@ -90,47 +56,6 @@ struct Observation {
 	float posVar;
 	float weight;
 };
-
-State predict(State s, ModelParams params) {
-	// TODO: specify time step as parameter
-
-	State t;
-
-	t.pos = s.pos + s.vel;
-	t.vel = s.vel;
-
-	t.posVar = s.posVar + s.velVar + 2*s.posVelCov + params.positionVolatility2;
-	t.velVar = s.velVar + params.velocityVolatility2;
-	t.posVelCov = s.posVelCov + s.velVar;
-
-	t.logLikelihood2 = s.logLikelihood2;
-
-	return t;
-}
-
-State correct(State before, Observation o, ModelParams params) {
-	State after;
-
-	Vec<float, 2> residual = o.pos - before.pos;
-
-	float residualVar = before.posVar + o.posVar;
-
-	float cost = sum(residual.mul(residual))[0] / residualVar + log(before.posVar);
-
-	float posGain = before.posVar / residualVar;
-	float velGain = before.posVelCov / residualVar;
-
-	after.pos = before.pos + posGain * residual;
-	after.vel = before.vel + velGain * residual;
-
-	after.posVar = before.posVar * (1 - posGain);
-	after.velVar = before.velVar - velGain * before.posVelCov;
-	after.posVelCov = before.posVelCov * (1 - posGain);
-
-	after.logLikelihood2 = before.logLikelihood2 - cost + o.weight;
-
-	return after;
-}
 
 vector<BallDensityLocalMaximum> findLocalMaxima(Mat density, int radius) {
 	Mat dilatedDensity;
@@ -160,74 +85,12 @@ vector<BallDensityLocalMaximum> findLocalMaxima(Mat density, int radius) {
 	return localMaxima;
 }
 
-float kl(State q, State p) {
-	Mat pVarInv;
-
-	invert(p.var(), pVarInv);
-
-//	cout << "p.var(): " << p.var() << endl;
-//	cout << "q.var(): " << q.var() << endl;
-//	cout << "pVarInv: " << pVarInv << endl;
-
-	float diffNorm = 0;
-	for(int c = 0; c < 2; c++) {
-		Mat px = (Mat_<float>(1, 2) << p.pos[c], p.vel[c]);
-		Mat qx = (Mat_<float>(1, 2) << p.pos[c], p.vel[c]);
-		Mat d = px - qx;
-
-		Mat normD = d * pVarInv * d.t();
-
-//		cout << "d[" << c << "]: " << d << endl;
-
-		diffNorm += normD.at<float>(0, 0);
-	}
-
-	float tr = trace(pVarInv * q.var())[0];
-	float logDetRatio = -log(determinant(q.var()) / determinant(p.var()));
-	float kl = tr + 0.5f * diffNorm - 2 + 0.5f * logDetRatio;
-
-//	cout << "tr: " << tr << endl;
-//	cout << "diffNorm: " << diffNorm << endl;
-//	cout << "logDetRatio: " << logDetRatio << endl;
-//	cout << "KL: " << kl << endl;
-//	cout << endl;
-
-	return kl;
-}
-
-void gioveBallTracking() {
+void doIt() {
 	ModelParams model;
 
-	vector<State> previousStates;
-
 	Trackbar<int> localMaximaLimit("track", "localMaximaLimit", 5, 0, 1000);
-	Trackbar<int> statesLimit("track", "statesLimit", 20, 0, 10000);
-
 	Trackbar<float> fps("track", "fps", 120, 0, 2000, 1);
-
-	Trackbar<float> bouncesPerSecond("track", "bouncesPerSecond", 5, 0, 100, 0.1);
-	Trackbar<float> spawnsPerSecond("track", "spawnsPerSecond", 0.1, 0, 1, 0.001);
-
-	Trackbar<float> losesPerSecond("track", "losesPerSecond", 2, 0, 10, 0.1);
-	Trackbar<float> loseAvgDuration("track", "loseAvgDuration", 0.05, 0, 1, 0.01);
-
-	Trackbar<float> localMaximumStdDev("track", "localMaximumStdDev", 2, 0.01, 100, 0.01);
-
-	Trackbar<float> positionVolatility("track", "positionVolatility", 0, 0.001, 10, 0.001);
-	Trackbar<float> velocityVolatility("track", "velocityVolatility", 0.1, 0.001, 10, 0.001);
-
-	Trackbar<float> spawnVelocityStdDev("track", "spawnVelocityStdDev", 200, 0, 1000, 1);
-
 	Trackbar<float> localMaximaMinDistance("track", "localMaximaMinDistance", 5, 0, 200);
-
-	Trackbar<float> minKL("track", "minKL", 0.1, 0, 10, 0.1);
-
-	Trackbar<float> minBouncesInterval("track", "minBouncesInterval", 0.1, 0, 100, 0.1);
-
-//	Trackbar<float> statesMinDistance("track", "statesMinDistance", 20, 0, 200, 0.01);
-//	Trackbar<float> statesMinRelativeVelocity("track", "statesMinRelativeVelocity", 50, 0, 200, 0.01);
-//	Trackbar<float> statesMinVelocityVarianceDifference("track", "statesMinVelocityVarianceDifference", 2, 0, 200, 0.01);
-//	Trackbar<float> statesMinPositionVarianceDifference("track", "statesMinPositionVarianceDifference", 2, 0, 200, 0.01);
 
 	Mat trajReprAvg;
 
@@ -235,7 +98,6 @@ void gioveBallTracking() {
 	bool debug = false;
 	
 	BlobsTracker blobs_tracker;
-	
 	
 	int timeline_span = 120;
 	int processed_frames = 10;	// number of frames to be processed for each call to ProcessFrame
@@ -286,7 +148,7 @@ void gioveBallTracking() {
 			blobs.push_back( Blob(localMaxima[i].position, 0.0, 0.0, localMaxima[i].weight) );
 			// printf("Weight: %lf\n", localMaxima[i].weight);
 		}
-		if (debug) printf("Inserting frame %d in timeline.\n", current_time);
+		if (debug) fprintf(stderr, "Inserting frame %d in timeline.\n", current_time);
 		blobs_tracker.InsertFrameInTimeline(blobs, current_time);
 		
 		
@@ -364,7 +226,7 @@ int main(int argc, char* argv[]) {
 
 	onChange(0, 0);
 
-	gioveBallTracking();
+	doIt();
 
 	return 0;
 }

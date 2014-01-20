@@ -139,9 +139,18 @@ Mat SubottoDetector::detect(Mat frame) {
 SubottoFollower::SubottoFollower(SubottoReference reference,
 		SubottoMetrics metrics,
 		SubottoFollowingParams params) :
-		reference(reference), params(params), metrics(metrics), referenceFeatures(
-				detectFeatures(reference.image, reference.mask,
-						params.opticalFlow.detection)) {
+		reference(reference), params(params), metrics(metrics)
+{
+	resize(reference.image, scaledReference.image, params.opticalFlowSize);
+
+	if(!reference.mask.empty()) {
+		resize(reference.mask, scaledReference.mask, params.opticalFlowSize);
+	}
+
+	scaledReference.metrics = reference.metrics;
+
+	referenceFeatures = detectFeatures(scaledReference.image, scaledReference.mask,
+			params.opticalFlow.detection);
 }
 
 SubottoFollower::~SubottoFollower() {
@@ -149,12 +158,12 @@ SubottoFollower::~SubottoFollower() {
 
 Mat SubottoFollower::follow(Mat frame, Mat previousTransform) {
 	Mat warped;
-	Size size(reference.image.cols, reference.image.rows);
+	Size size = scaledReference.image.size();
 
 	warpPerspective(frame, warped, previousTransform * sizeToReference(reference.metrics, size), size,
 			CV_WARP_INVERSE_MAP);
 
-	PointMap map = opticalFlow(referenceFeatures, reference.image, warped);
+	PointMap map = opticalFlow(referenceFeatures, scaledReference.image, warped);
 
 	Mat correction;
 	if (map.from.size() < 6) {

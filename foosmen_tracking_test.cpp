@@ -112,7 +112,7 @@ Point2f subpixelMinimum(Mat in) {
 		assert(d2 >= 0);
 
 		if(d2 > 0)
-			correction[k] = -d/d2/2;
+			correction[k] = -d / d2;
 	}
 
 	Point2f c = Point2f(correction[1], correction[0]);
