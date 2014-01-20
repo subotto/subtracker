@@ -404,8 +404,8 @@ void doIt() {
 
 	BlobsTracker blobs_tracker;
 
-	int timeline_span = 30;
-	int processed_frames = 5;	// number of frames to be processed for each call to ProcessFrame
+	int timeline_span = 120;
+	int processed_frames = 10;	// number of frames to be processed for each call to ProcessFrame
 
 	int current_time = 0;
 	int initial_time = 0;
