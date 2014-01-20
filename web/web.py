@@ -79,6 +79,9 @@ class Application:
 
         obj_response = {
             'data': self.select_records(last_timestamp),
+            'fps': 24,
+            'buffer_len': BUFFER_LEN,
+            'version': 1,
             }
         json_response = self.encoder.encode(obj_response).encode('utf-8')
         status = '200 OK'
