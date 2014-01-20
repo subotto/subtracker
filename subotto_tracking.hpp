@@ -55,8 +55,7 @@ struct SubottoFollowingParams {
 	cv::Size opticalFlowSize = cv::Size(120, 60);
 
 	SubottoFollowingParams() {
-		opticalFlow.detection.features = 100;
-		opticalFlow.detection.levels = 3;
+		opticalFlow.detection.features = 20;
 	}
 };
 
@@ -130,8 +129,6 @@ private:
 	SubottoFollowingParams params;
 	SubottoMetrics metrics;
 
-	SubottoReference scaledReference;
-
 	FeatureDetectionResult referenceFeatures;
 };
 
@@ -148,7 +145,6 @@ public:
 	SubottoTracking next();
 private:
 	cv::VideoCapture cap;
-
 	SubottoReference reference;
 	SubottoMetrics metrics;
 	SubottoTrackingParams params;
