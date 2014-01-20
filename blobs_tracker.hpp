@@ -45,7 +45,7 @@ class Node {
 class BlobsTracker {
 	public:
 		void InsertFrameInTimeline(std::vector<Blob> blobs, int time);
-		cv::Point2f ProcessFrames(int initial_time, int begin_time, int end_time);
+		std::vector<cv::Point2f> ProcessFrames(int initial_time, int begin_time, int end_time, bool debug);
 		void PopFrameFromTimeline();
 		
 		BlobsTracker()

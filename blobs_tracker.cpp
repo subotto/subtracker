@@ -9,6 +9,7 @@
 #include <cstdio>
 #include <iostream>
 #include <algorithm>
+#include <vector>
 
 using namespace cv;
 using namespace std;
@@ -29,13 +30,13 @@ void BlobsTracker::InsertFrameInTimeline(vector<Blob> blobs, int time) {
 }
 
 
-Point2f BlobsTracker::ProcessFrames(int initial_time, int begin_time, int end_time) {
+vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, int end_time, bool debug) {
 	
-	printf("Processing frames from %d to %d\n", begin_time, end_time-1);
+	if (debug) printf("Processing frames from %d to %d\n", begin_time, end_time-1);
 	
 	 // questa min_badness serve a evitare falsi positivi quando non c'è la pallina vera
 	double min_badness = _timeline.size() * _max_badness_per_frame;
-	printf("Maximum acceptable badness: %.1lf\n", min_badness);
+	if (debug) printf("Maximum acceptable badness: %.1lf\n", min_badness);
 	Node *best_node = NULL;
 	
 	for (int i=0; i<_timeline.size(); i++) {
@@ -89,19 +90,23 @@ Point2f BlobsTracker::ProcessFrames(int initial_time, int begin_time, int end_ti
 		}
 	}
 	
-	cv::Point2f position = Point2f(0.0,0.0);
+	Point2f NISBA(-1.0,-1.0);
+	vector<Point2f> positions;
+	Point2f position;
 	
-	printf("Badness: %lf\n", min_badness);
+	if (debug) printf("Badness: %lf\n", min_badness);
 	for (int i=begin_time; i<end_time; i++) {
 		
 		// Cerco la miglior posizione prevista per il frame i
 		Node *node = best_node;
 		if ( node == NULL ) {
-			printf("Frame %d: no ball found (no path with acceptable badness).\n", i);
+			if (debug) printf("Frame %d: no ball found (no path with acceptable badness).\n", i);
+			positions.push_back(NISBA);
 			continue;
 		}
 		if ( node->time < i ) {
-			printf("Frame %d: no ball found (path does not pass through current frame).\n", i);
+			if (debug) printf("Frame %d: no ball found (path does not pass through current frame).\n", i);
+			positions.push_back(NISBA);
 			continue;
 		}
 	
@@ -121,15 +126,17 @@ Point2f BlobsTracker::ProcessFrames(int initial_time, int begin_time, int end_ti
 		}
 	
 		if ( lower == NULL ) {
-			printf("Frame %d: no ball found (path does not pass through current frame).\n", i);
+			if (debug) printf("Frame %d: no ball found (path does not pass through current frame).\n", i);
+			positions.push_back(NISBA);
 			continue;
 		}
 		
 	
 		if ( greater->time == lower->time ) {
-			printf("Frame %d: ball found (exact location). ", i);
+			if (debug) printf("Frame %d: ball found (exact location). ", i);
 			position = greater->blob.center;
-			printf("Position: (%lf, %lf)\n", position.x, position.y);
+			if (debug) printf("Position: (%lf, %lf)\n", position.x, position.y);
+			positions.push_back( Point2f(position) );
 			continue;
 		}
 	
@@ -138,7 +145,8 @@ Point2f BlobsTracker::ProcessFrames(int initial_time, int begin_time, int end_ti
 		int post_diff = greater->time - i;
 	
 		if ( (double)(max( pre_diff, post_diff )) > _max_interpolation_time * _fps ) {
-			printf("Frame %d: no ball found (interpolation is not reliable).\n", i);
+			if (debug) printf("Frame %d: no ball found (interpolation is not reliable).\n", i);
+			positions.push_back(NISBA);
 			continue;
 		}
 	
@@ -146,12 +154,13 @@ Point2f BlobsTracker::ProcessFrames(int initial_time, int begin_time, int end_ti
 		cv::Point2f greater_center = greater->blob.center;
 		cv::Point2f lower_center = lower->blob.center;
 	
-		printf("Frame %d: ball found (estimated location). ", i);
+		if (debug) printf("Frame %d: ball found (estimated location). ", i);
 		position = ( greater_center*(i - lower->time) + lower_center*(greater->time - i) ) * ( 1.0/(greater->time - lower->time) );
-		printf("Position: (%lf, %lf)\n", position.x, position.y);
+		if (debug) printf("Position: (%lf, %lf)\n", position.x, position.y);
+		positions.push_back( Point2f(position) );
 	}
 	
-	return position;
+	return positions;
 }
 
 

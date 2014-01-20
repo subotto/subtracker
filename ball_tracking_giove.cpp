@@ -286,7 +286,7 @@ void gioveBallTracking() {
 			blobs.push_back( Blob(localMaxima[i].position, 0.0, 0.0, localMaxima[i].weight) );
 			// printf("Weight: %lf\n", localMaxima[i].weight);
 		}
-		printf("Inserting frame %d in timeline.\n", current_time);
+		if (debug) printf("Inserting frame %d in timeline.\n", current_time);
 		blobs_tracker.InsertFrameInTimeline(blobs, current_time);
 		
 		
@@ -302,20 +302,35 @@ void gioveBallTracking() {
 			
 			// Il processing vero e proprio avviene solo ogni k fotogrammi (k=processed_frames)
 			if ( processed_time % processed_frames == 0 ) {
-				Point2f ball = blobs_tracker.ProcessFrames( initial_time, processed_time, processed_time + processed_frames );
+				vector<Point2f> positions = blobs_tracker.ProcessFrames( initial_time, processed_time, processed_time + processed_frames, debug );
 				
-				// Mostro l'ultimo fotogramma tra quelli processati
+				for (int i=0; i<positions.size(); i++) {
+					int frame_id = processed_time + i;
+					
+					// TODO: stampare il vero timestamp del frame frame_id
+					double timestamp = 10000.0;
+					
+					printf("%lf,%lf,%lf\n", timestamp, positions[i].x, positions[i].y);
+				}
+				
+				if (debug) {
+					// Mostro il primo fotogramma tra quelli processati
+				
+					Mat display;
+					assert(!frames.empty());
+					frames.front().copyTo(display);
+					frames.pop_front();
+					Point2f ball = positions[0];
+					ball.x /= metrics.length / density.cols;
+					ball.y /= metrics.width / density.rows;
+					circle( display, ball, 2, Scalar(0,255,0), 1 );
+					imshow("Display", display);
+				}
+				else frames.pop_front();
+				
 				for (int i=0; i<processed_frames-1; i++) {
 					frames.pop_front();
 				}
-				Mat display;
-				assert(!frames.empty());
-				frames.front().copyTo(display);
-				frames.pop_front();
-				ball.x /= metrics.length / density.cols;
-				ball.y /= metrics.width / density.rows;
-				circle( display, ball, 2, Scalar(0,255,0), 1 );
-				imshow("Display", display);
 			}
 			
 			initial_time++;
