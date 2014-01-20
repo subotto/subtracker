@@ -456,9 +456,11 @@ void doIt() {
 
 		Mat frame = subotto.frame;
 		
-		// TODO: inserire il vero timestamp!
-		timestamps.push_back(1234.0);
-
+		// TODO: inserire il vero timestamp
+		if ( current_time >= timeline_span ) {
+			timestamps.push_back(1234.0);
+		}
+		
 		Mat tableFrame;
 		getTableFrame(frame, tableFrame, tableFrameSize, subotto.transform);
 
@@ -505,14 +507,17 @@ void doIt() {
 		
 		
 		// Saving values for later...
-		vector<float> foosmenValuesFrame;
-		for(int side = 0; side < 2; side++) {
-			for(int bar = 0; bar < BARS; bar++) {
-				foosmenValuesFrame.push_back( shift[bar][side] );
-				foosmenValuesFrame.push_back( rot[bar][side] );
+		if ( current_time >= timeline_span ) {
+			vector<float> foosmenValuesFrame;
+			for(int side = 0; side < 2; side++) {
+				for(int bar = 0; bar < BARS; bar++) {
+					foosmenValuesFrame.push_back( shift[bar][side] );
+					foosmenValuesFrame.push_back( rot[bar][side] );
+				}
 			}
+			foosmenValues.push_back( foosmenValuesFrame );
 		}
-		foosmenValues.push_back( foosmenValuesFrame );
+		
 		
 		Mat fm;
 		tableFrame.copyTo(fm);
@@ -574,7 +579,7 @@ void doIt() {
 			int processed_time = initial_time + timeline_span;
 
 			// Il processing vero e proprio avviene solo ogni k fotogrammi (k=processed_frames)
-			if ( processed_time % processed_frames == 0 ) {
+			if ( initial_time % processed_frames == 0 ) {
 				vector<Point2f> positions = blobs_tracker.ProcessFrames( initial_time, processed_time, processed_time + processed_frames, debug );
 
 				for (int i=0; i<positions.size(); i++) {
