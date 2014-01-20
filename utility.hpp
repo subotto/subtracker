@@ -19,6 +19,7 @@ public:
 protected:
 	std::string windowName, trackbarName;
 
+    int zero = 0;
 	T start;
 	T stop;
 	T step;
@@ -37,13 +38,13 @@ Trackbar<T>::Trackbar(std::string category, std::string name, T initial, T start
 	s << name << " " << start << "-" << stop;
 	trackbarName = s.str();
 	cv::namedWindow(windowName, CV_WINDOW_NORMAL);
-	cv::createTrackbar(trackbarName, windowName, nullptr, int((stop - start) / step), onTrackbarChange<T>, this);
+	cv::createTrackbar(trackbarName, windowName, &zero, int((stop - start) / step), onTrackbarChange<T>, this);
 	cv::setTrackbarPos(trackbarName, windowName, int((initial - start) / step));
 }
 
 template <typename T>
 Trackbar<T>::~Trackbar() {
-	cv::createTrackbar(trackbarName, windowName, nullptr, int((stop - start) / step));
+	cv::createTrackbar(trackbarName, windowName, &zero, int((stop - start) / step));
 }
 
 template <typename T>
