@@ -8,8 +8,7 @@ int main() {
     while(waitKey(1) != 'e') {
         auto v = f.get();
 //        cout << v.first.time_since_epoch().count() << endl;
-        auto frame = v.second;
-        imshow("Frame", frame);
+        imshow("Frame", v.data);
 //        this_thread::sleep_for(milliseconds(50));
     }
 }

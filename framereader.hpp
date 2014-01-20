@@ -12,12 +12,17 @@ using namespace std;
 using namespace chrono;
 using namespace cv;
 
+struct frame_info {
+    time_point<high_resolution_clock> timestamp;
+    int number;
+    Mat data;
+};
+
 template<int buffer_size>
 class FrameReader {
 
 private:
-    typedef pair<time_point<high_resolution_clock>, Mat> frame_type;
-    deque<frame_type> queue;
+    deque<frame_info> queue;
     deque<time_point<high_resolution_clock>> frame_times;
     mutex queue_mutex;
     condition_variable queue_not_empty;
@@ -46,12 +51,12 @@ public:
         // Delay di 1s per dare il tempo alla webcam di inizializzarsi
         this_thread::sleep_for(seconds(1));
         while(running) {
-            count++;
             Mat frame;
             if(!cap.read(frame)) {
                 fprintf(stderr, "Error reading frame!\n");
                 continue;
             }
+            count++;
             auto now = high_resolution_clock::now();
             frame_times.push_back(now);
             while(now - frame_times.front() > seconds(frame_count_interval)) {
@@ -66,7 +71,7 @@ public:
             }
             unique_lock<mutex> lock(queue_mutex);
             if (queue.size() < buffer_size || count % 2) {
-                queue.push_back(make_pair(now, frame));
+                queue.push_back({now, count, frame});
                 queue_not_empty.notify_all();
             } else {
                 fprintf(stderr, "Frame dropped!\n");
@@ -74,7 +79,7 @@ public:
         }
     }
 
-    frame_type get() {
+    frame_info get() {
         unique_lock<mutex> lock(queue_mutex);
         while(queue.empty()) {
             queue_not_empty.wait(lock);
