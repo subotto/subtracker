@@ -12,13 +12,16 @@ using namespace std;
 using namespace chrono;
 using namespace cv;
 
+static const int frame_count_interval = 5;
+static const int stats_interval = 1;
+static const int buffer_size = 100;
+
 struct frame_info {
     time_point<high_resolution_clock> timestamp;
     int number;
     Mat data;
 };
 
-template<int buffer_size>
 class FrameReader {
 
 private:
@@ -30,8 +33,6 @@ private:
     int count;
     thread t;
     VideoCapture cap;
-    static const int frame_count_interval = 5;
-    static const int stats_interval = 1;
     time_point<high_resolution_clock> last_stats;
 
 public:
@@ -70,7 +71,7 @@ public:
                 last_stats = now;
             }
             unique_lock<mutex> lock(queue_mutex);
-            if (queue.size() < buffer_size || count % 2) {
+            if (queue.size() < buffer_size) {
                 queue.push_back({now, count, frame});
                 queue_not_empty.notify_all();
             } else {
