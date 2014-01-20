@@ -15,7 +15,7 @@ class LogJSONEncoder(json.JSONEncoder):
 
     def default(self, obj):
         if isinstance(obj, Log):
-            return obj.to_tuple()
+            return obj.to_dict()
         else:
             return json.JSONEncoder.defaul(self, obj)
 
@@ -24,7 +24,7 @@ class Application:
     def __init__(self):
         self.buffer = []
         self.closing = False
-        self.encoder = LogJSONEncoder()
+        self.encoder = LogJSONEncoder(indent=2)
 
         self.thread = threading.Thread()
         self.thread.run = self.worker_run
@@ -42,6 +42,7 @@ class Application:
             new_data = session.query(Log).filter(Log.id > last_id).order_by(Log.id).all()
             if len(new_data) > 0:
                 last_id = new_data[-1].id
+            # TODO - Do we really need this?
             new_data = [x.clone() for x in new_data]
             #print >> sys.stderr, "Read %d records" % (len(new_data))
             self.buffer += new_data

@@ -46,16 +46,22 @@ class Log(Base):
 
     TUPLE_LEN = 1 + 2 + 2 * 8
 
+    INTERESTING_FIELDS = (
+        'timestamp', 'ball_x', 'ball_y',
+        'rod_red_0_shift', 'rod_red_0_angle',
+        'rod_red_1_shift', 'rod_red_1_angle',
+        'rod_red_2_shift', 'rod_red_2_angle',
+        'rod_red_3_shift', 'rod_red_3_angle',
+        'rod_blue_0_shift', 'rod_blue_0_angle',
+        'rod_blue_1_shift', 'rod_blue_1_angle',
+        'rod_blue_2_shift', 'rod_blue_2_angle',
+        'rod_blue_3_shift', 'rod_blue_3_angle')
+
     def to_tuple(self):
-        return (self.timestamp, self.ball_x, self.ball_y,
-                self.rod_red_0_shift, self.rod_red_0_angle,
-                self.rod_red_1_shift, self.rod_red_1_angle,
-                self.rod_red_2_shift, self.rod_red_2_angle,
-                self.rod_red_3_shift, self.rod_red_3_angle,
-                self.rod_blue_0_shift, self.rod_blue_0_angle,
-                self.rod_blue_1_shift, self.rod_blue_1_angle,
-                self.rod_blue_2_shift, self.rod_blue_2_angle,
-                self.rod_blue_3_shift, self.rod_blue_3_angle)
+        return tuple([self.__dict__[f] for f in Log.INTERESTING_FIELDS])
+
+    def to_dict(self):
+        return dict([(f, self.__dict__[f]) for f in Log.INTERESTING_FIELDS])
 
     def clone(self):
         return Log.from_tuple(self.to_tuple())
