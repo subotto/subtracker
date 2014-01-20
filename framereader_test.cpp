@@ -3,7 +3,7 @@
 using namespace std;
 
 int main() {
-    FrameReader f;
+    FrameReader f(0);
     namedWindow("Frame", WINDOW_NORMAL);
     while(waitKey(1) != 'e') {
         auto v = f.get();

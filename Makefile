@@ -28,8 +28,8 @@ subotto_tracking_test: subotto_tracking_test.cpp utility.o subotto_tracking.o su
 median_test: median_test.cpp median.o
 	$(CPP) $(CPPFLAGS) -o $@ $< median.o $(LIBS)
 
-framereader_test: framereader_test.cpp framereader.hpp
-	$(CPP) $(CPPFLAGS) -o $@ $< $(LIBS)
+framereader_test: framereader_test.cpp framereader.hpp v4l2cap.o
+	$(CPP) $(CPPFLAGS) -o $@ $< v4l2cap.o $(LIBS)
 
 jobrunner_test: jobrunner_test.cpp jobrunner.o jobrunner.hpp
 	$(CPP) $(CPPFLAGS) -o $@ $< jobrunner.o $(LIBS)
