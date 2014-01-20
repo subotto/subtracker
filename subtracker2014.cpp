@@ -60,10 +60,10 @@ Trackbar<float> bar3distance("foosmen", "bar3distance", 0.210f, 0.f, 2.f, 0.001f
 Trackbar<float> convWidth("foosmen", "convWidth", 0.025, 0, 0.1, 0.001);
 Trackbar<float> convLength("foosmen", "convLength", 0.060, 0, 0.2, 0.001);
 
-Trackbar<float> windowLength("foosmen", "windowLength", 0.060, 0, 0.2, 0.001);
+Trackbar<float> windowLength("foosmen", "windowLength", 0.030, 0, 0.2, 0.001);
 Trackbar<float> goalkeeperWindowLength("foosmen", "goalkeeperWindowLength", 0.010, 0, 0.2, 0.001);
 
-Trackbar<float> rotFactorTrackbar("foosmen", "rotFactor", 45, 0, 100, 0.1);
+Trackbar<float> rotFactorTrackbar("foosmen", "rotFactor", 30, 0, 100, 0.1);
 
 ColorPicker blueColor("color1", Scalar(0.65f, 0.10f, 0.05f));
 ColorPicker redColor("color2", Scalar(0.05f, 0.25f, 0.50f));
