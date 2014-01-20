@@ -4,16 +4,31 @@
 import sys
 import time
 import random
+import math
 
 FREQ = 24.0
 
 FIELDS_NUM = 18
 FIELDS_NUM = 2
 
+mode = sys.argv[1]
+if mode == 'random':
+    field_num = int(sys.argv[2])
+
 i = 0
 start_time = time.time()
 while True:
-    print ",".join(["%.6f" % (time.time())] + [str(random.random()) for x in xrange(FIELDS_NUM)])
+
+    now = time.time()
+
+    if mode == 'random':
+        print ",".join([str(now)] + [str(random.random()) for x in xrange(field_num)])
+
+    elif mode == 'circle':
+        omega = now
+        radius = 0.6
+        print ",".join([str(now)] + [str(x) for x in [radius * math.cos(omega), radius * math.sin(omega)]])
+
     sys.stdout.flush()
     time.sleep(1.0 / FREQ)
     i += 1

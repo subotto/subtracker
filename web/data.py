@@ -1,6 +1,9 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+import math
+import os
+
 from sqlalchemy import create_engine, Column, Integer, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship, backref
@@ -8,7 +11,7 @@ from sqlalchemy.schema import Index
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm import session as sessionlib
 
-with open('database_url') as fdata:
+with open(os.path.join(os.path.dirname(__file__), 'database_url')) as fdata:
     database_url = fdata.readline().strip()
 
 # Set isolation level to READ UNCOMMITTED for better responsiveness
@@ -24,8 +27,8 @@ class Log(Base):
     #timestamp = Column(DateTime, nullable=False)
     timestamp = Column(Float, nullable=False)
 
-    ball_x = Column(Float, nullable=False)
-    ball_y = Column(Float, nullable=False)
+    ball_x = Column(Float, nullable=True)
+    ball_y = Column(Float, nullable=True)
     rod_red_0_shift = Column(Float, nullable=True)
     rod_red_0_angle = Column(Float, nullable=True)
     rod_red_1_shift = Column(Float, nullable=True)
@@ -56,6 +59,24 @@ class Log(Base):
         'rod_blue_1_shift', 'rod_blue_1_angle',
         'rod_blue_2_shift', 'rod_blue_2_angle',
         'rod_blue_3_shift', 'rod_blue_3_angle')
+
+    # Size in meters
+    DIM_X = 115e-2
+    DIM_Y = 70e-2
+    BALL_RADIUS = 2e-2
+
+    def convert_units(self):
+        for f in Log.INTERESTING_FIELDS:
+            if self.__dict__[f] is None:
+                continue
+            if f == 'ball_x':
+                self.__dict__[f] = self.__dict__[f] / Log.DIM_X
+            if f == 'ball_y':
+                self.__dict__[f] = self.__dict__[f] / Log.DIM_Y
+            if f.startswith('rod') and f.endswith('shift'):
+                self.__dict__[f] = self.__dict__[f] / Log.DIM_Y
+            if f.startswith('rod') and f.endswith('angle'):
+                self.__dict__[f] = self.__dict__[f] - math.pi
 
     def to_tuple(self):
         return tuple([self.__dict__[f] for f in Log.INTERESTING_FIELDS])

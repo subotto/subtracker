@@ -5,10 +5,13 @@ import threading
 import time
 import sys
 import json
+import os
+
+sys.path.append(os.path.dirname(__file__))
 
 from data import Session, Log
 
-BUFFER_LEN = 240
+BUFFER_LEN = 30
 SLEEP_TIME = 0.5
 
 class LogJSONEncoder(json.JSONEncoder):
@@ -44,6 +47,8 @@ class Application:
                 last_id = new_data[-1].id
             # TODO - Do we really need this?
             new_data = [x.clone() for x in new_data]
+            for x in new_data:
+                x.convert_units()
             #print >> sys.stderr, "Read %d records" % (len(new_data))
             self.buffer += new_data
             self.buffer = self.buffer[-BUFFER_LEN:]
@@ -53,7 +58,13 @@ class Application:
         session.close()
 
     def select_records(self, last_timestamp):
-        return [x for x in self.buffer if x.timestamp > last_timestamp]
+        if last_timestamp >= 0.0:
+            return [x for x in self.buffer if x.timestamp > last_timestamp]
+        else:
+            if len(self.buffer) > 0:
+                return self.buffer[-1:]
+            else:
+                return []
 
     def error(self, environ, start_response):
         status = '400 Bad Request'
@@ -72,7 +83,7 @@ class Application:
             try:
                 request_tuples = [tuple(x.split('=', 1)) for x in environ['QUERY_STRING'].split('&')]
                 request_params = dict([x for x in request_tuples if len(x) == 2])
-                last_timestamp = float(request_params.get('last_timestamp', 0.0))
+                last_timestamp = float(request_params.get('last_timestamp', -1.0))
             except Exception:
                 #raise
                 return self.error(environ, start_response)
