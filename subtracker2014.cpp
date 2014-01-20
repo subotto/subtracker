@@ -28,19 +28,51 @@ enum {
 	BARS
 };
 
-const int foosmenPerBar[] {
-	3,
-	2,
-	5,
-	3
-};
-
 struct FoosmenMetrics {
+	int count[4] = {
+		3,
+		2,
+		5,
+		3
+	};
 	float barx[BARS];
 	float distance[BARS];
 };
 
 FoosmenMetrics foosmenMetrics;
+
+Trackbar<int> localMaximaLimit("track", "localMaximaLimit", 5, 0, 1000);
+Trackbar<float> fps("track", "fps", 120, 0, 2000, 1);
+Trackbar<float> localMaximaMinDistance("track", "localMaximaMinDistance", 5, 0, 200);
+
+Trackbar<float> foosmenProbThresh("foosmen", "thresh", 2.f, 0.f, 1000.f, 0.1f);
+
+Trackbar<float> goalkeeperx("foosmen", "goalkeeperx", -0.550f, -2.f, 2.f, 0.001f);
+Trackbar<float> bar2x("foosmen", "bar2x", -0.387f, -2.f, 2.f, 0.001f);
+Trackbar<float> bar5x("foosmen", "bar5x", -0.076f, -2.f, 2.f, 0.001f);
+Trackbar<float> bar3x("foosmen", "bar3x", +0.235f, -2.f, 2.f, 0.001f);
+
+Trackbar<float> goalkeeperdistance("foosmen", "goalkeeperdistance", 0.210f, 0.f, 2.f, 0.001f);
+Trackbar<float> bar2distance("foosmen", "bar2distance", 0.244f, 0.f, 2.f, 0.001f);
+Trackbar<float> bar5distance("foosmen", "bar5distance", 0.118f, 0.f, 2.f, 0.001f);
+Trackbar<float> bar3distance("foosmen", "bar3distance", 0.210f, 0.f, 2.f, 0.001f);
+
+Trackbar<float> convWidth("foosmen", "convWidth", 0.025, 0, 0.1, 0.001);
+Trackbar<float> convLength("foosmen", "convLength", 0.060, 0, 0.2, 0.001);
+
+Trackbar<float> windowLength("foosmen", "windowLength", 0.100, 0, 0.2, 0.001);
+Trackbar<float> goalkeeperWindowLength("foosmen", "goalkeeperWindowLength", 0.010, 0, 0.2, 0.001);
+
+ColorPicker blueColor("color1", Scalar(0.65f, 0.10f, 0.05f));
+ColorPicker redColor("color2", Scalar(0.05f, 0.25f, 0.50f));
+
+ColorQuadraticForm blueColorPrecision("color1Precision", Matx<float, 1, 6>(
+		12.f, 3.f, 12.f, -10.f, 10.f, -10.f
+));
+
+ColorQuadraticForm redColorPrecision("color2Precision", Matx<float, 1, 6>(
+		8.f, 3.f, 8.f, 0.f, +10.f, -25.f
+));
 
 float barx(int side, int bar, Size size, SubottoMetrics subottoMetrics, FoosmenMetrics foosmenMetrics) {
 	float flip = side ? +1 : -1;
@@ -62,8 +94,8 @@ void drawFoosmen(Mat out, SubottoMetrics subottoMetrics, FoosmenMetrics foosmenM
 			float xx = barx(side, bar, out.size(), subottoMetrics, foosmenMetrics);
 			line(out, Point(xx, 0), Point(xx, out.rows), Scalar(1.f, 1.f, 1.f));
 
-			for(int i = 0; i < foosmenPerBar[bar]; i++) {
-				float y = (0.5f + i - foosmenPerBar[bar] / 2.f) * foosmenMetrics.distance[bar];
+			for(int i = 0; i < foosmenMetrics.count[bar]; i++) {
+				float y = (0.5f + i - foosmenMetrics.count[bar] / 2.f) * foosmenMetrics.distance[bar];
 				float yy = (0.5f + y / subottoMetrics.width) * out.rows + shift[bar][side];
 
 				line(out, Point(xx - 5, yy), Point(xx + 5, yy), Scalar(0.f, 1.f, 0.f));
@@ -129,8 +161,25 @@ ostream& operator<< (ostream& ots, BallDensityLocalMaximum const& a) {
 	return ots << "BallDensityLocalMaximum[" << a.weight << "," << a.position << "]";
 }
 
-void computeScatter(const Mat& in, Mat& out) {
+void computeScatterDiag(const Mat& in, Mat& out) {
 	multiply(in, in, out);
+}
+
+void computeScatter(const Mat& in, Mat& out) {
+	vector<Mat> inBGR;
+	split(in, inBGR);
+
+	vector<Mat> outSplit;
+
+	for(int i = 0; i < 3; i++) {
+		outSplit.push_back(inBGR[i].mul(inBGR[i]));
+	}
+
+	for(int i = 0; i < 3; i++) {
+		outSplit.push_back(inBGR[i].mul(inBGR[(i+1)%3]));
+	}
+
+	merge(outSplit, out);
 }
 
 struct TableDescription {
@@ -177,7 +226,7 @@ void computeFilteredDiff(TableAnalysis& analysis) {
 }
 
 void computeScatter(TableAnalysis& analysis) {
-	computeScatter(analysis.filteredDiff, analysis.filteredScatter);
+	computeScatterDiag(analysis.filteredDiff, analysis.filteredScatter);
 }
 
 void computeCorrectedVariance(TableDescription& table) {
@@ -217,7 +266,7 @@ void startBallAnalysis(Mat tableFrame, BallDescription& ball, BallAnalysis& anal
 }
 
 void computeScatter(BallAnalysis& analysis) {
-	computeScatter(analysis.diff, analysis.scatter);
+	computeScatterDiag(analysis.diff, analysis.scatter);
 }
 
 void computeLL(const BallDescription& ball, BallAnalysis& analysis) {
@@ -238,12 +287,86 @@ void updateMean(TableDescription& table, Mat tableFrame) {
 
 void updateVariance(TableDescription& table, const TableAnalysis& analysis) {
 	Mat scatter;
-	computeScatter(analysis.diff, scatter);
+	computeScatterDiag(analysis.diff, scatter);
 	accumulateWeighted(scatter, table.variance, 0.005f);
 }
 
-struct FoosmenAnalysis {
+struct FoosmenParams {
+	float sliceLength;
+	float goalkeeperSliceLength;
 };
+
+struct FoosmenBarAnalysis {
+	float m2px;
+
+	float xPixels;
+	float distancePixels;
+	float marginPixels;
+
+	Range colRange;
+
+	Mat tableSlice;
+
+	Mat diff;
+	Mat scatter;
+	Mat nll;
+
+	Mat overlapped;
+};
+
+void startFoosmenBarAnalysis(SubottoMetrics subottoMetrics, FoosmenMetrics foosmenMetrics, int side, int bar, FoosmenBarAnalysis &analysis, Mat tableFrame) {
+	Size size = tableFrame.size();
+
+	analysis.m2px = size.height / subottoMetrics.width;
+
+	int count = foosmenMetrics.count[bar];
+
+	analysis.xPixels = barx(side, bar, size, subottoMetrics, foosmenMetrics);
+	analysis.distancePixels = analysis.m2px * foosmenMetrics.distance[bar];
+	analysis.marginPixels = size.height - (count-1) * analysis.distancePixels;
+
+	int l = bar == GOALKEEPER ? -analysis.m2px * goalkeeperWindowLength.get() : -analysis.m2px * windowLength.get();
+	int r = analysis.m2px * windowLength.get();
+
+	if(!side) {
+		l = -l;
+		r = -r;
+	}
+
+	analysis.colRange = Range(analysis.xPixels + min(l,r), analysis.xPixels + max(l,r));
+	analysis.tableSlice = tableFrame(Range::all(), analysis.colRange);
+}
+
+void computeLL(int side, int bar, FoosmenBarAnalysis &analysis) {
+	Scalar meanColor[] = {blueColor.get(), redColor.get()};
+	Matx<float, 1, 6> colorPrecision[] = {blueColorPrecision.getScatterTransform(), redColorPrecision.getScatterTransform()};
+
+	analysis.diff = analysis.tableSlice - meanColor[side];
+	computeScatter(analysis.diff, analysis.scatter);
+
+	Mat distance;
+	transform(analysis.scatter, distance, colorPrecision[side]);
+
+	Mat distanceTresh;
+	threshold(distance, distanceTresh, foosmenProbThresh.get(), 0, THRESH_TRUNC);
+
+	blur(distanceTresh, analysis.nll, Size(analysis.m2px * convLength.get(), analysis.m2px * convWidth.get()));
+}
+
+void computeOverlapped(int side, int bar, FoosmenMetrics foosmenMetrics, Size size, FoosmenBarAnalysis &analysis) {
+	analysis.overlapped.create(analysis.marginPixels, analysis.colRange.size(), CV_32F);
+	analysis.overlapped.setTo(0.f);
+
+	int count = foosmenMetrics.count[bar];
+
+	for(int i = 0; i < count; i++) {
+		float y = (0.5f + i - count * 0.5f) * analysis.distancePixels;
+		int yy = size.height / 2 + y - analysis.marginPixels / 2;
+
+		Mat slice = analysis.nll(Range(yy, int(yy + analysis.marginPixels)), Range::all());
+		analysis.overlapped += slice;
+	}
+}
 
 vector<BallDensityLocalMaximum> findLocalMaxima(Mat density, int radius) {
 	Mat dilatedDensity;
@@ -273,43 +396,7 @@ vector<BallDensityLocalMaximum> findLocalMaxima(Mat density, int radius) {
 	return localMaxima;
 }
 
-void showBallPosition() {
-
-}
-
 void doIt() {
-	Trackbar<int> localMaximaLimit("track", "localMaximaLimit", 5, 0, 1000);
-	Trackbar<float> fps("track", "fps", 120, 0, 2000, 1);
-	Trackbar<float> localMaximaMinDistance("track", "localMaximaMinDistance", 5, 0, 200);
-
-	Trackbar<float> foosmenProbThresh("foosmen", "thresh", 2.f, 0.f, 1000.f, 0.1f);
-
-	Trackbar<float> goalkeeperx("foosmen", "goalkeeperx", -0.550f, -2.f, 2.f, 0.001f);
-	Trackbar<float> bar2x("foosmen", "bar2x", -0.387f, -2.f, 2.f, 0.001f);
-	Trackbar<float> bar5x("foosmen", "bar5x", -0.076f, -2.f, 2.f, 0.001f);
-	Trackbar<float> bar3x("foosmen", "bar3x", +0.235f, -2.f, 2.f, 0.001f);
-
-	Trackbar<float> goalkeeperdistance("foosmen", "goalkeeperdistance", 0.210f, 0.f, 2.f, 0.001f);
-	Trackbar<float> bar2distance("foosmen", "bar2distance", 0.244f, 0.f, 2.f, 0.001f);
-	Trackbar<float> bar5distance("foosmen", "bar5distance", 0.118f, 0.f, 2.f, 0.001f);
-	Trackbar<float> bar3distance("foosmen", "bar3distance", 0.210f, 0.f, 2.f, 0.001f);
-
-	Trackbar<float> convWidth("foosmen", "convWidth", 0.025, 0, 0.1, 0.001);
-	Trackbar<float> convLength("foosmen", "convLength", 0.060, 0, 0.2, 0.001);
-
-	Trackbar<float> windowLength("foosmen", "windowLength", 0.100, 0, 0.2, 0.001);
-	Trackbar<float> goalkeeperWindowLength("foosmen", "goalkeeperWindowLength", 0.010, 0, 0.2, 0.001);
-
-	ColorPicker blueColor("color1", Scalar(0.65f, 0.10f, 0.05f));
-	ColorPicker redColor("color2", Scalar(0.05f, 0.25f, 0.50f));
-
-	ColorQuadraticForm blueColorPrecision("color1Precision", Matx<float, 1, 6>(
-			12.f, 3.f, 12.f, -10.f, 10.f, -10.f
-	));
-
-	ColorQuadraticForm redColorPrecision("color2Precision", Matx<float, 1, 6>(
-			8.f, 3.f, 8.f, 0.f, +10.f, -25.f
-	));
 	Mat trajReprAvg;
 
 	bool play = true;
@@ -391,78 +478,24 @@ void doIt() {
 		Scalar meanColor[] = {blueColor.get(), redColor.get()};
 		Matx<float, 1, 6> colorPrecision[] = {blueColorPrecision.getScatterTransform(), redColorPrecision.getScatterTransform()};
 		
-		
 		for(int side = 0; side < 2; side++) {
 			for(int bar = 0; bar < BARS; bar++) {
+				FoosmenBarAnalysis analysis;
 
-				float xf = barx(side, bar, size, metrics, foosmenMetrics);
-				int x = xf;
-
-				float distancePixels = m2px * foosmenMetrics.distance[bar];
-				int b = foosmenPerBar[bar];
-
-				int l = bar == GOALKEEPER ? -m2px * goalkeeperWindowLength.get() : -m2px * windowLength.get();
-				int r = m2px * windowLength.get();
-
-				if(!side) {
-					l = -l;
-					r = -r;
-				}
-
-				int marginPixels = size.height - (b-1) * distancePixels;
-
-				Mat slicex = tableFrame(Range::all(), Range(x+min(l,r), x+max(l,r)));
-
-				Mat diff = slicex - meanColor[side];
-
-				vector<Mat> diffBGR;
-				split(diff, diffBGR);
-
-				Mat diffScatter;
-				vector<Mat> diffScatterSplit;
-
-				for(int i = 0; i < 3; i++) {
-					diffScatterSplit.push_back(diffBGR[i].mul(diffBGR[i]));
-				}
-
-				for(int i = 0; i < 3; i++) {
-					diffScatterSplit.push_back(diffBGR[i].mul(diffBGR[(i+1)%3]));
-				}
-				merge(diffScatterSplit, diffScatter);
-
-				Mat prob;
-				transform(diffScatter, prob, colorPrecision[side]);
-
-				Mat probThresh;
-				threshold(prob, probThresh, foosmenProbThresh.get(), 0, THRESH_TRUNC);
-
-				Mat s(marginPixels, abs(r-l), CV_32F, 0.f);
-
-				Mat probBlurred;
-				blur(probThresh, probBlurred, Size(m2px * convLength.get(), m2px * convWidth.get()));
-
-				for(int i = 0; i < b; i++) {
-					float y = (0.5f + i - foosmenPerBar[bar] * 0.5f) * distancePixels;
-					int yy = size.height / 2 + y - marginPixels / 2;
-
-					Mat slice = probBlurred(Range(yy, int(yy + marginPixels)), Range::all());
-					s += slice;
-				}
+				startFoosmenBarAnalysis(metrics, foosmenMetrics, side, bar, analysis, tableFrame);
+				computeLL(side, bar, analysis);
+				computeOverlapped(side, bar, foosmenMetrics, size, analysis);
 
 				Point2f m;
-				m = subpixelMinimum(s);
+				m = subpixelMinimum(analysis.overlapped);
 
-				float cShift = m.y - marginPixels/2.f;
+				float cShift = m.y - analysis.marginPixels / 2.f;
 				float shiftAlpha = 0.5f;
 				shift[bar][side] = (1 - shiftAlpha) * shift[bar][side] + shiftAlpha * cShift;
 
-				float cRot = (x + min(l,r) + m.x - xf) * 5.f;
+				float cRot = (analysis.colRange.start + m.x - analysis.xPixels) * 5.f;
 				float rotAlpha = 0.2f;
 				rot[bar][side] = (1 - rotAlpha) * rot[bar][side] + rotAlpha * cRot;
-
-				stringstream ss;
-				ss << side << "-bar-" << bar;
-				show(ss.str(), s, 200);
 			}
 
 //			show(side ? "diffRed" : "diffBlue", diff, 500, 50);
