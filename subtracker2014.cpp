@@ -14,7 +14,7 @@
 using namespace cv;
 using namespace std;
 
-VideoCapture cap;
+FrameReader frameReader;
 
 SubottoReference reference;
 SubottoMetrics metrics;
@@ -60,10 +60,10 @@ Trackbar<float> bar3distance("foosmen", "bar3distance", 0.210f, 0.f, 2.f, 0.001f
 Trackbar<float> convWidth("foosmen", "convWidth", 0.025, 0, 0.1, 0.001);
 Trackbar<float> convLength("foosmen", "convLength", 0.060, 0, 0.2, 0.001);
 
-Trackbar<float> windowLength("foosmen", "windowLength", 0.100, 0, 0.2, 0.001);
+Trackbar<float> windowLength("foosmen", "windowLength", 0.060, 0, 0.2, 0.001);
 Trackbar<float> goalkeeperWindowLength("foosmen", "goalkeeperWindowLength", 0.010, 0, 0.2, 0.001);
 
-Trackbar<float> rotFactorTrackbar("foosmen", "rotFactor", 30, 0, 100, 0.1);
+Trackbar<float> rotFactorTrackbar("foosmen", "rotFactor", 45, 0, 100, 0.1);
 
 ColorPicker blueColor("color1", Scalar(0.65f, 0.10f, 0.05f));
 ColorPicker redColor("color2", Scalar(0.05f, 0.25f, 0.50f));
@@ -98,7 +98,7 @@ void drawFoosmen(Mat out, SubottoMetrics subottoMetrics, FoosmenMetrics foosmenM
 
 			for(int i = 0; i < foosmenMetrics.count[bar]; i++) {
 				float y = (0.5f + i - foosmenMetrics.count[bar] * 0.5f) * foosmenMetrics.distance[bar];
-				float yy = (0.5f + y / subottoMetrics.width) * out.rows + shift[bar][side];
+				float yy = (0.5f + (y + shift[bar][side]) / subottoMetrics.width) * out.rows;
 
 				line(out, Point(xx - 5, yy), Point(xx + 5, yy), Scalar(0.f, 1.f, 0.f));
 
@@ -398,7 +398,7 @@ void computeLL(FoosmenBarMetrics barMetrics, FoosmenBarAnalysis &analysis) {
 	threshold(distance, distanceTresh, foosmenProbThresh.get(), 0, THRESH_TRUNC);
 
 	// TODO: subtract properly scaled analysis.tableNLLSlice
-	blur(distanceTresh, analysis.nll, Size(barMetrics.m2height * convLength.get(), barMetrics.m2height * convWidth.get()));
+	blur(distanceTresh, analysis.nll, Size(barMetrics.m2height * convLength.get(), barMetrics.m2width * convWidth.get()));
 }
 
 void computeOverlapped(FoosmenBarMetrics barMetrics, FoosmenBarAnalysis &analysis) {
@@ -473,7 +473,7 @@ void doIt() {
 	namedWindow( "Display", WINDOW_NORMAL );
 	deque<Mat> frames;	// used for display only
 
-	tracker = unique_ptr<SubottoTracker>(new SubottoTracker(cap, reference, metrics, SubottoTrackingParams()));
+	tracker = unique_ptr<SubottoTracker>(new SubottoTracker(frameReader, reference, metrics, SubottoTrackingParams()));
 
 	Size tableFrameSize(240, 120);
 
@@ -519,9 +519,12 @@ void doIt() {
 
 		Mat frame = subotto.frame;
 		
-		// TODO: inserire il vero timestamp
+		if(debug) {
+			show("frame", frame);
+		}
+
 		if ( current_time >= timeline_span ) {
-			timestamps.push_back(1234.0);
+			timestamps.push_back(double(duration_cast<milliseconds>(subotto.frameInfo.timestamp.time_since_epoch()).count()) / 1000.);
 		}
 		
 		Mat tableFrame;
@@ -664,7 +667,7 @@ void doIt() {
 					fprintf(stderr,"Ball found: (%lf,%lf)\n", ball.x, ball.y);
 					ball.x /= metrics.length / density.cols;
 					ball.y /= metrics.width / density.rows;
-					circle( display, ball, 2, Scalar(0,255,0), 1 );
+					circle( display, ball, 8, Scalar(0,255,0), 2 );
 					imshow("Display", display);
 				}
 
@@ -694,7 +697,7 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 
-	cap.open(videoName);
+//	frameReader.open(1);
 
 	reference.image = imread(referenceImageName);
 

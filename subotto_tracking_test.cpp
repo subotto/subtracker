@@ -15,7 +15,7 @@
 using namespace cv;
 using namespace std;
 
-VideoCapture cap;
+VideoCapture frameReader;
 
 shared_ptr<SubottoTrackingParams> trackerParams(new SubottoTrackingParams());
 unique_ptr<SubottoTracker> tracker;
@@ -24,7 +24,7 @@ SubottoReference reference;
 SubottoMetrics metrics;
 
 void onChange(int a, void* b) {
-	tracker = unique_ptr<SubottoTracker>(new SubottoTracker(cap, reference, metrics, *trackerParams));
+	tracker = unique_ptr<SubottoTracker>(new SubottoTracker(frameReader, reference, metrics, *trackerParams));
 }
 
 int main(int argc, char* argv[]) {
@@ -41,7 +41,7 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 
-	cap.open(videoName);
+	frameReader.open(1);
 
 	reference.image = imread(referenceImageName);
 
@@ -86,21 +86,7 @@ int main(int argc, char* argv[]) {
 
 	Mat mean;
 	Mat variance;
-
-	Trackbar<int> r("color", "R", 0, 0, 255);
-	Trackbar<int> g("color", "G", 0, 0, 255);
-	Trackbar<int> b("color", "B", 0, 0, 255);
-
-	bool play = false;
-	while (true) {
-		int c = waitKey(play);
-
-		if (c == ' ') {
-			play = !play;
-		} else if (c != 'n') {
-			continue;
-		}
-
+	while (waitKey(1)) {
 		Point2f subottoPoints[] = {
 				Point2f(-1, -0.6),
 				Point2f(-1, +0.6),
@@ -128,13 +114,11 @@ int main(int argc, char* argv[]) {
 		Mat warped;
 		warpedByte.convertTo(warped, CV_32F, 1 / 255.f);
 
-		Mat highlightedSubotto;
-		frame.copyTo(highlightedSubotto);
-		drawSubottoBorders(highlightedSubotto, subottoTracking.transform, Scalar(b.get(), g.get(), r.get()));
+		namedWindow("frame", CV_WINDOW_NORMAL);
+		imshow("frame", frame);
 
-		show("frame", frame);
-		show("highlighted", highlightedSubotto);
-		show("warped", warped);
+		namedWindow("warped", CV_WINDOW_NORMAL);
+		imshow("warped", warped);
 	}
 
 	return 0;

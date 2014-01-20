@@ -2,6 +2,7 @@
 #define SUBOTTODETECTOR_H_
 
 #include "subotto_metrics.hpp"
+#include "framereader.hpp"
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/videostab/videostab.hpp>
@@ -55,7 +56,7 @@ struct SubottoFollowingParams {
 	cv::Size opticalFlowSize = cv::Size(120, 60);
 
 	SubottoFollowingParams() {
-		opticalFlow.detection.features = 20;
+		opticalFlow.detection.features = 200;
 	}
 };
 
@@ -64,17 +65,18 @@ struct SubottoTrackingParams {
 	SubottoFollowingParams followingParams;
 
 	int detectionSkipFrames = 60;
-	int detectionAlpha = 10;
+	int detectionAlpha = 100;
 
 	int followingSkipFrames = 0;
-	int followingAlpha = 25;
+	int followingAlpha = 50;
 
-	int nearTransformSmoothingAlpha = 20;
+	int nearTransformSmoothingAlpha = 100;
 };
 
 struct SubottoTracking {
 	cv::Mat frame;
 	cv::Mat transform;
+	frame_info frameInfo;
 };
 
 /*
@@ -139,12 +141,12 @@ private:
  */
 class SubottoTracker {
 public:
-	SubottoTracker(cv::VideoCapture cap, SubottoReference reference, SubottoMetrics metrics, SubottoTrackingParams params);
+	SubottoTracker(FrameReader& frameReader, SubottoReference reference, SubottoMetrics metrics, SubottoTrackingParams params);
 	virtual ~SubottoTracker();
 
 	SubottoTracking next();
 private:
-	cv::VideoCapture cap;
+	FrameReader& frameReader;
 	SubottoReference reference;
 	SubottoMetrics metrics;
 	SubottoTrackingParams params;

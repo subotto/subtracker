@@ -168,10 +168,10 @@ Mat SubottoFollower::follow(Mat frame, Mat previousTransform) {
 	return previousTransform * sizeToReference(reference.metrics, size) * correction * referenceToSize(reference.metrics, size);
 }
 
-SubottoTracker::SubottoTracker(VideoCapture cap, SubottoReference reference,
+SubottoTracker::SubottoTracker(FrameReader& frameReader, SubottoReference reference,
 		SubottoMetrics metrics,
 		SubottoTrackingParams params) :
-		cap(cap), params(params), reference(reference), detector(
+		frameReader(frameReader), params(params), reference(reference), detector(
 				new SubottoDetector(reference, metrics, params.detectionParams)), follower(
 				new SubottoFollower(reference, metrics, params.followingParams)) {
 }
@@ -180,21 +180,21 @@ SubottoTracker::~SubottoTracker() {
 }
 
 Mat correctDistortion(Mat frameDistorted) {
-	Matx<float, 3, 3> cameraMatrix(160, 0, 160, 0, 160, 120, 0, 0, 1);
-	float k = -0.025;
+//	Matx<float, 3, 3> cameraMatrix(160, 0, 160, 0, 160, 120, 0, 0, 1);
+//	float k = -0.025;
+//
+//	Mat frame;
+//	undistort(frameDistorted, frame, cameraMatrix, vector<float> {k, 0, 0, 0}, getDefaultNewCameraMatrix(cameraMatrix));
 
-	Mat frame;
-	undistort(frameDistorted, frame, cameraMatrix, vector<float> {k, 0, 0, 0}, getDefaultNewCameraMatrix(cameraMatrix));
-
-	return frame;
+	return frameDistorted;
 }
 
 SubottoTracking SubottoTracker::next() {
 	SubottoTracking subottoTracking;
-	Mat frameDistorted;
 
-	cap >> frameDistorted;
+	frame_info frameInfo = frameReader.get();
 
+	Mat frameDistorted = frameInfo.data;
 	Mat frame = correctDistortion(frameDistorted);
 
 	Mat subottoTransform;
@@ -243,6 +243,7 @@ SubottoTracking SubottoTracker::next() {
 
 	subottoTracking.frame = frame;
 	subottoTracking.transform = subottoTransform;
+	subottoTracking.frameInfo = frameInfo;
 
 	return subottoTracking;
 }
