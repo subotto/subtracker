@@ -89,7 +89,7 @@ class Application:
 
         obj_response = {
             'data': self.select_records(last_timestamp),
-            'fps': 24,
+            'fps': 24.0,
             'buffer_len': BUFFER_LEN,
             'version': 1,
             }
