@@ -665,8 +665,10 @@ void doIt() {
 					frames.front().copyTo(display);
 					Point2f ball = positions[0];
 					fprintf(stderr,"Ball found: (%lf,%lf)\n", ball.x, ball.y);
-					ball.x /= metrics.length / density.cols;
-					ball.y /= metrics.width / density.rows;
+
+					ball.x = (ball.x / density.cols - 0.5f) * metrics.length;
+					ball.y = (ball.y / density.rows - 0.5f) * metrics.width;
+
 					circle( display, ball, 8, Scalar(0,255,0), 2 );
 					imshow("Display", display);
 				}
