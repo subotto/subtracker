@@ -26,7 +26,7 @@ while True:
 
     elif mode == 'circle':
         omega = now
-        radius = 0.6
+        radius = 0.3
         print ",".join([str(now)] + [str(x) for x in [radius * math.cos(omega), radius * math.sin(omega)]])
 
     sys.stdout.flush()

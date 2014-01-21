@@ -41,30 +41,29 @@ class Application:
         if last_id is None:
             last_id = 0
         last_id -= BUFFER_LEN
+
         while not self.closing:
             new_data = session.query(Log).filter(Log.id > last_id).order_by(Log.id).all()
             if len(new_data) > 0:
                 last_id = new_data[-1].id
-            # TODO - Do we really need this?
+
+            # Make a copy of data, also because we want to convert
+            # units without touching the original one
             new_data = [x.clone() for x in new_data]
             for x in new_data:
                 x.convert_units()
+
             #print >> sys.stderr, "Read %d records" % (len(new_data))
             self.buffer += new_data
             self.buffer = self.buffer[-BUFFER_LEN:]
             session.rollback()
             time.sleep(SLEEP_TIME)
+
         session.rollback()
         session.close()
 
     def select_records(self, last_timestamp):
-        if last_timestamp >= 0.0:
-            return [x for x in self.buffer if x.timestamp > last_timestamp]
-        else:
-            if len(self.buffer) > 0:
-                return self.buffer[-1:]
-            else:
-                return []
+        return [x for x in self.buffer if x.timestamp > last_timestamp]
 
     def error(self, environ, start_response):
         status = '400 Bad Request'
