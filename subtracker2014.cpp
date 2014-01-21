@@ -645,7 +645,7 @@ void doIt(FrameReader& frameReader) {
 					printf("%lf", timestamp);
 					
 					// Controllo che la pallina sia stata effettivamente trovata (la posizione non deve essere NISBA) e la stampo
-					if ( positions[i].x > -0.5 && positions[i].y > -0.5 ) printf(",%lf,%lf", positions[i].x, positions[i].y);
+					if ( positions[i].x < 900.0 && positions[i].y < 900.0 ) printf(",%lf,%lf", positions[i].x, positions[i].y);
 					else printf(",,");
 					
 					for (int j=0; j<foosmenValuesFrame.size(); j++) {

@@ -90,7 +90,7 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 		}
 	}
 	
-	Point2f NISBA(-1.0,-1.0);
+	Point2f NISBA(1000.0,1000.0);
 	vector<Point2f> positions;
 	Point2f position;
 	
