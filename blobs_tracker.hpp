@@ -8,23 +8,6 @@
 
 double const INFTY = 1e100;
 
-/*
-class Node;
-
-class Subnode {
-	
-	public:
-		double badness;
-		cv::Point2f speed;
-		Node* previous;
-		int previous_subnode;
-		
-		Subnode(double badness, cv::Point2f speed, Node* previous, int previous_subnode)
-			: badness(badness), speed(speed), previous(previous), previous_subnode(previous_subnode)
-		{};
-	
-};
-*/
 
 class Node {
 	
@@ -33,11 +16,10 @@ class Node {
 		double badness;
 		int time;
 		Node* previous;
+		bool is_absent;	// The ball isn't on the field
 		
-		// std::vector<Subnode> subnodes;
-		
-		Node(Blob blob, int time)
-			: blob(blob), badness(INFTY), time(time), previous(NULL)
+		Node(Blob blob, int time, bool is_absent)
+			: blob(blob), badness(INFTY), time(time), previous(NULL), is_absent(is_absent)
 		{};
 	
 };
@@ -49,7 +31,7 @@ class BlobsTracker {
 		void PopFrameFromTimeline();
 		
 		BlobsTracker()
-			: _fps(120.0), _max_speed(18.0), _max_unseen_distance(0.3), _distance_constant(1000.0), _max_interpolation_time(0.5), _max_badness_per_frame(-7.0)
+			: _fps(120.0), _max_speed(18.0), _max_unseen_distance(0.3), _max_interpolation_time(0.5), _skip_parameter(30.0), _distance_parameter(500.0), _appearance_parameter(300.0), _disappearance_parameter(10.0)
 		{};
 	
 	private:
@@ -57,9 +39,12 @@ class BlobsTracker {
 		double _fps; // fotogrammi al secondo
 		double _max_speed; // massima velocita' (in m/s) perché il movimento sia considerato possibile
 		double _max_unseen_distance; // massima distanza (in metri) a cui si può teletrasportare la pallina
-		double _distance_constant; // costante per decidere la verosimiglianza della pallina spostata
 		double _max_interpolation_time; // tempo massimo (in secondi) entro il quale si interpola la posizione della pallina
-		double _max_badness_per_frame; // costante per evitare soluzioni con badness troppo alta
+		
+		double _skip_parameter;	// costo (in badness) per saltare un frame
+		double _distance_parameter; // costante per decidere la verosimiglianza della pallina spostata
+		double _appearance_parameter; // costo (in badness) per passare da uno stato assente a uno stato presente
+		double _disappearance_parameter; // costo (in badness) per passare da uno stato presente a uno stato assente
 };
 
 #endif

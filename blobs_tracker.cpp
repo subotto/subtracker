@@ -23,9 +23,15 @@ bool operator< (Subnode const &a, Subnode const &b) {
 void BlobsTracker::InsertFrameInTimeline(vector<Blob> blobs, int time) {
 	vector<Node> v;
 	for (int i=0; i<blobs.size(); i++) {
-		Node n = Node( blobs[i], time );
+		Node n = Node( blobs[i], time, false );
 		v.push_back(n);
 	}
+	
+	// Inserting the absent-ball node
+	Blob phantom ( Point2f(0.0,0.0), 0.0, 0.0, 0.0 );
+	Node n ( phantom, time, true );
+	v.push_back(n);
+	
 	_timeline.push_back(v);
 }
 
@@ -34,54 +40,77 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 	
 	if (debug) fprintf(stderr, "Processing frames from %d to %d\n", begin_time, end_time-1);
 	
-	 // questa min_badness serve a evitare falsi positivi quando non c'è la pallina vera
-	double min_badness = _timeline.size() * _max_badness_per_frame;
-	if (debug) fprintf(stderr, "Maximum acceptable badness: %.1lf\n", min_badness);
+	double min_badness = INFTY;
 	Node *best_node = NULL;
 	
 	for (int i=0; i<_timeline.size(); i++) {
 		for (int k=0; k<_timeline[i].size(); k++) {
 			
-			// Passo base (collegamenti con il nodo fittizio iniziale)
-			_timeline[i][k].badness = 0;
-			_timeline[i][k].previous = NULL;
+			Node &old_node = _timeline[i][k];
 			
+			// Passo base (collegamenti con il nodo fittizio iniziale)
+			old_node.badness = i * _skip_parameter;
+			old_node.previous = NULL;
 			
 			// Programmazione dinamica
 			for (int j=0; j<i; j++) {
 				for (int h=0; h<_timeline[j].size(); h++) {
 					
-					double old_badness = _timeline[j][h].badness;
+					Node &new_node = _timeline[j][h];
+					
+					double old_badness = new_node.badness;
 					int interval = i-j;
 					
-					double delta_badness = - _timeline[j][h].blob.weight;
+					double delta_badness = (double)(interval) * _skip_parameter;
 					
-					// Località spaziale
-					Point2f new_center = _timeline[i][k].blob.center;
-					Point2f old_center = _timeline[j][h].blob.center;
-					double distance = norm(new_center - old_center);
+					if ( old_node.is_absent && new_node.is_absent ) {
+						// Transizione da assente ad assente
+					}
 					
-					// Controllo di località
-					if ( distance > _max_speed / _fps * interval ) continue;
-					if ( distance > _max_unseen_distance ) continue;
+					if ( old_node.is_absent && !new_node.is_absent ) {
+						// Transizione da assente a presente
+						delta_badness += _appearance_parameter - new_node.blob.weight;
+					}
 					
-					// Verosimiglianza gaussiana
-					delta_badness += _distance_constant * distance * distance;
+					if ( !old_node.is_absent && new_node.is_absent ) {
+						// Transizione da presente ad assente
+						delta_badness += _disappearance_parameter;
+					}
+					
+					
+					if ( !old_node.is_absent && !new_node.is_absent ) {
+						// Transizione da presente a presente
+						
+						delta_badness += - new_node.blob.weight;
+					
+						// Località spaziale
+						Point2f new_center = old_node.blob.center;
+						Point2f old_center = new_node.blob.center;
+						double distance = norm(new_center - old_center);
+					
+						// Controllo di località
+						if ( distance > _max_speed / _fps * interval ) continue;
+						if ( distance > _max_unseen_distance ) continue;
+					
+						// Verosimiglianza gaussiana
+						delta_badness += _distance_parameter * distance * distance;
+					}
 					
 					// Calcolo la nuova badness, e aggiorno se è minore della minima finora trovata
 					double new_badness = old_badness + delta_badness;
 					
-					if ( new_badness < _timeline[i][k].badness ) {
+					if ( new_badness < old_node.badness ) {
 						_timeline[i][k].badness = new_badness;
 						// Salvo il percorso ottimo
-						_timeline[i][k].previous = &_timeline[j][h];
+						_timeline[i][k].previous = &new_node;
 					}
 					
 				}
 			}
 			
 			// Passo finale (collegamenti con il nodo fittizio finale)
-			double candidate_badness = _timeline[i][k].badness;
+			double candidate_badness = _timeline[i][k].badness + ( _timeline.size() - i - 1 ) * _skip_parameter;
+			
 			if ( min_badness > candidate_badness ) {
 				min_badness = candidate_badness;
 				best_node = &_timeline[i][k];
@@ -95,12 +124,13 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 	Point2f position;
 	
 	if (debug) fprintf(stderr, "Badness: %lf\n", min_badness);
+	
 	for (int i=begin_time; i<end_time; i++) {
 		
 		// Cerco la miglior posizione prevista per il frame i
 		Node *node = best_node;
 		if ( node == NULL ) {
-			if (debug) fprintf(stderr, "Frame %d: no ball found (no path with acceptable badness).\n", i);
+			if (debug) fprintf(stderr, "Frame %d: no ball found (no path).\n", i);
 			positions.push_back(NISBA);
 			continue;
 		}
@@ -133,24 +163,40 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 		
 	
 		if ( greater->time == lower->time ) {
-			if (debug) fprintf(stderr, "Frame %d: ball found (exact location). ", i);
-			position = greater->blob.center;
-			if (debug) fprintf(stderr, "Position: (%lf, %lf)\n", position.x, position.y);
-			positions.push_back( Point2f(position) );
-			continue;
+			// Il fotogramma in questione non e' stato saltato
+			
+			if ( greater->is_absent ) {
+				// Nel fotogramma in questione la pallina e' stata valutata assente
+				if (debug) fprintf(stderr, "Frame %d: no ball found (claimed to be absent).\n", i);
+				positions.push_back(NISBA);
+				continue;
+			}
+			else {
+				// Nel fotogramma in questione la pallina e' stata valutata presente
+				if (debug) fprintf(stderr, "Frame %d: ball found (exact location). ", i);
+				position = greater->blob.center;
+				if (debug) fprintf(stderr, "Position: (%lf, %lf)\n", position.x, position.y);
+				positions.push_back( Point2f(position) );
+				continue;
+			}
 		}
-	
-		// Se è richiesta la posizione in un frame molto lontano da quelli in cui passa il percorso, restituisco NISBA.
+		
+		
 		int pre_diff = i - lower->time;
 		int post_diff = greater->time - i;
 	
 		if ( (double)(max( pre_diff, post_diff )) > _max_interpolation_time * _fps ) {
+			// Se è richiesta la posizione in un frame molto lontano da quelli in cui passa il percorso, restituisco NISBA.
 			if (debug) fprintf(stderr, "Frame %d: no ball found (interpolation is not reliable).\n", i);
 			positions.push_back(NISBA);
 			continue;
 		}
-	
-	
+		
+		if ( greater->is_absent || lower->is_absent ) {
+			// Non dovrebbe succedere: un cammino migliore si sarebbe ottenuto passando dal nodo "absent" di questo frame
+			assert(0==1);
+		}
+		
 		cv::Point2f greater_center = greater->blob.center;
 		cv::Point2f lower_center = lower->blob.center;
 	
