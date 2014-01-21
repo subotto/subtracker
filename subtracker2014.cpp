@@ -58,10 +58,10 @@ Trackbar<float> bar3distance("foosmen", "bar3distance", 0.210f, 0.f, 2.f, 0.001f
 Trackbar<float> convWidth("foosmen", "convWidth", 0.025, 0, 0.1, 0.001);
 Trackbar<float> convLength("foosmen", "convLength", 0.060, 0, 0.2, 0.001);
 
-Trackbar<float> windowLength("foosmen", "windowLength", 0.020, 0, 0.2, 0.001);
+Trackbar<float> windowLength("foosmen", "windowLength", 0.100, 0, 0.2, 0.001);
 Trackbar<float> goalkeeperWindowLength("foosmen", "goalkeeperWindowLength", 0.010, 0, 0.2, 0.001);
 
-Trackbar<float> rotFactorTrackbar("foosmen", "rotFactor", 20, 0, 100, 0.1);
+Trackbar<float> rotFactorTrackbar("foosmen", "rotFactor", 40, 0, 100, 0.1);
 
 ColorPicker blueColor("color1", Scalar(0.65f, 0.10f, 0.05f));
 ColorPicker redColor("color2", Scalar(0.05f, 0.25f, 0.50f));
@@ -421,7 +421,10 @@ void findFoosmen(FoosmenBarMetrics barMetrics, FoosmenBarAnalysis &analysis) {
 	float rotFactor = rotFactorTrackbar.get();
 
 	analysis.shift = (m.y - barMetrics.marginPixels / 2.f) / barMetrics.m2height;
-	analysis.rot = (barMetrics.colRange.start + m.x - barMetrics.xPixels) * 2.f / barMetrics.m2width * rotFactor;
+
+	float rotSin = (barMetrics.colRange.start + m.x - barMetrics.xPixels) * 2.f / barMetrics.m2width * rotFactor;
+	rotSin = max(-1.f, min(1.f, rotSin));
+	analysis.rot = asin(rotSin);
 
 //	stringstream ss;
 //	ss << barMetrics.side << "-bar-" << barMetrics.bar;
@@ -575,7 +578,7 @@ void doIt(FrameReader& frameReader) {
 		// Saving values for later...
 		if ( current_time >= timeline_span ) {
 			vector<float> foosmenValuesFrame;
-			for(int side = 0; side < 2; side++) {
+			for(int side = 1; side >= 0; side--) {
 				for(int bar = 0; bar < BARS; bar++) {
 					foosmenValuesFrame.push_back( barsShift[bar][side] );
 					foosmenValuesFrame.push_back( barsRot[bar][side] );
@@ -603,8 +606,11 @@ void doIt(FrameReader& frameReader) {
 		SubottoMetrics metrics;
 		for (int i=0; i<localMaxima.size(); i++) {
 			// printf("Coordinate prima: (%lf, %lf)\n", localMaxima[i].position[0], localMaxima[i].position[1]);
-			localMaxima[i].position[0] *= metrics.length / density.cols;
-			localMaxima[i].position[1] *= metrics.width / density.rows;
+			Vec2f &p = localMaxima[i].position;
+
+			p[0] = (p[0] / density.cols - 0.5f) * metrics.length;
+			p[1] = (p[1] / density.rows - 0.5f) * metrics.width;
+
 			// printf("Coordinate dopo:  (%lf, %lf)\n", localMaxima[i].position[0], localMaxima[i].position[1]);
 		}
 		
@@ -664,8 +670,8 @@ void doIt(FrameReader& frameReader) {
 					Point2f ball = positions[0];
 					fprintf(stderr,"Ball found: (%lf,%lf)\n", ball.x, ball.y);
 
-					ball.x = (ball.x / density.cols - 0.5f) * metrics.length;
-					ball.y = (ball.y / density.rows - 0.5f) * metrics.width;
+					ball.x = (ball.x / metrics.length + 0.5f) * density.cols;
+					ball.y = (ball.y / metrics.width + 0.5f) * density.rows;
 
 					circle( display, ball, 8, Scalar(0,255,0), 2 );
 					imshow("Display", display);
