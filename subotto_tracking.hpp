@@ -56,7 +56,8 @@ struct SubottoFollowingParams {
 	cv::Size opticalFlowSize = cv::Size(120, 60);
 
 	SubottoFollowingParams() {
-		opticalFlow.detection.features = 200;
+		opticalFlow.detection.features = 100;
+		opticalFlow.detection.levels = 1;
 	}
 };
 
