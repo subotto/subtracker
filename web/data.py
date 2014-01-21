@@ -70,13 +70,13 @@ class Log(Base):
             if self.__dict__[f] is None:
                 continue
             if f == 'ball_x':
-                self.__dict__[f] = self.__dict__[f] / Log.DIM_X
+                self.__dict__[f] = 2.0 * self.__dict__[f] / Log.DIM_X
             if f == 'ball_y':
-                self.__dict__[f] = self.__dict__[f] / Log.DIM_Y
+                self.__dict__[f] = 2.0 * self.__dict__[f] / Log.DIM_Y
             if f.startswith('rod') and f.endswith('shift'):
-                self.__dict__[f] = self.__dict__[f] / Log.DIM_Y
+                self.__dict__[f] = 2.0 * self.__dict__[f] / Log.DIM_Y
             if f.startswith('rod') and f.endswith('angle'):
-                self.__dict__[f] = self.__dict__[f] - math.pi
+                self.__dict__[f] = self.__dict__[f] - math.pi/2
 
     def to_tuple(self):
         return tuple([self.__dict__[f] for f in Log.INTERESTING_FIELDS])
