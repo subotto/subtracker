@@ -19,8 +19,8 @@ void show(string name, Mat image, int initialAlpha, int initialGamma) {
 	float gamma = *showGamma[name] / 100.f;
 	Mat output = image * alpha + Scalar(gamma, gamma, gamma);
 
-	namedWindow("intensities", CV_WINDOW_NORMAL);
-	namedWindow(name, CV_WINDOW_NORMAL);
+	namedWindow("intensities", WINDOW_NORMAL);
+	namedWindow(name, WINDOW_NORMAL);
 
 	createTrackbar(name + "Alpha", "intensities", showAlpha[name].get(), 100000);
 	createTrackbar(name + "Gamma", "intensities", showGamma[name].get(), 100);

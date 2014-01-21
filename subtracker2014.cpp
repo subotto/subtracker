@@ -4,6 +4,7 @@
 #include <deque>
 
 #include <cmath>
+#include <cassert>
 
 #include "utility.hpp"
 #include "ball_density.hpp"
@@ -204,7 +205,7 @@ void getTableFrame(Mat frame, Mat& tableFrame, Size size, Mat transform) {
 	frame.convertTo(frame32f, CV_32F, 1 / 255.f);
 
 	Mat warpTransform = transform * sizeToUnits(metrics, size);
-	warpPerspective(frame32f, tableFrame, warpTransform, size, CV_WARP_INVERSE_MAP | CV_INTER_LINEAR);
+	warpPerspective(frame32f, tableFrame, warpTransform, size, WARP_INVERSE_MAP | INTER_LINEAR);
 }
 
 void fastLargeGaussianBlur(Mat in, Mat& out, float stdDev) {
@@ -249,7 +250,7 @@ void computeNLL(const TableDescription& table, TableAnalysis& analysis) {
 
 	Mat notTableProbTrunc;
 	float tableProbThresh = 20.f;
-	threshold(notTableProb, analysis.nll, tableProbThresh, 0, CV_THRESH_TRUNC);
+	threshold(notTableProb, analysis.nll, tableProbThresh, 0, THRESH_TRUNC);
 }
 
 struct BallAnalysis {
@@ -706,7 +707,7 @@ int main(int argc, char* argv[]) {
 	reference.image = imread(referenceImageName);
 
 	if(!referenceImageMaskName.empty()) {
-		reference.mask = imread(referenceImageMaskName, CV_LOAD_IMAGE_GRAYSCALE);
+		reference.mask = imread(referenceImageMaskName, IMREAD_GRAYSCALE);
 	}
 
 	if(videoName.size() == 1) {

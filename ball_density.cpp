@@ -26,7 +26,7 @@ Mat BallDensityEstimator::getInput(const BallDensity& density) {
 	density.tracking.frame.convertTo(frame, CV_32F, 1 / 255.f);
 	Mat warpTransform = density.tracking.transform * sizeToUnits(metrics, size);
 	Mat input;
-	warpPerspective(frame, input, warpTransform, size, CV_WARP_INVERSE_MAP | CV_INTER_LINEAR);
+	warpPerspective(frame, input, warpTransform, size, WARP_INVERSE_MAP | INTER_LINEAR);
 	return input;
 }
 
@@ -87,7 +87,7 @@ BallDensity BallDensityEstimator::next() {
 
 	transform(in.tableDiffNorm + in.logTableEstimatedVariance, in.tableProb, -Matx<float, 1, 3>(1, 1, 1));
 
-	threshold(-in.tableProb, in.notTableProbTrunc, params.tableProbThresholdInt / 100.f, 0, CV_THRESH_TRUNC);
+	threshold(-in.tableProb, in.notTableProbTrunc, params.tableProbThresholdInt / 100.f, 0, THRESH_TRUNC);
 	in.tableProbTrunc = -in.notTableProbTrunc;
 
 	transform(in.ballDiffNorm, in.ballProb, -Matx<float, 1, 3>(1, 1, 1));

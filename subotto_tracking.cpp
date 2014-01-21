@@ -4,7 +4,7 @@
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
-#include <opencv2/videostab/videostab.hpp>
+#include <opencv2/videostab/stabilizer.hpp>
 
 #include <iostream>
 
@@ -14,8 +14,8 @@ using namespace cv::videostab;
 
 unique_ptr<FeatureDetector> createFeatureDetector(
 		FeatureDetectionParams params) {
-	auto gfttd = new GoodFeaturesToTrackDetector(params.features);
-	auto pafd = new PyramidAdaptedFeatureDetector(gfttd, params.levels);
+	auto gttfd = new GoodFeaturesToTrackDetector(params.features);
+	auto pafd = new PyramidAdaptedFeatureDetector(Ptr<FeatureDetector>(gttfd), params.levels);
 	return unique_ptr<FeatureDetector>(pafd);
 }
 
@@ -118,11 +118,11 @@ Mat SubottoDetector::detect(Mat frame) {
 	float ransacOutliersRatio = params.coarseRansacOutliersRatio / 100.f;
 
 	RansacParams ransacParams(4, ransacThreshold, ransacOutliersRatio, 0.99f);
-	Mat coarseTransform = estimateGlobalMotionRobust(coarseMap.from, coarseMap.to, LINEAR_SIMILARITY, ransacParams);
+	Mat coarseTransform = estimateGlobalMotionRansac(coarseMap.from, coarseMap.to, MM_SIMILARITY, ransacParams);
 
 	Mat warped;
 	Size size(reference.image.size());
-	warpPerspective(frame, warped, coarseTransform, size, CV_WARP_INVERSE_MAP);
+	warpPerspective(frame, warped, coarseTransform, size, WARP_INVERSE_MAP);
 
 	PointMap fineMap = matchFeatures(referenceFeatures, warped,
 			params.fineMatching);
@@ -152,7 +152,7 @@ Mat SubottoFollower::follow(Mat frame, Mat previousTransform) {
 	Size size(reference.image.cols, reference.image.rows);
 
 	warpPerspective(frame, warped, previousTransform * sizeToReference(reference.metrics, size), size,
-			CV_WARP_INVERSE_MAP);
+			WARP_INVERSE_MAP);
 
 	PointMap map = opticalFlow(referenceFeatures, reference.image, warped);
 

@@ -21,8 +21,8 @@ VideoCapture v4l2cap(int device, int width, int height, int fps) {
     }
 
 
-    cap.set(CV_CAP_PROP_FRAME_WIDTH, width);
-    cap.set(CV_CAP_PROP_FRAME_HEIGHT, height);
+    cap.set(CAP_PROP_FRAME_WIDTH, width);
+    cap.set(CAP_PROP_FRAME_HEIGHT, height);
 
     // Ottengo il file descriptor della webcam
     int fd = -1;

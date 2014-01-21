@@ -5,7 +5,7 @@
 #include "framereader.hpp"
 
 #include <opencv2/core/core.hpp>
-#include <opencv2/videostab/videostab.hpp>
+#include <opencv2/videostab/stabilizer.hpp>
 
 #include <memory>
 

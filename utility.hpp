@@ -37,7 +37,7 @@ Trackbar<T>::Trackbar(std::string category, std::string name, T initial, T start
 	std::stringstream s;
 	s << name << " " << start << "-" << stop;
 	trackbarName = s.str();
-	cv::namedWindow(windowName, CV_WINDOW_NORMAL);
+	cv::namedWindow(windowName);
 	cv::createTrackbar(trackbarName, windowName, &zero, int((stop - start) / step), onTrackbarChange<T>, this);
 	cv::setTrackbarPos(trackbarName, windowName, int((initial - start) / step));
 }
