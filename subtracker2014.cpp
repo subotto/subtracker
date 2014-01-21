@@ -14,8 +14,6 @@
 using namespace cv;
 using namespace std;
 
-FrameReader frameReader;
-
 SubottoReference reference;
 SubottoMetrics metrics;
 unique_ptr<SubottoTracker> tracker;
@@ -456,7 +454,7 @@ vector<BallDensityLocalMaximum> findLocalMaxima(Mat density, int radius) {
 	return localMaxima;
 }
 
-void doIt() {
+void doIt(FrameReader& frameReader) {
 	Mat trajReprAvg;
 
 	bool play = true;
@@ -699,15 +697,19 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 
-//	frameReader.open(1);
-
 	reference.image = imread(referenceImageName);
 
 	if(!referenceImageMaskName.empty()) {
 		reference.mask = imread(referenceImageMaskName, CV_LOAD_IMAGE_GRAYSCALE);
 	}
 
-	doIt();
+	if(videoName.size() == 1) {
+		FrameReader f(videoName[0] - '0');
+		doIt(f);
+	} else {
+		FrameReader f(videoName.c_str());
+		doIt(f);
+	}
 
 	return 0;
 }

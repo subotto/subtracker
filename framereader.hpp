@@ -46,7 +46,7 @@ public:
         t = thread(&FrameReader::read, this);
     }
 
-    FrameReader(char* file) {
+    FrameReader(const char* file) {
         running = true;
         count = 0;
         last_stats = high_resolution_clock::now();

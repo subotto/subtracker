@@ -17,7 +17,7 @@ clean:
 subtracker:  $(OBJECTS)
 	$(CPP) $(CPPFLAGS) -o subtracker $(OBJECTS) $(LIBS)
 
-OBJECTS_2014 = subtracker2014.o subotto_tracking.o ball_density.o utility.o subotto_metrics.o blobs_tracker.o
+OBJECTS_2014 = subtracker2014.o subotto_tracking.o ball_density.o utility.o subotto_metrics.o blobs_tracker.o v4l2cap.o
 
 subtracker2014: $(OBJECTS_2014)
 	$(CPP) $(CPPFLAGS) -o $@ $(OBJECTS_2014) $(LIBS)
