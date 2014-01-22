@@ -91,7 +91,7 @@ public:
             } else {
                 fprintf(stderr, "Frame dropped!\n");
             }
-            if(fromFile) this_thread::sleep_for(microseconds(8));
+            if(fromFile) this_thread::sleep_for(microseconds(1000000/20));
         }
     }
 

@@ -466,7 +466,7 @@ void doIt(FrameReader& frameReader) {
 	BlobsTracker blobs_tracker;
 
 	int timeline_span = 60;
-	int processed_frames = 10;	// number of frames to be processed for each call to ProcessFrame
+	int processed_frames = 1;	// number of frames to be processed for each call to ProcessFrame
 
 	int current_time = 0;
 	int initial_time = 0;
