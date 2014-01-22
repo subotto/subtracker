@@ -61,7 +61,7 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 					double old_badness = new_node.badness;
 					int interval = i-j;
 					
-					double delta_badness = (double)(interval) * _skip_parameter;
+					double delta_badness = (double)(interval-1) * _skip_parameter;
 					
 					if ( old_node.is_absent && new_node.is_absent ) {
 						// Transizione da assente ad assente
@@ -82,6 +82,7 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 						// Transizione da presente a presente
 						
 						delta_badness += - new_node.blob.weight;
+						// fprintf(stderr, "WEIGHT: %lf\n", new_node.blob.weight );
 					
 						// Località spaziale
 						Point2f new_center = old_node.blob.center;
@@ -93,7 +94,9 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 						if ( distance > _max_unseen_distance ) continue;
 					
 						// Verosimiglianza gaussiana
-						delta_badness += _distance_parameter * distance * distance;
+						double time_diff = interval / _fps;
+						delta_badness += distance * distance / ( 2 * time_diff * _variance_parameter );
+						// fprintf(stderr, "DELTA BADNESS: %lf\n", distance * distance / ( 2 * time_diff * _variance_parameter ) );
 					}
 					
 					// Calcolo la nuova badness, e aggiorno se è minore della minima finora trovata
@@ -250,10 +253,9 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 			continue;
 		}
 		
-		if ( greater->is_absent || lower->is_absent ) {
-			// Non dovrebbe succedere: un cammino migliore si sarebbe ottenuto passando dal nodo "absent" di questo frame
-			assert(0==1);
-		}
+		// Non dovrebbe succedere: un cammino migliore si sarebbe ottenuto passando dal nodo "absent" di questo frame
+		assert( !greater->is_absent && !lower->is_absent );
+		
 		
 		cv::Point2f greater_center = greater->blob.center;
 		cv::Point2f lower_center = lower->blob.center;
