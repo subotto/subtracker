@@ -11,6 +11,12 @@ import pygame.locals
 from OpenGL.GL import *
 from OpenGL.GLU import *
 
+def my_int(x):
+    if x is None or x == '':
+        return -1
+    else:
+        return int(x)
+
 class ObjObject:
 
     def __init__(self):
@@ -44,9 +50,9 @@ class ObjMaterial:
         self.diffuse_texture = None
 
     def set(self):
-        glMaterial(GL_FRONT_AND_BACK, GL_AMBIENT, self.ambient)
-        glMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE, self.diffuse)
-        #glMaterial(GL_FRONT_AND_BACK, GL_SPECULAR, self.specular)
+        glMaterial(GL_FRONT, GL_AMBIENT, self.ambient + (1.0,))
+        glMaterial(GL_FRONT, GL_DIFFUSE, self.diffuse + (1.0,))
+        glMaterial(GL_FRONT, GL_SPECULAR, self.specular)
 
 def read_mtl(filename):
 
@@ -95,6 +101,8 @@ def read_obj(filename):
     cur_object = None
     materials = {}
 
+    offsets = [0, 0, 0]
+
     with open(filename) as fin:
         for line in fin:
             line = line.strip()
@@ -107,7 +115,10 @@ def read_obj(filename):
             if command == 'o':
                 assert len(params) == 1
                 if cur_object is not None:
-                    objects.append(cur_objects)
+                    objects.append(cur_object)
+                    offsets[0] += len(cur_object.vertices)
+                    offsets[1] += len(cur_object.uv_vertices)
+                    offsets[2] += len(cur_object.normals)
                 cur_object = ObjObject()
                 cur_object.name = params[0]
             elif command == 'v':
@@ -123,7 +134,7 @@ def read_obj(filename):
                 assert len(params) == 3
                 face = []
                 for param in params:
-                    elems = [int(x) for x in param.split('/')]
+                    elems = [my_int(x) - offsets[i] for i, x in enumerate(param.split('/'))]
                     assert len(elems) == 3
                     face.append(tuple(elems))
                 cur_object.faces.append(tuple(['f'] + face))
@@ -151,7 +162,7 @@ def resize(width, height):
     # Set up projection
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
-    gluPerspective(35.0, float(width)/float(height), 0.1, 100.0)
+    gluPerspective(60.0, float(width)/float(height), 0.1, 100.0)
 
     # Set up trivial model view
     glMatrixMode(GL_MODELVIEW)
@@ -163,7 +174,9 @@ def render(time):
 
     glMatrixMode(GL_MODELVIEW)
     glLoadIdentity()
-    gluLookAt(2.0 * math.cos(time), 2.0 * math.sin(time), 1.85, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
+    gluLookAt(6.0 * math.cos(time), 6.0 * math.sin(time), 4.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
+
+    glLight(GL_LIGHT0, GL_POSITION, (4.0, 6.0, 6.0))
 
 FPS = 30.0
 
@@ -179,12 +192,10 @@ def main():
     # Initialize OpenGL stuff
     glEnable(GL_DEPTH_TEST)
     glShadeModel(GL_FLAT)
-    glEnable(GL_COLOR_MATERIAL)
     glClearColor(0.0, 0.0, 0.0, 0.0)
     glEnable(GL_LIGHTING)
     glEnable(GL_LIGHT0)
-    glLight(GL_LIGHT0, GL_POSITION, (4.0, 1.0, 6.0))
-    glLight(GL_LIGHT0, GL_DIFFUSE, (0.6, 0.6, 0.6))
+    glLight(GL_LIGHT0, GL_DIFFUSE, (0.8, 0.8, 0.8))
     glLight(GL_LIGHT0, GL_AMBIENT, (0.1, 0.1, 0.1))
 
     objects = read_obj('omino.obj')
