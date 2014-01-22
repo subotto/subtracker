@@ -63,6 +63,8 @@ public:
                 fprintf(stderr, "Error reading frame!\n");
                 continue;
             }
+            this_thread::sleep_for(microseconds(1000000 / 120));
+
             count++;
             auto now = high_resolution_clock::now();
             frame_times.push_back(now);

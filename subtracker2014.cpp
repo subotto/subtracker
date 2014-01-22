@@ -12,8 +12,11 @@
 #include "blobs_tracker.hpp"
 #include "subotto_metrics.hpp"
 
+#include <opencv2/ocl.hpp>
+
 using namespace cv;
 using namespace std;
+using namespace ocl;
 
 SubottoReference reference;
 SubottoMetrics metrics;
@@ -42,7 +45,7 @@ FoosmenMetrics foosmenMetrics;
 
 Trackbar<int> localMaximaLimit("track", "localMaximaLimit", 5, 0, 1000);
 Trackbar<float> fps("track", "fps", 120, 0, 2000, 1);
-Trackbar<float> localMaximaMinDistance("track", "localMaximaMinDistance", 5, 0, 200);
+Trackbar<float> localMaximaMinDistance("track", "localMaximaMinDistance", 2, 0, 200);
 
 Trackbar<float> foosmenProbThresh("foosmen", "thresh", 2.f, 0.f, 1000.f, 0.1f);
 
@@ -74,6 +77,13 @@ ColorQuadraticForm blueColorPrecision("color1Precision", Matx<float, 1, 6>(
 ColorQuadraticForm redColorPrecision("color2Precision", Matx<float, 1, 6>(
 		8.f, 3.f, 8.f, 0.f, +10.f, -25.f
 ));
+
+void dumpTime(std::string what) {
+	static time_point<high_resolution_clock> last = high_resolution_clock::now();
+	time_point<high_resolution_clock> now = high_resolution_clock::now();
+	cerr << what << ": " << duration_cast<nanoseconds>(now - last).count() / 1000000.f << endl;
+	last = now;
+}
 
 float barx(int side, int bar, Size size, SubottoMetrics subottoMetrics, FoosmenMetrics foosmenMetrics) {
 	float flip = side ? +1 : -1;
@@ -111,9 +121,10 @@ void drawFoosmen(Mat out, SubottoMetrics subottoMetrics, FoosmenMetrics foosmenM
 	}
 }
 
-Point2f subpixelMinimum(Mat in) {
-	Point m;
-	minMaxLoc(in, nullptr, nullptr, &m, nullptr);
+Point2f subpixelMinimum(oclMat in) {
+	Point m, m2;
+	double a, b;
+	minMaxLoc(in, &a, &b, &m, &m2);
 
 //	Mat p = in(Range(m.y, m.y+1), Range(m.x, m.x+1));
 //
@@ -164,38 +175,21 @@ ostream& operator<< (ostream& ots, BallDensityLocalMaximum const& a) {
 	return ots << "BallDensityLocalMaximum[" << a.weight << "," << a.position << "]";
 }
 
-void computeScatterDiag(const Mat& in, Mat& out) {
+void computeScatter(const oclMat& in, oclMat& out) {
 	multiply(in, in, out);
 }
 
-void computeScatter(const Mat& in, Mat& out) {
-	vector<Mat> inBGR;
-	split(in, inBGR);
-
-	vector<Mat> outSplit;
-
-	for(int i = 0; i < 3; i++) {
-		outSplit.push_back(inBGR[i].mul(inBGR[i]));
-	}
-
-	for(int i = 0; i < 3; i++) {
-		outSplit.push_back(inBGR[i].mul(inBGR[(i+1)%3]));
-	}
-
-	merge(outSplit, out);
-}
-
 struct TableDescription {
-	Mat mean;
-	Mat variance;
-	Mat correctedVariance;
+	oclMat mean;
+	oclMat variance;
+	oclMat correctedVariance;
 };
 
 struct TableAnalysis {
-	Mat diff;
-	Mat filteredDiff; // filtered difference
-	Mat filteredScatter; // filteredDiff * filteredDiff'
-	Mat nll; // negated log-likelihood
+	oclMat diff;
+	oclMat filteredDiff; // filtered difference
+	oclMat filteredScatter; // filteredDiff * filteredDiff'
+	oclMat nll; // negated log-likelihood
 };
 
 int tableDiffLowFilterStdDev = 40;
@@ -208,8 +202,8 @@ void getTableFrame(Mat frame, Mat& tableFrame, Size size, Mat transform) {
 	warpPerspective(frame32f, tableFrame, warpTransform, size, WARP_INVERSE_MAP | INTER_LINEAR);
 }
 
-void fastLargeGaussianBlur(Mat in, Mat& out, float stdDev) {
-	Mat temp;
+void fastLargeGaussianBlur(oclMat in, oclMat& out, float stdDev) {
+	oclMat temp;
 	in.copyTo(temp);
 	int boxSize = tableDiffLowFilterStdDev * 3 * sqrt(2 * CV_PI) / 4 + 0.5;
 	for(int i = 0; i < 3; i++) {
@@ -218,45 +212,47 @@ void fastLargeGaussianBlur(Mat in, Mat& out, float stdDev) {
 	}
 }
 
-void startTableAnalysis(Mat tableFrame, const TableDescription& table, TableAnalysis& analysis) {
+void startTableAnalysis(oclMat tableFrame, const TableDescription& table, TableAnalysis& analysis) {
 	subtract(tableFrame, table.mean, analysis.diff);
 }
 
 void computeFilteredDiff(TableAnalysis& analysis) {
-	Mat low;
+	oclMat low;
 	fastLargeGaussianBlur(analysis.diff, low, tableDiffLowFilterStdDev);
 	subtract(analysis.diff, low, analysis.filteredDiff);
 }
 
 void computeScatter(TableAnalysis& analysis) {
-	computeScatterDiag(analysis.filteredDiff, analysis.filteredScatter);
+	computeScatter(analysis.filteredDiff, analysis.filteredScatter);
 }
 
 void computeCorrectedVariance(TableDescription& table) {
-	Mat tableMeanLaplacian;
+	oclMat tableMeanLaplacian;
 	Laplacian(table.mean, tableMeanLaplacian, -1, 3);
-	Mat tableMeanBorders = tableMeanLaplacian.mul(tableMeanLaplacian);
+	oclMat tableMeanBorders;
+	multiply(tableMeanLaplacian, tableMeanLaplacian, tableMeanBorders);
 	addWeighted(table.variance, 1, tableMeanBorders, 0.004, 0.002, table.correctedVariance);
 }
 
 void computeNLL(const TableDescription& table, TableAnalysis& analysis) {
-	Mat tableDiffNorm = analysis.filteredScatter / table.correctedVariance;
+	oclMat tableDiffNorm = analysis.filteredScatter / table.correctedVariance;
 
-	Mat logVariance;
+	oclMat logVariance;
 	log(table.variance, logVariance);
 
-	Mat notTableProb;
-	transform(tableDiffNorm + logVariance, notTableProb, Matx<float, 1, 3>(1, 1, 1));
+	oclMat nll3 = tableDiffNorm + logVariance;
 
-	Mat notTableProbTrunc;
+	oclMat notTableProb;
+	cvtColor(nll3, notTableProb, COLOR_BGR2GRAY);
+
 	float tableProbThresh = 20.f;
 	threshold(notTableProb, analysis.nll, tableProbThresh, 0, THRESH_TRUNC);
 }
 
 struct BallAnalysis {
-	Mat diff;
-	Mat scatter;
-	Mat ll; // log-likelihood
+	oclMat diff;
+	oclMat scatter;
+	oclMat ll; // log-likelihood
 };
 
 struct BallDescription {
@@ -264,35 +260,49 @@ struct BallDescription {
 	float valueVariance = 0.019f;
 };
 
-void startBallAnalysis(Mat tableFrame, BallDescription& ball, BallAnalysis& analysis) {
-	analysis.diff = tableFrame - ball.meanColor;
+void startBallAnalysis(oclMat tableFrame, BallDescription& ball, BallAnalysis& analysis) {
+	subtract(tableFrame, ball.meanColor, analysis.diff);
 }
 
 void computeScatter(BallAnalysis& analysis) {
-	computeScatterDiag(analysis.diff, analysis.scatter);
+	computeScatter(analysis.diff, analysis.scatter);
 }
 
 void computeLL(const BallDescription& ball, BallAnalysis& analysis) {
-	Mat ballDiffNorm = analysis.scatter / ball.valueVariance;
+	oclMat normBGR, norm;
 
-	transform(ballDiffNorm, analysis.ll, -Matx<float, 1, 3>(1, 1, 1));
-	analysis.ll -= 3 * log(ball.valueVariance);
+	multiply(1. / ball.valueVariance, analysis.scatter, normBGR);
+	cvtColor(normBGR, norm, COLOR_BGR2GRAY);
+
+	multiply(-3, norm, norm);
+	add(norm, -3*log(ball.valueVariance), analysis.ll);
 }
 
-void computeDensity(const TableAnalysis& tableAnalysis, const BallAnalysis& ballAnalysis, Mat& density) {
-	Mat pixelProb = ballAnalysis.ll + tableAnalysis.nll;
+void computeDensity(const TableAnalysis& tableAnalysis, const BallAnalysis& ballAnalysis, oclMat& density) {
+	oclMat pixelProb = ballAnalysis.ll + tableAnalysis.nll;
 	blur(pixelProb, density, Size(3, 3));
 }
 
-void updateMean(TableDescription& table, Mat tableFrame) {
-	accumulateWeighted(tableFrame, table.mean, 0.005f);
+void updateMean(TableDescription& table, oclMat tableFrame) {
+	float alpha = 0.005f;
+	addWeighted(tableFrame, (1-alpha), table.mean, alpha, 0, tableFrame);
 }
 
 void updateVariance(TableDescription& table, const TableAnalysis& analysis) {
-	Mat scatter;
-	computeScatterDiag(analysis.diff, scatter);
-	accumulateWeighted(scatter, table.variance, 0.005f);
+	oclMat scatter;
+	computeScatter(analysis.diff, scatter);
+	float alpha = 0.005f;
+	addWeighted(scatter, (1-alpha), table.mean, alpha, 0, table.variance);
 }
+
+struct FoosmenParams {
+	Scalar meanColor[];
+	float probThresh;
+	float convLength;
+	float convWidth;
+};
+
+FoosmenParams foosmenParams;
 
 struct FoosmenBarMetrics {
 	float m2height;
@@ -308,36 +318,24 @@ struct FoosmenBarMetrics {
 
 	Range colRange;
 
+	float rotFactor;
+
 	int side;
 	int bar;
 };
 
 struct FoosmenBarAnalysis {
-	Mat tableSlice;
-	Mat tableNLLSlice;
+	oclMat tableSlice;
+	oclMat tableNLLSlice;
 
-	Mat diff;
-	Mat scatter;
-	Mat nll;
+	oclMat diff;
+	oclMat scatter;
+	oclMat nll;
 
-	Mat overlapped;
+	oclMat overlapped;
 
 	float shift;
 	float rot;
-};
-
-struct FoosmenRunningAverage {
-	float shift[BARS][2];
-	float rot[BARS][2];
-
-	FoosmenRunningAverage() {
-		for(int side = 0; side < 2; side++) {
-			for(int bar = 0; bar < BARS; bar++) {
-				shift[bar][side] = 0.f;
-				rot[bar][side] = 0.f;
-			}
-		}
-	}
 };
 
 void setUpFoosmenMetrics() {
@@ -350,6 +348,14 @@ void setUpFoosmenMetrics() {
 	foosmenMetrics.distance[BAR2] = bar2distance.get();
 	foosmenMetrics.distance[BAR5] = bar5distance.get();
 	foosmenMetrics.distance[BAR3] = bar3distance.get();
+}
+
+void setUpFoosmenParams() {
+	foosmenParams.meanColor[0] = blueColor.get();
+	foosmenParams.meanColor[1] = redColor.get();
+	foosmenParams.probThresh = foosmenProbThresh.get();
+	foosmenParams.convLength = convLength.get();
+	foosmenParams.convWidth = convWidth.get();
 }
 
 void computeFoosmenBarMetrics(SubottoMetrics subottoMetrics, FoosmenMetrics foosmenMetrics, int side, int bar, Size size, FoosmenBarMetrics& barMetrics) {
@@ -369,6 +375,8 @@ void computeFoosmenBarMetrics(SubottoMetrics subottoMetrics, FoosmenMetrics foos
 	int l = bar == GOALKEEPER ? -barMetrics.m2width * goalkeeperWindowLength.get() : -barMetrics.m2width * windowLength.get();
 	int r = barMetrics.m2width * windowLength.get();
 
+	barMetrics.rotFactor = rotFactorTrackbar.get();
+
 	if(!side) {
 		l = -l;
 		r = -r;
@@ -377,27 +385,43 @@ void computeFoosmenBarMetrics(SubottoMetrics subottoMetrics, FoosmenMetrics foos
 	barMetrics.colRange = Range(barMetrics.xPixels + min(l,r), barMetrics.xPixels + max(l,r));
 }
 
-void startFoosmenBarAnalysis(FoosmenBarMetrics barMetrics, FoosmenBarAnalysis &analysis, Mat tableFrame, const TableAnalysis& tableAnalysis) {
+void computeAllFoosmenBarsMetrics(SubottoMetrics subottoMetrics, FoosmenMetrics foosmenMetrics, Size size, FoosmenBarMetrics barsMetrics[BARS][2]) {
+	for(int side = 0; side < 2; side++) {
+		for(int bar = 0; bar < BARS; bar++) {
+			FoosmenBarMetrics& barMetrics = barsMetrics[bar][side];
+			computeFoosmenBarMetrics(metrics, foosmenMetrics, side, bar, size, barMetrics);
+		}
+	}
+}
+
+void startFoosmenBarAnalysis(FoosmenBarMetrics barMetrics, FoosmenBarAnalysis &analysis, oclMat tableFrame, const TableAnalysis& tableAnalysis) {
 	Size size = tableFrame.size();
 	analysis.tableSlice = tableFrame(Range::all(), barMetrics.colRange);
 	analysis.tableNLLSlice = tableAnalysis.nll(Range::all(), barMetrics.colRange);
 }
 
 void computeLL(FoosmenBarMetrics barMetrics, FoosmenBarAnalysis &analysis) {
-	Scalar meanColor[] = {blueColor.get(), redColor.get()};
-	Matx<float, 1, 6> colorPrecision[] = {blueColorPrecision.getScatterTransform(), redColorPrecision.getScatterTransform()};
+//	Matx<float, 1, 6> colorPrecision[] = {blueColorPrecision.getScatterTransform(), redColorPrecision.getScatterTransform()};
 
-	analysis.diff = analysis.tableSlice - meanColor[barMetrics.side];
+	subtract(analysis.tableSlice, foosmenParams.meanColor[barMetrics.side], analysis.diff);
 	computeScatter(analysis.diff, analysis.scatter);
 
-	Mat distance;
-	transform(analysis.scatter, distance, colorPrecision[barMetrics.side]);
+	oclMat distance;
 
-	Mat distanceTresh;
-	threshold(distance, distanceTresh, foosmenProbThresh.get(), 0, THRESH_TRUNC);
+	// TODO: recover quadratic form
+//	transform(analysis.scatter, distance, colorPrecision[barMetrics.side]);
+
+	cvtColor(analysis.scatter, distance, COLOR_BGR2GRAY);
+
+	oclMat distanceTresh;
+	threshold(distance, distanceTresh, foosmenParams.probThresh, 0, THRESH_TRUNC);
 
 	// TODO: subtract properly scaled analysis.tableNLLSlice
-	blur(distanceTresh, analysis.nll, Size(barMetrics.m2height * convLength.get(), barMetrics.m2width * convWidth.get()));
+
+	int w = int(barMetrics.m2width * foosmenParams.convLength) | 1; // make them odd
+	int h = int(barMetrics.m2height * foosmenParams.convWidth) | 1;
+
+	blur(distanceTresh, analysis.nll, Size(w, h));
 }
 
 void computeOverlapped(FoosmenBarMetrics barMetrics, FoosmenBarAnalysis &analysis) {
@@ -410,8 +434,9 @@ void computeOverlapped(FoosmenBarMetrics barMetrics, FoosmenBarAnalysis &analysi
 		float y = shift * barMetrics.distancePixels;
 		int yy = barMetrics.yPixels + y - barMetrics.marginPixels / 2;
 
-		Mat slice = analysis.nll(Range(yy, int(yy + barMetrics.marginPixels)), Range::all());
-		analysis.overlapped += slice;
+		oclMat slice = analysis.nll(Range(yy, int(yy + barMetrics.marginPixels)), Range::all());
+
+		add(analysis.overlapped, slice, analysis.overlapped);
 	}
 }
 
@@ -419,11 +444,9 @@ void findFoosmen(FoosmenBarMetrics barMetrics, FoosmenBarAnalysis &analysis) {
 	Point2f m;
 	m = subpixelMinimum(analysis.overlapped);
 
-	float rotFactor = rotFactorTrackbar.get();
-
 	analysis.shift = (m.y - barMetrics.marginPixels / 2.f) / barMetrics.m2height;
 
-	float rotSin = (barMetrics.colRange.start + m.x - barMetrics.xPixels) * 2.f / barMetrics.m2width * rotFactor;
+	float rotSin = (barMetrics.colRange.start + m.x - barMetrics.xPixels) * 2.f / barMetrics.m2width * barMetrics.rotFactor;
 	rotSin = max(-1.f, min(1.f, rotSin));
 	analysis.rot = asin(rotSin);
 
@@ -432,28 +455,27 @@ void findFoosmen(FoosmenBarMetrics barMetrics, FoosmenBarAnalysis &analysis) {
 //	show(ss.str(), analysis.overlapped, 200);
 }
 
-vector<BallDensityLocalMaximum> findLocalMaxima(Mat density, int radius) {
-	Mat dilatedDensity;
-	dilate(density, dilatedDensity, Mat(), Point(-1, -1), 2 * radius);
+vector<BallDensityLocalMaximum> findLocalMaxima(oclMat density, int radius) {
+	oclMat dilatedDensity;
+	dilate(density, dilatedDensity, Mat::ones(Size(2*radius+1, 2*radius+1), CV_8U));
 
-	Mat localMaxMask = (density >= dilatedDensity);
+	oclMat localMaxMask;
+
+	compare(density, dilatedDensity, localMaxMask, CMP_GE);
+
+	Mat localMaxMaskCpu(localMaxMask);
+	Mat densityCpu(density);
 
 	Mat_<Point> nonZero;
-	findNonZero(localMaxMask, nonZero);
+	findNonZero(localMaxMaskCpu, nonZero);
 
 	vector<BallDensityLocalMaximum> localMaxima;
 	for(int i = 0; i < nonZero.rows; i++) {
 		Point p = *nonZero[i];
-		float weight = density.at<float>(p);
+		float weight = densityCpu.at<float>(p);
 
 		localMaxima.push_back(BallDensityLocalMaximum(weight, Vec<float, 2>(p.x, p.y)));
 	}
-
-	Mat localMaxMaskF;
-	localMaxMask.convertTo(localMaxMaskF, CV_32F, 1/255.f);
-
-	Mat selectedDilated;
-	dilate(localMaxMaskF.mul(density) - 1e3 * (1 - localMaxMaskF), selectedDilated, Mat(), Point(-1, -1), 1);
 
 	return localMaxima;
 }
@@ -488,10 +510,9 @@ void doIt(FrameReader& frameReader) {
 	TableAnalysis tableAnalysis;
 	BallAnalysis ballAnalysis;
 
-	FoosmenBarMetrics barsMetrics[BARS][2];
 	FoosmenBarAnalysis barsAnalysis[BARS][2];
 
-	Mat density;
+	oclMat density;
 
 	float barsShift[BARS][2];
 	float barsRot[BARS][2];
@@ -506,15 +527,27 @@ void doIt(FrameReader& frameReader) {
 	deque< vector<float> > foosmenValues;	// Values to be printed for each frame
 	deque<double> timestamps;				// Timestamp of each frame
 
+	FoosmenBarMetrics barsMetrics[BARS][2];
+
+	setUpFoosmenMetrics();
+	computeAllFoosmenBarsMetrics(metrics, foosmenMetrics, tableFrameSize, barsMetrics);
+
+	float lmMinDistance = localMaximaMinDistance.get();
+	int lmLimit = localMaximaLimit.get();
+
 	for (int i = 0; ; i++) {
-		int c = waitKey(1);
+		dumpTime("startCycle");
 
-		if (c == ' ') {
-			play = !play;
-		}
+		if(i % 50 == 0 || debug) {
+			int c = waitKey(1);
 
-		if (c == 'd') {
-			debug = !debug;
+			if (c == ' ') {
+				play = !play;
+			}
+
+			if (c == 'd') {
+				debug = !debug;
+			}
 		}
 
 		auto subotto = tracker->next();
@@ -529,20 +562,31 @@ void doIt(FrameReader& frameReader) {
 			timestamps.push_back(double(duration_cast<milliseconds>(subotto.frameInfo.timestamp.time_since_epoch()).count()) / 1000.);
 		}
 		
-		Mat tableFrame;
-		getTableFrame(frame, tableFrame, tableFrameSize, subotto.transform);
+//		dumpTime("subotto detected");
+
+		Mat tableFrameCpu;
+		getTableFrame(frame, tableFrameCpu, tableFrameSize, subotto.transform);
+
+		oclMat tableFrame(tableFrameCpu);
+
 		Size size = tableFrame.size();
+
+//		dumpTime("copy to ocl");
 
 		startTableAnalysis(tableFrame, table, tableAnalysis);
 		computeFilteredDiff(tableAnalysis);
 		computeScatter(tableAnalysis);
 		computeNLL(table, tableAnalysis);
 
+//		dumpTime("table analysis");
+
 		startBallAnalysis(tableFrame, ball, ballAnalysis);
 		computeScatter(ballAnalysis);
 		computeLL(ball, ballAnalysis);
 
 		computeDensity(tableAnalysis, ballAnalysis, density);
+
+//		dumpTime("ball analysis");
 
 		updateMean(table, tableFrame);
 		updateVariance(table, tableAnalysis);
@@ -551,19 +595,17 @@ void doIt(FrameReader& frameReader) {
 			computeCorrectedVariance(table);
 		}
 
-		setUpFoosmenMetrics();
+//		dumpTime("update table description");
 
 		for(int side = 0; side < 2; side++) {
 			for(int bar = 0; bar < BARS; bar++) {
 				FoosmenBarMetrics& barMetrics = barsMetrics[bar][side];
 				FoosmenBarAnalysis& analysis = barsAnalysis[bar][side];
 
-				computeFoosmenBarMetrics(metrics, foosmenMetrics, side, bar, size, barMetrics);
-
-				startFoosmenBarAnalysis(barMetrics, analysis, tableFrame, tableAnalysis);
-				computeLL(barMetrics, analysis);
-				computeOverlapped(barMetrics, analysis);
-				findFoosmen(barMetrics, analysis);
+//				startFoosmenBarAnalysis(barMetrics, analysis, tableFrame, tableAnalysis);
+//				computeLL(barMetrics, analysis);
+//				computeOverlapped(barMetrics, analysis);
+//				findFoosmen(barMetrics, analysis);
 
 				float& shift = barsShift[bar][side];
 				float& rot = barsRot[bar][side];
@@ -576,9 +618,12 @@ void doIt(FrameReader& frameReader) {
 			}
 		}
 
+//		dumpTime("foosmen analysis");
+
 		// Saving values for later...
 		if ( current_time >= timeline_span ) {
 			vector<float> foosmenValuesFrame;
+			foosmenValuesFrame.reserve(BARS * 2 * 2);
 			for(int side = 1; side >= 0; side--) {
 				for(int bar = 0; bar < BARS; bar++) {
 					foosmenValuesFrame.push_back( barsShift[bar][side] );
@@ -590,18 +635,21 @@ void doIt(FrameReader& frameReader) {
 
 		if(debug) {
 			Mat tableFoosmen;
-			tableFrame.copyTo(tableFoosmen);
+			Mat(tableFrame).copyTo(tableFoosmen);
 			drawFoosmen(tableFoosmen, metrics, foosmenMetrics, barsShift, barsRot);
 			show("tableFoosmen", tableFoosmen);
 		}
 
-		auto localMaxima = findLocalMaxima(density, localMaximaMinDistance.get());
-
-		nth_element(localMaxima.begin(), localMaxima.begin() + min(localMaxima.size(), size_t(localMaximaLimit.get())), localMaxima.end(), [](BallDensityLocalMaximum a, BallDensityLocalMaximum b) {
+		auto localMaxima = findLocalMaxima(density, lmMinDistance);
+		nth_element(localMaxima.begin(),
+				localMaxima.begin() + min(localMaxima.size(), size_t(lmLimit)),
+				localMaxima.end(),
+				[](BallDensityLocalMaximum a, BallDensityLocalMaximum b) {
 			return a.weight > b.weight;
 		});
-		localMaxima.resize(min(localMaxima.size(), size_t(localMaximaLimit.get())));
+		localMaxima.resize(min(localMaxima.size(), size_t(lmLimit)));
 		
+//		dumpTime("density local maxima");
 
 		// Cambio le unità di misura secondo le costanti in SubottoMetrics
 		SubottoMetrics metrics;
@@ -685,6 +733,8 @@ void doIt(FrameReader& frameReader) {
 
 			initial_time++;
 		}
+
+//		dumpTime("tracker");
 
 		current_time++;
 	}
