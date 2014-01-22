@@ -466,7 +466,7 @@ void doIt(FrameReader& frameReader) {
 	BlobsTracker blobs_tracker;
 
 	int timeline_span = 60;
-	int processed_frames = 1;	// number of frames to be processed for each call to ProcessFrame
+	int processed_frames = 10;	// number of frames to be processed for each call to ProcessFrame
 
 	int current_time = 0;
 	int initial_time = 0;
@@ -481,8 +481,8 @@ void doIt(FrameReader& frameReader) {
 	TableDescription table;
 	BallDescription ball;
 
-	table.mean = Mat(120, 240, CV_32FC3, 0.f);
-	table.variance = Mat(120, 240, CV_32FC3, 0.f);
+	table.mean = Mat(tableFrameSize, CV_32FC3, 0.f);
+	table.variance = Mat(tableFrameSize, CV_32FC3, 0.f);
 
 	TableAnalysis tableAnalysis;
 	BallAnalysis ballAnalysis;
@@ -516,7 +516,11 @@ void doIt(FrameReader& frameReader) {
 			debug = !debug;
 		}
 
+		dumpTime("cycle", "start cycle");
+
 		auto subotto = tracker->next();
+
+		dumpTime("cycle", "detect subotto");
 
 		Mat frame = subotto.frame;
 		
@@ -532,10 +536,14 @@ void doIt(FrameReader& frameReader) {
 		getTableFrame(frame, tableFrame, tableFrameSize, subotto.transform);
 		Size size = tableFrame.size();
 
+		dumpTime("cycle", "warp table frame");
+
 		startTableAnalysis(tableFrame, table, tableAnalysis);
 		computeFilteredDiff(tableAnalysis);
 		computeScatter(tableAnalysis);
 		computeNLL(table, tableAnalysis);
+
+		dumpTime("cycle", "table analysis");
 
 		startBallAnalysis(tableFrame, ball, ballAnalysis);
 		computeScatter(ballAnalysis);
@@ -543,12 +551,16 @@ void doIt(FrameReader& frameReader) {
 
 		computeDensity(tableAnalysis, ballAnalysis, density);
 
+		dumpTime("cycle", "ball analysis");
+
 		updateMean(table, tableFrame);
 		updateVariance(table, tableAnalysis);
 
 		if((i%5) == 0) {
 			computeCorrectedVariance(table);
 		}
+
+		dumpTime("cycle", "update table description");
 
 		setUpFoosmenMetrics();
 
@@ -574,6 +586,8 @@ void doIt(FrameReader& frameReader) {
 				rot = (1-rotAlpha) * rot + rotAlpha * analysis.rot;
 			}
 		}
+
+		dumpTime("cycle", "foosmen analysis");
 
 		// Saving values for later...
 		if ( current_time >= timeline_span ) {

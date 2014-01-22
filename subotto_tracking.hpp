@@ -47,17 +47,21 @@ struct SubottoDetectorParams {
 
 	FeatureMatchingParams fineMatching;
 	int fineRansacThreshold = 200;
+
+	OpticalFlowParams opticalFlow;
+	int flowRansacThreshold = 200;
 };
 
 struct SubottoFollowingParams {
 	OpticalFlowParams opticalFlow;
 	int ransacThreshold = 200;
 
-	cv::Size opticalFlowSize = cv::Size(120, 60);
+	cv::Size opticalFlowSize;
 
 	SubottoFollowingParams() {
 		opticalFlow.detection.features = 100;
-		opticalFlow.detection.levels = 1;
+		opticalFlow.detection.levels = 3;
+		opticalFlowSize = cv::Size(160, 80);
 	}
 };
 
@@ -69,9 +73,11 @@ struct SubottoTrackingParams {
 	int detectionAlpha = 100;
 
 	int followingSkipFrames = 0;
-	int followingAlpha = 50;
+	int followingAlpha = 100;
 
-	int nearTransformSmoothingAlpha = 100;
+	int nearTransformSmoothingAlpha = 25;
+
+	SubottoTrackingParams() {}
 };
 
 struct SubottoTracking {
@@ -128,11 +134,11 @@ public:
 
 	cv::Mat follow(cv::Mat frame, cv::Mat initialTransform);
 private:
-	SubottoReference reference;
+	SubottoReference scaledReference;
 	SubottoFollowingParams params;
 	SubottoMetrics metrics;
 
-	FeatureDetectionResult referenceFeatures;
+	FeatureDetectionResult scaledReferenceFeatures;
 };
 
 /*

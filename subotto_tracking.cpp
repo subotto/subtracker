@@ -1,6 +1,6 @@
 #include "subotto_tracking.hpp"
-
 #include "subotto_metrics.hpp"
+#include "utility.hpp"
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
@@ -131,7 +131,23 @@ Mat SubottoDetector::detect(Mat frame) {
 	findHomography(fineMap.from, fineMap.to, RANSAC, fineRansacThreshold).convertTo(
 			fineCorrection, CV_32F);
 
-	Mat transform = coarseTransform * fineCorrection * referenceToSize(reference.metrics, size);
+	Mat fineTransform = coarseTransform * fineCorrection;
+	warpPerspective(frame, warped, fineTransform, size, CV_WARP_INVERSE_MAP);
+
+	PointMap flowMap = opticalFlow(referenceFeatures, reference.image, warped);
+
+	Mat flowCorrection;
+	if (flowMap.from.size() < 6) {
+		flowCorrection = Mat::eye(3, 3, CV_32F);
+	} else {
+		float ransacThreshold = params.flowRansacThreshold / 100.f;
+		estimateGlobalMotionRobust(flowMap.from, flowMap.to, LINEAR_SIMILARITY, RansacParams(6, ransacThreshold, 0.5f, 0.99f)).convertTo(
+				flowCorrection, CV_32F);
+	}
+
+	Mat flowTransform = fineTransform * flowCorrection;
+
+	Mat transform = flowTransform * referenceToSize(reference.metrics, size);
 
 	return transform;
 }
@@ -139,9 +155,16 @@ Mat SubottoDetector::detect(Mat frame) {
 SubottoFollower::SubottoFollower(SubottoReference reference,
 		SubottoMetrics metrics,
 		SubottoFollowingParams params) :
-		reference(reference), params(params), metrics(metrics), referenceFeatures(
-				detectFeatures(reference.image, reference.mask,
-						params.opticalFlow.detection)) {
+		params(params), metrics(metrics) {
+	resize(reference.image, scaledReference.image, params.opticalFlowSize);
+
+	if(!reference.mask.empty()) {
+		resize(reference.mask, scaledReference.mask, params.opticalFlowSize);
+	}
+
+	scaledReferenceFeatures = detectFeatures(scaledReference.image, scaledReference.mask, params.opticalFlow.detection);
+
+	scaledReference.metrics = reference.metrics;
 }
 
 SubottoFollower::~SubottoFollower() {
@@ -149,23 +172,23 @@ SubottoFollower::~SubottoFollower() {
 
 Mat SubottoFollower::follow(Mat frame, Mat previousTransform) {
 	Mat warped;
-	Size size(reference.image.cols, reference.image.rows);
+	Size size = scaledReference.image.size();
 
-	warpPerspective(frame, warped, previousTransform * sizeToReference(reference.metrics, size), size,
-			CV_WARP_INVERSE_MAP);
+	warpPerspective(frame, warped, previousTransform * sizeToReference(scaledReference.metrics, size), size,
+			CV_WARP_INVERSE_MAP | CV_INTER_LINEAR);
 
-	PointMap map = opticalFlow(referenceFeatures, reference.image, warped);
+	PointMap map = opticalFlow(scaledReferenceFeatures, scaledReference.image, warped);
 
 	Mat correction;
 	if (map.from.size() < 6) {
 		correction = Mat::eye(3, 3, CV_32F);
 	} else {
 		float ransacThreshold = params.ransacThreshold / 100.f;
-		findHomography(map.from, map.to, RANSAC, ransacThreshold).convertTo(
+		estimateGlobalMotionRobust(map.from, map.to, LINEAR_SIMILARITY, RansacParams(6, ransacThreshold, 0.5f, 0.99f)).convertTo(
 				correction, CV_32F);
 	}
 
-	return previousTransform * sizeToReference(reference.metrics, size) * correction * referenceToSize(reference.metrics, size);
+	return previousTransform * sizeToReference(scaledReference.metrics, size) * correction * referenceToSize(scaledReference.metrics, size);
 }
 
 SubottoTracker::SubottoTracker(FrameReader& frameReader, SubottoReference reference,
@@ -192,10 +215,16 @@ Mat correctDistortion(Mat frameDistorted) {
 SubottoTracking SubottoTracker::next() {
 	SubottoTracking subottoTracking;
 
+//	dumpTime("subotto tracking", "start");
+
 	frame_info frameInfo = frameReader.get();
+
+//	dumpTime("subotto tracking", "read frame");
 
 	Mat frameDistorted = frameInfo.data;
 	Mat frame = correctDistortion(frameDistorted);
+
+//	dumpTime("subotto tracking", "correct distortion");
 
 	Mat subottoTransform;
 
@@ -208,6 +237,7 @@ SubottoTracking SubottoTracker::next() {
 
 	if (shouldFollow && !nearTransform.empty()) {
 		Mat followingTransform = follower->follow(frame, nearTransform);
+//		dumpTime("subotto tracking", "follow");
 
 		if (subottoTransform.empty()) {
 			followingTransform.copyTo(subottoTransform);
@@ -220,7 +250,9 @@ SubottoTracking SubottoTracker::next() {
 	Mat followDetectedTransform;
 	if (shouldDetect || subottoTransform.empty()) {
 		Mat detectionTransform = detector->detect(frame);
+//		dumpTime("subotto tracking", "detect");
 		followDetectedTransform = follower->follow(frame, detectionTransform);
+//		dumpTime("subotto tracking", "follow");
 
 		if (subottoTransform.empty()) {
 			followDetectedTransform.copyTo(subottoTransform);
@@ -230,12 +262,16 @@ SubottoTracking SubottoTracker::next() {
 		}
 	}
 
-	if (nearTransform.empty()) {
+//	dumpTime("subotto tracking", "update transform");
+
+	if (nearTransform.empty() || shouldDetect) {
 		subottoTransform.copyTo(nearTransform);
 	} else {
 		float alpha = params.nearTransformSmoothingAlpha / 100.f;
 		accumulateWeighted(subottoTransform, nearTransform, alpha);
 	}
+
+//	dumpTime("subotto tracking", "update near transform");
 
 	frameCount++;
 

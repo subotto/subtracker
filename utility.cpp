@@ -1,11 +1,14 @@
 #include "utility.hpp"
 
+#include <iostream>
 #include <string>
 #include <unordered_map>
 #include <memory>
+#include <chrono>
 
 using namespace std;
 using namespace cv;
+using namespace chrono;
 
 unordered_map<string, unique_ptr<int>> showAlpha, showGamma;
 
@@ -26,4 +29,18 @@ void show(string name, Mat image, int initialAlpha, int initialGamma) {
 	createTrackbar(name + "Gamma", "intensities", showGamma[name].get(), 100);
 
 	imshow(name, output);
+}
+
+static unordered_map<string, time_point<high_resolution_clock>> lastByCategory;
+
+void dumpTime(string category, string what) {
+	time_point<high_resolution_clock> now = high_resolution_clock::now();
+
+	if(lastByCategory.find(category) == lastByCategory.end()) {
+		lastByCategory[category] = now;
+	}
+
+	time_point<high_resolution_clock>& last = lastByCategory[category];
+	cerr << category << " - " << what << ": " << duration_cast<nanoseconds>(now - last).count() / 1000000.f << endl;
+	last = now;
 }
