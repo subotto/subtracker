@@ -36,6 +36,7 @@ private:
     thread t;
     VideoCapture cap;
     time_point<high_resolution_clock> last_stats;
+    bool fromFile = false;
 
 public:
     FrameReader(int device) {
@@ -52,11 +53,14 @@ public:
         last_stats = high_resolution_clock::now();
         cap = VideoCapture(file);
         t = thread(&FrameReader::read, this);
+        fromFile = true;
     }
 
     void read() {
         // Delay di 1s per dare il tempo alla webcam di inizializzarsi
         this_thread::sleep_for(seconds(1));
+        auto start = high_resolution_clock::now();
+        long unsigned int enqueued_frames = 0;
         while(running) {
             Mat frame;
             if(!cap.read(frame)) {
@@ -74,15 +78,20 @@ public:
                 fprintf(stderr,
                     "Number of frames in the last %d seconds: %lu\n",
                     frame_count_interval, frame_times.size());
+                fprintf(stderr, "Processed %lu frames in %.3f seconds\n",
+                    enqueued_frames - queue.size(),
+                    float(duration_cast<milliseconds>(now - start).count())/1000);
                 last_stats = now;
             }
             unique_lock<mutex> lock(queue_mutex);
             if (queue.size() < buffer_size) {
                 queue.push_back({now, count, frame});
                 queue_not_empty.notify_all();
+                enqueued_frames++;
             } else {
                 fprintf(stderr, "Frame dropped!\n");
             }
+            if(fromFile) this_thread::sleep_for(microseconds(8));
         }
     }
 
