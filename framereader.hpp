@@ -52,20 +52,31 @@ public:
         count = 0;
         last_stats = high_resolution_clock::now();
         cap = VideoCapture(file);
+        if(!cap.isOpened()) {
+            fprintf(stderr, "Cannot open video file!\n");
+            exit(1);
+        }
         t = thread(&FrameReader::read, this);
         fromFile = true;
     }
 
     void read() {
-        // Delay di 1s per dare il tempo alla webcam di inizializzarsi
-        this_thread::sleep_for(seconds(1));
+        if(!fromFile) {
+            // Delay di 1s per dare il tempo alla webcam di inizializzarsi
+            this_thread::sleep_for(seconds(1));
+        }
         auto start = high_resolution_clock::now();
         long unsigned int enqueued_frames = 0;
         while(running) {
             Mat frame;
             if(!cap.read(frame)) {
-                fprintf(stderr, "Error reading frame!\n");
-                continue;
+                if(fromFile) {
+                    fprintf(stderr, "Video ended.\n");
+                    exit(0);
+                } else {
+                    fprintf(stderr, "Error reading frame!\n");
+                    continue;
+                }
             }
             count++;
             auto now = high_resolution_clock::now();
@@ -74,12 +85,13 @@ public:
                 frame_times.pop_front();
             }
             if(now - last_stats > seconds(stats_interval)) {
-                fprintf(stderr, "Queue size: %lu\n", queue.size());
-                fprintf(stderr,
-                    "Number of frames in the last %d seconds: %lu\n",
-                    frame_count_interval, frame_times.size());
+                fprintf(stderr, "Queue size: %lu\n",
+                    (long unsigned)queue.size());
+                fprintf(stderr, "Received %lu frames in the last %d seconds.\n",
+                    (long unsigned) frame_times.size(),
+                    frame_count_interval);
                 fprintf(stderr, "Processed %lu frames in %.3f seconds\n",
-                    enqueued_frames - queue.size(),
+                    (long unsigned) (enqueued_frames - queue.size()),
                     float(duration_cast<milliseconds>(now - start).count())/1000);
                 last_stats = now;
             }

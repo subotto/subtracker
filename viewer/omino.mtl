@@ -1,0 +1,22 @@
+# Blender MTL File: 'omino.blend'
+# Material Count: 2
+
+newmtl Material
+Ns 96.078431
+Ka 0.000000 0.000000 0.000000
+Kd 0.800000 0.000000 0.000000
+Ks 0.500000 0.044049 0.012193
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd /home/giovanni/progetti/subotto/subtracker/home/giovanni/progetti/trailer2014/carducci/european_flag.png
+
+newmtl Material.001
+Ns 96.078431
+Ka 0.000000 0.000000 0.000000
+Kd 0.071417 0.044620 0.640000
+Ks 0.500000 0.500000 0.500000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd /home/giovanni/progetti/subotto/subtracker/home/giovanni/progetti/trailer2014/carducci/european_flag.png
