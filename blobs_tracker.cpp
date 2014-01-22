@@ -122,6 +122,7 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 	Node *node = best_node;
 	while ( node != NULL && node->previous != NULL ) {
 		node->previous->next = node;
+		node = node->previous;
 	}
 	
 	
