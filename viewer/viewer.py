@@ -3,6 +3,7 @@
 
 import sys
 import os
+import math
 
 import pygame
 import pygame.locals
@@ -18,34 +19,97 @@ class ObjObject:
         self.normals = []
         self.uv_vertices = []
         self.faces = []
-        self.material = None
+        self.materials = []
 
     def draw(self):
         glBegin(GL_TRIANGLES)
         for face in self.faces:
-            for vertex in face:
-                glNormal(*self.normals[vertex[2]-1])
-                glVertex(*self.vertices[vertex[0]-1])
+            if face[0] == 'f':
+                for vertex in face[1:]:
+                    glNormal(*self.normals[vertex[2]-1])
+                    glVertex(*self.vertices[vertex[0]-1])
+            elif face[0] == 'usemtl':
+                face[1].set()
         glEnd()
+
+class ObjMaterial:
+
+    def __init__(self):
+        self.name = None
+        self.ambient = None
+        self.diffuse = None
+        self.specular = None
+        self.transparency = None
+        self.illumination_model = None
+        self.diffuse_texture = None
+
+    def set(self):
+        glMaterial(GL_FRONT_AND_BACK, GL_AMBIENT, self.ambient)
+        glMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE, self.diffuse)
+        #glMaterial(GL_FRONT_AND_BACK, GL_SPECULAR, self.specular)
+
+def read_mtl(filename):
+
+    materials = []
+    cur_material = None
+
+    with open(filename) as fin:
+        for line in fin:
+            line = line.strip()
+            if line == '' or line[0] == '#':
+                continue
+            tokens = line.split(' ')
+            command = tokens[0]
+            params = tokens[1:]
+
+            if command == 'newmtl':
+                assert len(params) == 1
+                if cur_material is not None:
+                    materials.append(cur_material)
+                cur_material = ObjMaterial()
+                cur_material.name = params[0]
+            elif command == 'Ka':
+                assert len(params) == 3
+                cur_material.ambient = tuple([float(x) for x in params])
+            elif command == 'Kd':
+                assert len(params) == 3
+                cur_material.diffuse = tuple([float(x) for x in params])
+            elif command == 'Ks':
+                assert len(params) == 3
+                cur_material.specular = tuple([float(x) for x in params])
+            elif command == 'd':
+                assert len(params) == 1
+                cur_material.illumination_model = float(params[0])
+            elif command == 'map_Kd':
+                assert len(params) == 1
+                cur_material.diffuse_texture = params[0]
+
+    if cur_material is not None:
+        materials.append(cur_material)
+
+    return materials
 
 def read_obj(filename):
 
     objects = []
     cur_object = None
+    materials = {}
 
     with open(filename) as fin:
         for line in fin:
             line = line.strip()
-            if line[0] == '#':
+            if line == '' or line[0] == '#':
                 continue
             tokens = line.split(' ')
             command = tokens[0]
             params = tokens[1:]
 
             if command == 'o':
+                assert len(params) == 1
                 if cur_object is not None:
                     objects.append(cur_objects)
                 cur_object = ObjObject()
+                cur_object.name = params[0]
             elif command == 'v':
                 assert len(params) == 3
                 cur_object.vertices.append(tuple([float(x) for x in params]))
@@ -62,7 +126,17 @@ def read_obj(filename):
                     elems = [int(x) for x in param.split('/')]
                     assert len(elems) == 3
                     face.append(tuple(elems))
-                cur_object.faces.append(tuple(face))
+                cur_object.faces.append(tuple(['f'] + face))
+            elif command == 'usemtl':
+                assert len(params) == 1
+                cur_object.faces.append(('usemtl', materials[params[0]]))
+            elif command == 's':
+                assert len(params) == 1
+                cur_object.faces.append(tuple(params))
+            elif command == 'mtllib':
+                assert len(params) == 1
+                for material in read_mtl(*params):
+                    materials[material.name] = material
 
     if cur_object is not None:
         objects.append(cur_object)
@@ -89,17 +163,7 @@ def render(time):
 
     glMatrixMode(GL_MODELVIEW)
     glLoadIdentity()
-    #gluLookAt(2.66, -3.0, 1.85, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0)
-    gluLookAt(0.0, 0.0, 1.0, 0.0, 0.0, -1.0, 0.0, 1.0, 0.0)
-
-    glScale(0.3, 0.3, 0.3)
-    glBegin(GL_QUADS)
-    glNormal(0.0, 0.0, 1.0)
-    glVertex(-1.0, -1.0, 0.0)
-    glVertex(-1.0, 1.0, 0.0)
-    glVertex(1.0, 1.0, 0.0)
-    glVertex(1.0, -1.0, 0.0)
-    glEnd()
+    gluLookAt(2.0 * math.cos(time), 2.0 * math.sin(time), 1.85, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
 
 FPS = 30.0
 
@@ -120,8 +184,8 @@ def main():
     glEnable(GL_LIGHTING)
     glEnable(GL_LIGHT0)
     glLight(GL_LIGHT0, GL_POSITION, (4.0, 1.0, 6.0))
-    glLight(GL_LIGHT0, GL_DIFFUSE, (0.0, 1.0, 0.0))
-    glMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, (1.0, 1.0, 1.0))
+    glLight(GL_LIGHT0, GL_DIFFUSE, (0.6, 0.6, 0.6))
+    glLight(GL_LIGHT0, GL_AMBIENT, (0.1, 0.1, 0.1))
 
     objects = read_obj('omino.obj')
 
@@ -139,8 +203,8 @@ def main():
 
         render(frame / FPS)
 
-        #for obj in objects:
-        #    obj.draw()
+        for obj in objects:
+            obj.draw()
 
         pygame.display.flip()
         clock.tick(FPS)
