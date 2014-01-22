@@ -100,9 +100,9 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 					double new_badness = old_badness + delta_badness;
 					
 					if ( new_badness < old_node.badness ) {
-						_timeline[i][k].badness = new_badness;
+						old_node.badness = new_badness;
 						// Salvo il percorso ottimo
-						_timeline[i][k].previous = &new_node;
+						old_node.previous = &new_node;
 					}
 					
 				}
@@ -118,6 +118,12 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 			
 		}
 	}
+	
+	Node *node = best_node;
+	while ( node != NULL && node->previous != NULL ) {
+		node->previous->next = node;
+	}
+	
 	
 	Point2f NISBA(1000.0,1000.0);
 	vector<Point2f> positions;
@@ -154,14 +160,64 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 			}
 			node = node->previous;
 		}
-	
+		
+		// Smoothing
+		
+		Node* n;
+		
+		Point2f smoothed (0.0, 0.0);
+		double total_weight = 0.0;
+		
+		double sigma = 0.02 * _fps;
+		
+		n = greater;
+		if ( lower == greater ) n = n->next;
+		for (int k=0; k<3; ++k) {
+			if ( n == NULL ) break;
+			
+			double d = i - n->time;
+			double w = exp( - d*d / (2*sigma*sigma) );
+			
+			smoothed += n->blob.center * w;
+			total_weight += w;
+			
+			n = n->next;
+		}
+		
+		n = lower;
+		if ( lower == greater ) n = n->previous;
+		for (int k=0; k<3; ++k) {
+			if ( n == NULL ) break;
+			
+			double d = i - n->time;
+			double w = exp( - d*d / (2*sigma*sigma) );
+			
+			smoothed += n->blob.center * w;
+			total_weight += w;
+			
+			n = n->previous;
+		}
+		
+		if ( lower == greater ) {
+			// Conto il punto i
+			
+			double d = 0.0;
+			double w = exp( - d*d / (2*sigma*sigma) );
+			
+			smoothed += n->blob.center * w;
+			total_weight += w;
+		}
+		
+		if ( total_weight > 0.0 ) smoothed *= 1.0 / total_weight;
+		
+		// End smoothing
+		
 		if ( lower == NULL ) {
 			if (debug) fprintf(stderr, "Frame %d: no ball found (path does not pass through current frame).\n", i);
 			positions.push_back(NISBA);
 			continue;
 		}
 		
-	
 		if ( greater->time == lower->time ) {
 			// Il fotogramma in questione non e' stato saltato
 			
@@ -174,7 +230,8 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 			else {
 				// Nel fotogramma in questione la pallina e' stata valutata presente
 				if (debug) fprintf(stderr, "Frame %d: ball found (exact location). ", i);
-				position = greater->blob.center;
+				// position = greater->blob.center;
+				position = smoothed;	// Metto il valore smoothed
 				if (debug) fprintf(stderr, "Position: (%lf, %lf)\n", position.x, position.y);
 				positions.push_back( Point2f(position) );
 				continue;
@@ -201,7 +258,8 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 		cv::Point2f lower_center = lower->blob.center;
 	
 		if (debug) fprintf(stderr, "Frame %d: ball found (estimated location). ", i);
-		position = ( greater_center*(i - lower->time) + lower_center*(greater->time - i) ) * ( 1.0/(greater->time - lower->time) );
+		// position = ( greater_center*(i - lower->time) + lower_center*(greater->time - i) ) * ( 1.0/(greater->time - lower->time) );
+		position = smoothed;	// Metto il valore smoothed
 		if (debug) fprintf(stderr, "Position: (%lf, %lf)\n", position.x, position.y);
 		positions.push_back( Point2f(position) );
 	}

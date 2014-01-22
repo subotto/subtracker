@@ -16,10 +16,11 @@ class Node {
 		double badness;
 		int time;
 		Node* previous;
+		Node* next;
 		bool is_absent;	// The ball isn't on the field
 		
 		Node(Blob blob, int time, bool is_absent)
-			: blob(blob), badness(INFTY), time(time), previous(NULL), is_absent(is_absent)
+			: blob(blob), badness(INFTY), time(time), previous(NULL), next(NULL), is_absent(is_absent)
 		{};
 	
 };
