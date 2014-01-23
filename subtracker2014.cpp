@@ -466,7 +466,7 @@ void doIt(FrameReader& frameReader) {
 	BlobsTracker blobs_tracker;
 
 	int timeline_span = 120;
-	int processed_frames = 5;	// number of frames to be processed for each call to ProcessFrame
+	int processed_frames = 60;	// number of frames to be processed for each call to ProcessFrame
 
 	int current_time = 0;
 	int initial_time = 0;
@@ -476,7 +476,7 @@ void doIt(FrameReader& frameReader) {
 
 	tracker = unique_ptr<SubottoTracker>(new SubottoTracker(frameReader, reference, metrics, SubottoTrackingParams()));
 
-	Size tableFrameSize(240, 120);
+	Size tableFrameSize(128, 64);
 
 	TableDescription table;
 	BallDescription ball;
