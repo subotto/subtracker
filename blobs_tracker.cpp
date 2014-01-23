@@ -49,7 +49,10 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 			Node &old_node = _timeline[i][k];
 			
 			// Passo base (collegamenti con il nodo fittizio iniziale)
-			old_node.badness = i * _skip_parameter;
+			if ( old_node.is_absent )
+				old_node.badness = i == 0 ? _disappearance_parameter : INFTY;
+			else
+				old_node.badness = i * _skip_parameter;
 			old_node.previous = NULL;
 			
 			// Programmazione dinamica
@@ -61,10 +64,16 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 					double old_badness = new_node.badness;
 					int interval = i-j;
 					
+					if ( (old_node.is_absent || new_node.is_absent) && interval > 1) {
+						// I nodi assenti non skippano frames
+						continue;
+					}
+
 					double delta_badness = (double)(interval-1) * _skip_parameter;
 					
 					if ( old_node.is_absent && new_node.is_absent ) {
 						// Transizione da assente ad assente
+						delta_badness += _absent_parameter;
 					}
 					
 					if ( old_node.is_absent && !new_node.is_absent ) {
@@ -95,7 +104,7 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 					
 						// Verosimiglianza gaussiana
 						double time_diff = interval / _fps;
-						delta_badness += distance * distance / ( 2 * time_diff * _variance_parameter );
+						delta_badness += distance * distance / ( time_diff * _variance_parameter );
 						// fprintf(stderr, "DELTA BADNESS: %lf\n", distance * distance / ( 2 * time_diff * _variance_parameter ) );
 					}
 					
@@ -110,9 +119,16 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 					
 				}
 			}
-			
+
+			int time_to_end = _timeline.size() - i - 1;
+
 			// Passo finale (collegamenti con il nodo fittizio finale)
-			double candidate_badness = _timeline[i][k].badness + ( _timeline.size() - i - 1 ) * _skip_parameter;
+			double final_cost;
+			if ( old_node.is_absent )
+				final_cost = time_to_end == 0 ? _appearance_parameter : INFTY;
+			else
+				final_cost = time_to_end * _skip_parameter;
+			double candidate_badness = _timeline[i][k].badness + final_cost;
 			
 			if ( min_badness > candidate_badness ) {
 				min_badness = candidate_badness;
@@ -177,7 +193,7 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 		n = greater;
 		if ( lower == greater ) n = n->next;
 		for (int k=0; k<3; ++k) {
-			if ( n == NULL ) break;
+			if ( n == NULL || n->is_absent ) break;
 			
 			double d = i - n->time;
 			double w = exp( - d*d / (2*sigma*sigma) );
@@ -191,7 +207,7 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 		n = lower;
 		if ( lower == greater ) n = n->previous;
 		for (int k=0; k<3; ++k) {
-			if ( n == NULL ) break;
+			if ( n == NULL || n->is_absent ) break;
 			
 			double d = i - n->time;
 			double w = exp( - d*d / (2*sigma*sigma) );
@@ -202,7 +218,8 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 			n = n->previous;
 		}
 		
-		if ( lower == greater ) {
+		n = lower;
+		if ( lower == greater && n != NULL && !n->is_absent ) {
 			// Conto il punto i
 			
 			double d = 0.0;
@@ -216,12 +233,15 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 		
 		// End smoothing
 		
-		if ( lower == NULL ) {
+		if ( lower == NULL || greater == NULL ) {
 			if (debug) fprintf(stderr, "Frame %d: no ball found (path does not pass through current frame).\n", i);
 			positions.push_back(NISBA);
 			continue;
 		}
 		
+		// Non dovrebbe succedere: un cammino migliore si sarebbe ottenuto passando dal nodo "absent" di questo frame
+		assert( greater == lower || (!greater->is_absent && !lower->is_absent) );
+
 		if ( greater->time == lower->time ) {
 			// Il fotogramma in questione non e' stato saltato
 			
@@ -252,10 +272,6 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 			positions.push_back(NISBA);
 			continue;
 		}
-		
-		// Non dovrebbe succedere: un cammino migliore si sarebbe ottenuto passando dal nodo "absent" di questo frame
-		assert( !greater->is_absent && !lower->is_absent );
-		
 		
 		cv::Point2f greater_center = greater->blob.center;
 		cv::Point2f lower_center = lower->blob.center;

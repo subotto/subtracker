@@ -32,7 +32,7 @@ class BlobsTracker {
 		void PopFrameFromTimeline();
 		
 		BlobsTracker()
-			: _fps(120.0), _max_speed(18.0), _max_unseen_distance(0.3), _max_interpolation_time(0.5), _skip_parameter(0.5), _variance_parameter(0.01), _appearance_parameter(100.0), _disappearance_parameter(50.0)
+			: _fps(120.0), _max_speed(18.0), _max_unseen_distance(0.3), _max_interpolation_time(1), _skip_parameter(-8), _variance_parameter(0.3), _absent_parameter(-15), _appearance_parameter(400.0), _disappearance_parameter(400.0)
 		{};
 	
 	private:
@@ -44,6 +44,7 @@ class BlobsTracker {
 		
 		double _skip_parameter;	// costo (in badness) per saltare un frame
 		double _variance_parameter; // varianza di in un secondo (Massimo sa cosa significa)
+		double _absent_parameter; // costo (in badness) passare da uno stato assente a uno stato assente
 		double _appearance_parameter; // costo (in badness) per passare da uno stato assente a uno stato presente
 		double _disappearance_parameter; // costo (in badness) per passare da uno stato presente a uno stato assente
 };

@@ -39,9 +39,9 @@ struct FoosmenMetrics {
 
 FoosmenMetrics foosmenMetrics;
 
-Trackbar<int> localMaximaLimit("track", "localMaximaLimit", 5, 0, 1000);
+Trackbar<int> localMaximaLimit("track", "localMaximaLimit", 10, 0, 1000);
 Trackbar<float> fps("track", "fps", 120, 0, 2000, 1);
-Trackbar<float> localMaximaMinDistance("track", "localMaximaMinDistance", 5, 0, 200);
+Trackbar<float> localMaximaMinDistance("track", "localMaximaMinDistance", 0.05, 0, 200);
 
 Trackbar<float> foosmenProbThresh("foosmen", "thresh", 2.f, 0.f, 1000.f, 0.1f);
 
@@ -431,9 +431,9 @@ void findFoosmen(FoosmenBarMetrics barMetrics, FoosmenBarAnalysis &analysis) {
 //	show(ss.str(), analysis.overlapped, 200);
 }
 
-vector<BallDensityLocalMaximum> findLocalMaxima(Mat density, int radius) {
+vector<BallDensityLocalMaximum> findLocalMaxima(Mat density, int radiusX, int radiusY) {
 	Mat dilatedDensity;
-	dilate(density, dilatedDensity, Mat(), Point(-1, -1), 2 * radius);
+	dilate(density, dilatedDensity, Mat::ones(2 * radiusY + 1, 2 * radiusX + 1, CV_8U));
 
 	Mat localMaxMask = (density >= dilatedDensity);
 
@@ -465,8 +465,8 @@ void doIt(FrameReader& frameReader) {
 
 	BlobsTracker blobs_tracker;
 
-	int timeline_span = 60;
-	int processed_frames = 1;	// number of frames to be processed for each call to ProcessFrame
+	int timeline_span = 120;
+	int processed_frames = 5;	// number of frames to be processed for each call to ProcessFrame
 
 	int current_time = 0;
 	int initial_time = 0;
@@ -608,7 +608,9 @@ void doIt(FrameReader& frameReader) {
 			show("tableFoosmen", tableFoosmen);
 		}
 
-		auto localMaxima = findLocalMaxima(density, localMaximaMinDistance.get());
+		int radiusX = localMaximaMinDistance.get() / metrics.length * tableFrameSize.width;
+		int radiusY = localMaximaMinDistance.get() / metrics.width * tableFrameSize.height;
+		auto localMaxima = findLocalMaxima(density, radiusX, radiusY);
 
 		nth_element(localMaxima.begin(), localMaxima.begin() + min(localMaxima.size(), size_t(localMaximaLimit.get())), localMaxima.end(), [](BallDensityLocalMaximum a, BallDensityLocalMaximum b) {
 			return a.weight > b.weight;
