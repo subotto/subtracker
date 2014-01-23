@@ -31,6 +31,7 @@ private:
     deque<time_point<high_resolution_clock>> frame_times;
     mutex queue_mutex;
     condition_variable queue_not_empty;
+    condition_variable queue_not_full;
     atomic<bool> running;
     int count;
     thread t;
@@ -96,14 +97,22 @@ public:
                 last_stats = now;
             }
             unique_lock<mutex> lock(queue_mutex);
-            if (queue.size() < buffer_size) {
+            if (!fromFile) {
+                if (queue.size() < buffer_size) {
+                    queue.push_back({now, count, frame});
+                    queue_not_empty.notify_all();
+                    enqueued_frames++;
+                } else {
+                    fprintf(stderr, "Frame dropped!\n");
+                }
+            } else {
+                while (queue.size() >= buffer_size) {
+                    queue_not_full.wait(lock);
+                }
                 queue.push_back({now, count, frame});
                 queue_not_empty.notify_all();
                 enqueued_frames++;
-            } else {
-                fprintf(stderr, "Frame dropped!\n");
             }
-            if(fromFile) this_thread::sleep_for(microseconds(1000000/20));
         }
     }
 
@@ -114,6 +123,7 @@ public:
         }
         auto res = queue.front();
         queue.pop_front();
+        queue_not_full.notify_all();
         return res;
     }
 
