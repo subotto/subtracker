@@ -156,6 +156,9 @@ def read_obj(filename):
 
 def resize(width, height):
 
+    # Update pygame
+    pygame.display.set_mode((width, height), pygame.OPENGL | pygame.DOUBLEBUF | pygame.HWSURFACE | pygame.RESIZABLE)
+
     # Use new viewport
     glViewport(0, 0, width, height)
 
@@ -185,7 +188,6 @@ def main():
     # Initialize pygame stuff
     pygame.init()
     clock = pygame.time.Clock()
-    surface = pygame.display.set_mode((640, 480), pygame.OPENGL | pygame.DOUBLEBUF | pygame.HWSURFACE | pygame.RESIZABLE)
     resize(640, 480)
     pygame.display.set_caption('Subotto tracker viewer')
 
