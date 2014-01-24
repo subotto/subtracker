@@ -505,6 +505,8 @@ void doIt(FrameReader& frameReader) {
 	deque< vector<float> > foosmenValues;	// Values to be printed for each frame
 	deque<double> timestamps;				// Timestamp of each frame
 
+	thread playback_thread;
+
 	for (int i = 0; ; i++) {
 		int c = waitKey(play);
 
@@ -680,17 +682,40 @@ void doIt(FrameReader& frameReader) {
 				if (debug) {
 					// Mostro il primo fotogramma tra quelli processati
 
-					Mat display;
-					assert(!frames.empty());
-					frames.front().copyTo(display);
-					Point2f ball = positions[0];
-					fprintf(stderr,"Ball found: (%lf,%lf)\n", ball.x, ball.y);
+					static atomic<bool> stop(false);
 
-					ball.x = (ball.x / metrics.length + 0.5f) * density.cols;
-					ball.y = (ball.y / metrics.width + 0.5f) * density.rows;
+					if(playback_thread.joinable()) {
+						stop = true;
+						playback_thread.join();
+					}
 
-					circle( display, ball, 8, Scalar(0,255,0), 2 );
-					imshow("Display", display);
+					stop = false;
+					playback_thread = thread([=] {
+						assert(!frames.empty());
+						Mat display;
+						time_point<system_clock> playback_start = system_clock::now();
+
+						for(int i = 0; i < processed_frames; i++) {
+							frames[i].copyTo(display);
+							Point2f ball = positions[i];
+							fprintf(stderr,"Ball found: (%lf,%lf)\n", ball.x, ball.y);
+
+							ball.x = (ball.x / metrics.length + 0.5f) * density.cols;
+							ball.y = (ball.y / metrics.width + 0.5f) * density.rows;
+
+							circle( display, ball, 8, Scalar(0,255,0), 2 );
+							imshow("Display", display);
+
+							this_thread::sleep_until(playback_start + i * duration<double>(1. / 120.));
+
+							if(stop.exchange(false)) {
+								cerr << "PLAYBACK STOPPED" << endl;
+								return;
+							}
+						}
+
+						stop.exchange(false);
+					});
 				}
 
 				for (int i=0; i<processed_frames; i++) {
