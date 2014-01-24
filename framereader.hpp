@@ -108,9 +108,9 @@ public:
             if(now - last_stats > seconds(stats_interval)) {
                 fprintf(stderr, "Queue size: %lu\n",
                     (long unsigned)queue.size());
-                fprintf(stderr, "Received %lu frames in the last %d seconds.\n",
+                fprintf(stderr, "Received %lu frames in the last %lu seconds.\n",
                     (long unsigned) frame_times.size(),
-                    seconds(frame_count_interval).count());
+                    (long unsigned) seconds(frame_count_interval).count());
                 fprintf(stderr, "Processed %lu frames in %.3f seconds\n",
                     (long unsigned) (enqueued_frames - queue.size()),
                     float(duration_cast<duration<float>>(now - video_start_time).count()));
