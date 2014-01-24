@@ -114,34 +114,33 @@ Point2f subpixelMinimum(Mat in) {
 	Point m;
 	minMaxLoc(in, nullptr, nullptr, &m, nullptr);
 
-//	Mat p = in(Range(m.y, m.y+1), Range(m.x, m.x+1));
-//
-//	Mat der[2];
-//	Mat der2[2];
-//
-//	Sobel(p, der[0], -1, 0, 1, 1);
-//	Sobel(p, der[1], -1, 1, 0, 1);
-//	Sobel(p, der2[0], -1, 0, 2, 1);
-//	Sobel(p, der2[1], -1, 2, 0, 1);
-//
-//	float correction[2] {0.f, 0.f};
-//	for(int k = 0; k < 2; k++) {
-//		float d = der[k].at<float>(0, 0);
-//		float d2 = der2[k].at<float>(0, 0);
-//
-//		assert(d2 >= 0);
-//
-//		if(d2 > 0) {
-//			float ratio = -d / d2;
-//
-//			if(abs(ratio) <= 0.5f)
-//				correction[k] = ratio;
-//		}
-//
-//		assert(abs(correction[k]) <= 1.f);
-//	}
-//
-//	Point2f c = Point2f(correction[1], correction[0]);
+	Mat p = in(Range(m.y, m.y+1), Range(m.x, m.x+1));
+
+	Mat der[2];
+	Mat der2[2];
+
+	Sobel(p, der[0], -1, 0, 1, 1);
+	Sobel(p, der[1], -1, 1, 0, 1);
+	Sobel(p, der2[0], -1, 0, 2, 1);
+	Sobel(p, der2[1], -1, 2, 0, 1);
+
+	float correction[2] {0.f, 0.f};
+	for(int k = 0; k < 2; k++) {
+		float d = der[k].at<float>(0, 0);
+		float d2 = der2[k].at<float>(0, 0);
+
+		assert(d2 >= 0);
+
+		if(d2 > 0) {
+			float ratio = -0.5f * d / d2;
+
+			correction[k] = max(-0.5f, min(ratio, +0.5f));
+		}
+
+		assert(abs(correction[k]) <= 1.f);
+	}
+
+	Point2f c = Point2f(correction[1], correction[0]);
 
 	return Point2f(m.x, m.y);
 }
