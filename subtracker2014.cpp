@@ -147,23 +147,6 @@ Point2f subpixelMinimum(Mat in) {
 	return Point2f(m.x, m.y);
 }
 
-struct BallDensityLocalMaximum {
-	float weight;
-	Vec<float, 2> position;
-
-	BallDensityLocalMaximum(float weight, Vec<float, 2> position)
-		: weight(weight), position(position) {
-	}
-
-	BallDensityLocalMaximum()
-		: BallDensityLocalMaximum(0, 0)
-	{}
-};
-
-ostream& operator<< (ostream& ots, BallDensityLocalMaximum const& a) {
-	return ots << "BallDensityLocalMaximum[" << a.weight << "," << a.position << "]";
-}
-
 void computeScatterDiag(const Mat& in, Mat& out) {
 	multiply(in, in, out);
 }
@@ -432,7 +415,10 @@ void findFoosmen(FoosmenBarMetrics barMetrics, FoosmenBarAnalysis &analysis) {
 //	show(ss.str(), analysis.overlapped, 200);
 }
 
-vector<BallDensityLocalMaximum> findLocalMaxima(Mat density, int radiusX, int radiusY) {
+vector<pair<Point2f, float>> findLocalMaxima(Mat density, int radiusX, int radiusY) {
+	typedef pair<Point, float> pi; // point, integer
+	typedef pair<Point2f, float> pf; // point, floating point
+
 	Mat dilatedDensity;
 	dilate(density, dilatedDensity, Mat::ones(2 * radiusY + 1, 2 * radiusX + 1, CV_8U));
 
@@ -441,21 +427,32 @@ vector<BallDensityLocalMaximum> findLocalMaxima(Mat density, int radiusX, int ra
 	Mat_<Point> nonZero;
 	findNonZero(localMaxMask, nonZero);
 
-	vector<BallDensityLocalMaximum> localMaxima;
+	vector<pi> localMaxima;
 	for(int i = 0; i < nonZero.rows; i++) {
 		Point p = *nonZero[i];
-		float weight = density.at<float>(p);
+		float w = density.at<float>(p);
 
-		localMaxima.push_back(BallDensityLocalMaximum(weight, Vec<float, 2>(p.x, p.y)));
+		localMaxima.push_back(make_pair(p, w));
 	}
 
-	Mat localMaxMaskF;
-	localMaxMask.convertTo(localMaxMaskF, CV_32F, 1/255.f);
+	int count = min(localMaxima.size(), size_t(localMaximaLimit.get()));
+	nth_element(localMaxima.begin(), localMaxima.begin() + count, localMaxima.end(), [](pi a, pi b) {
+		return a.second > b.second;
+	});
+	localMaxima.resize(count);
 
-	Mat selectedDilated;
-	dilate(localMaxMaskF.mul(density) - 1e3 * (1 - localMaxMaskF), selectedDilated, Mat(), Point(-1, -1), 1);
+	vector<pf> results;
+	results.reserve(count);
+	for(pi lm : localMaxima) {
+		Point p = lm.first;
 
-	return localMaxima;
+		// trova la posizione in modo più preciso
+		Point2f correction = subpixelMinimum(-density(Range(p.y, p.y+1), Range(p.x, p.x+1)));
+
+		results.push_back(make_pair(Point2f(p.x, p.y) + correction, lm.second));
+	}
+
+	return results;
 }
 
 void doIt(FrameReader& frameReader) {
@@ -615,38 +612,27 @@ void doIt(FrameReader& frameReader) {
 		int radiusY = localMaximaMinDistance.get() / metrics.width * tableFrameSize.height;
 		auto localMaxima = findLocalMaxima(density, radiusX, radiusY);
 
-		nth_element(localMaxima.begin(), localMaxima.begin() + min(localMaxima.size(), size_t(localMaximaLimit.get())), localMaxima.end(), [](BallDensityLocalMaximum a, BallDensityLocalMaximum b) {
-			return a.weight > b.weight;
-		});
-		localMaxima.resize(min(localMaxima.size(), size_t(localMaximaLimit.get())));
-		
-
 		// Cambio le unità di misura secondo le costanti in SubottoMetrics
 		SubottoMetrics metrics;
 		for (int i=0; i<localMaxima.size(); i++) {
-			// printf("Coordinate prima: (%lf, %lf)\n", localMaxima[i].position[0], localMaxima[i].position[1]);
-			Vec2f &p = localMaxima[i].position;
+			Point2f &p = localMaxima[i].first;
 
-			p[0] = (p[0] / density.cols - 0.5f) * metrics.length;
-			p[1] = (p[1] / density.rows - 0.5f) * metrics.width;
-
-			// printf("Coordinate dopo:  (%lf, %lf)\n", localMaxima[i].position[0], localMaxima[i].position[1]);
+			p.x = (p.x / density.cols - 0.5f) * metrics.length;
+			p.y = (p.y / density.rows - 0.5f) * metrics.width;
 		}
 		
 		// Inserisco i punti migliori come nuovo frame nella timeline
 		vector<Blob> blobs;
 		for (int i=0; i<localMaxima.size(); i++) {
-			blobs.push_back( Blob(localMaxima[i].position, 0.0, 0.0, localMaxima[i].weight) );
+			blobs.push_back( Blob(localMaxima[i].first, 0.0, 0.0, localMaxima[i].second) );
 		}
 		if (debug) fprintf(stderr, "Inserting frame %d in timeline.\n", current_time);
 		blobs_tracker.InsertFrameInTimeline(blobs, current_time);
-		
 		
 		// Metto da parte il frame per l'eventuale visualizzazione
 		if ( current_time >= timeline_span ) {
 			frames.push_back(tableFrame);
 		}
-
 
 		if ( current_time >= 2*timeline_span ) {
 			blobs_tracker.PopFrameFromTimeline();
