@@ -36,6 +36,7 @@ private:
 	deque<time_point<video_clock>> frame_times;
 	mutex queue_mutex;
 	condition_variable queue_not_empty;
+	condition_variable queue_not_full;
 	atomic<bool> running;
 	int count;
 	thread t;
@@ -45,6 +46,7 @@ private:
 
 	bool fromFile = false;
 	bool rate_limited = false;
+	bool can_drop_frames = false;
 
 public:
 	FrameReader(int device) {
@@ -56,7 +58,7 @@ public:
 		video_start_time = system_clock::now();
 	}
 
-	FrameReader(const char* file, bool rate_limited = true) {
+	FrameReader(const char* file, bool simulate_live = false) {
 		running = true;
 		count = 0;
 		last_stats = high_resolution_clock::now();
@@ -67,7 +69,9 @@ public:
 		}
 		t = thread(&FrameReader::read, this);
 		fromFile = true;
-		this->rate_limited = rate_limited;
+
+		this->rate_limited = simulate_live;
+		this->can_drop_frames = simulate_live;
 	}
 
 	void read() {
@@ -116,13 +120,19 @@ public:
 				last_stats = now;
 			}
 
+			unique_lock<mutex> lock(queue_mutex);
+			if (!can_drop_frames) {
+				while (queue.size() >= buffer_size) {
+					queue_not_full.wait(lock);
+				}
+			}
+
 			auto playback_time = video_start_time + timestamp.time_since_epoch();
 
 			if(rate_limited) {
 				this_thread::sleep_until(playback_time);
 			}
 
-			unique_lock<mutex> lock(queue_mutex);
 			// Prende tutti i frames finchè queue.size() < buffer_size,
 			// un frame su 2 se queue.size() < 2*buffer_size,
 			// uno su 3 se queue.size() < 3*buffer_size, etc
@@ -131,6 +141,7 @@ public:
 				queue_not_empty.notify_all();
 				enqueued_frames++;
 			} else {
+				assert(can_drop_frames);
 				fprintf(stderr, "Frame dropped!\n");
 			}
 		}
@@ -143,6 +154,7 @@ public:
 		}
 		auto res = queue.front();
 		queue.pop_front();
+        queue_not_full.notify_all();
 		return res;
 	}
 

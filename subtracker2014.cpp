@@ -741,6 +741,14 @@ int main(int argc, char* argv[]) {
 		}
 	} else {
 		cerr << "Usage: " << argv[0] << " <video> <reference subotto> [<reference subotto mask>]" << endl;
+		cerr << "<video> can be: " << endl;
+		cerr << "\tn (a single digit number) - live capture from video device n" << endl;
+		cerr << "\tfilename+ (with a trailing plus) - simulate live capture from video file" << endl;
+		cerr << "\tfilename (without a trailing plus) - batch analysis of video file" << endl;
+		cerr << "<reference subotto> is the reference image used to look for the table" << endl;
+		cerr << "<reference sumotto mask> is an optional B/W image, of the same size," << endl;
+		cerr << "\twhere black spots indicate areas of the reference image to hide" << endl;
+		cerr << "\twhen looking for the table (such as moving parts and spurious features)" << endl;
 		return 1;
 	}
 
@@ -754,7 +762,14 @@ int main(int argc, char* argv[]) {
 		FrameReader f(videoName[0] - '0');
 		doIt(f);
 	} else {
-		FrameReader f(videoName.c_str());
+		bool simulate_live = false;
+
+		if(videoName.back() == '+') {
+			videoName = videoName.substr(0, videoName.size()-1);
+			simulate_live = true;
+		}
+
+		FrameReader f(videoName.c_str(), simulate_live);
 		doIt(f);
 	}
 
