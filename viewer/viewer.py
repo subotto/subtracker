@@ -13,6 +13,9 @@ from OpenGL.GLU import *
 
 from metrics import *
 
+def open_resource(x):
+    return open(os.path.join(os.path.dirname(__file__), x))
+
 def my_int(x):
     if x is None or x == '':
         return -1
@@ -68,7 +71,7 @@ def read_mtl(filename):
     materials = []
     cur_material = None
 
-    with open(filename) as fin:
+    with open_resource(filename) as fin:
         for line in fin:
             line = line.strip()
             if line == '' or line[0] == '#':
@@ -112,7 +115,7 @@ def read_obj(filename):
 
     offsets = [0, 0, 0]
 
-    with open(filename) as fin:
+    with open_resource(filename) as fin:
         for line in fin:
             line = line.strip()
             if line == '' or line[0] == '#':
