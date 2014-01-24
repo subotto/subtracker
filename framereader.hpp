@@ -42,8 +42,10 @@ private:
     thread t;
     VideoCapture cap;
     time_point<system_clock> last_stats;
-    bool fromFile = false;
     time_point<system_clock> video_start_time;
+
+    bool fromFile = false;
+    bool rate_limited = false;
 
 public:
     FrameReader(int device) {
@@ -55,7 +57,7 @@ public:
         video_start_time = system_clock::now();
     }
 
-    FrameReader(const char* file) {
+    FrameReader(const char* file, bool rate_limited = true) {
         running = true;
         count = 0;
         last_stats = high_resolution_clock::now();
@@ -66,6 +68,7 @@ public:
         }
         t = thread(&FrameReader::read, this);
         fromFile = true;
+        this->rate_limited = rate_limited;
     }
 
     void read() {
@@ -122,8 +125,14 @@ public:
 
             assert(!fromFile || queue.size() < buffer_size);
 
+			auto playback_time = video_start_time + timestamp.time_since_epoch();
+
+			if(rate_limited) {
+				this_thread::sleep_until(playback_time);
+			}
+
 			if (queue.size() < buffer_size) {
-				queue.push_back({timestamp, video_start_time + timestamp.time_since_epoch(), frame});
+				queue.push_back( { timestamp, playback_time, frame });
 				queue_not_empty.notify_all();
 				enqueued_frames++;
 			} else {
