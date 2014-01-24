@@ -6,7 +6,7 @@ import time
 import random
 import math
 
-FREQ = 24.0
+FREQ = 120.0
 
 FIELDS_NUM = 18
 FIELDS_NUM = 2
@@ -22,12 +22,12 @@ while True:
     now = time.time()
 
     if mode == 'random':
-        print ",".join([str(now)] + [str(random.random()) for x in xrange(field_num)])
+        print ",".join(["%.6f" % (now)] + [str(random.random()) for x in xrange(field_num)])
 
     elif mode == 'circle':
         omega = now
         radius = 0.3
-        print ",".join([str(now)] + [str(x) for x in [radius * math.cos(omega), radius * math.sin(omega)]])
+        print ",".join(["%.6f" % (now)] + [str(x) for x in [radius * math.cos(omega), radius * math.sin(omega)]])
 
     sys.stdout.flush()
     time.sleep(1.0 / FREQ)
