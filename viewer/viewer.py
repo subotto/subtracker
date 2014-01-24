@@ -11,6 +11,8 @@ import pygame.locals
 from OpenGL.GL import *
 from OpenGL.GLU import *
 
+from metrics import *
+
 def my_int(x):
     if x is None or x == '':
         return -1
@@ -36,6 +38,13 @@ class ObjObject:
                     glVertex(*self.vertices[vertex[0]-1])
             elif face[0] == 'usemtl':
                 face[1].set()
+            elif face[0] == 's':
+                glEnd()
+                if face[1]:
+                    glShadeModel(GL_SMOOTH)
+                else:
+                    glShadeModel(GL_FLAT)
+                glBegin(GL_TRIANGLES)
         glEnd()
 
 class ObjMaterial:
@@ -97,7 +106,7 @@ def read_mtl(filename):
 
 def read_obj(filename):
 
-    objects = []
+    objects = {}
     cur_object = None
     materials = {}
 
@@ -115,7 +124,7 @@ def read_obj(filename):
             if command == 'o':
                 assert len(params) == 1
                 if cur_object is not None:
-                    objects.append(cur_object)
+                    objects[cur_object.name] = cur_object
                     offsets[0] += len(cur_object.vertices)
                     offsets[1] += len(cur_object.uv_vertices)
                     offsets[2] += len(cur_object.normals)
@@ -143,14 +152,19 @@ def read_obj(filename):
                 cur_object.faces.append(('usemtl', materials[params[0]]))
             elif command == 's':
                 assert len(params) == 1
-                cur_object.faces.append(tuple(params))
+                if params[0] == 'off':
+                    cur_object.faces.append(('s', False))
+                elif params[0] == '1':
+                    cur_object.faces.append(('s', True))
+                else:
+                    assert False
             elif command == 'mtllib':
                 assert len(params) == 1
                 for material in read_mtl(*params):
                     materials[material.name] = material
 
     if cur_object is not None:
-        objects.append(cur_object)
+        objects[cur_object.name] = cur_object
 
     return objects
 
@@ -165,7 +179,7 @@ def resize(width, height):
     # Set up projection
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
-    gluPerspective(60.0, float(width)/float(height), 0.1, 100.0)
+    gluPerspective(60.0, float(width)/float(height), 0.1, 500.0)
 
     # Set up trivial model view
     glMatrixMode(GL_MODELVIEW)
@@ -177,9 +191,9 @@ def render(time):
 
     glMatrixMode(GL_MODELVIEW)
     glLoadIdentity()
-    gluLookAt(6.0 * math.cos(time), 6.0 * math.sin(time), 4.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
+    gluLookAt(0.8 * math.cos(time), 0.8 * math.sin(time), 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
 
-    glLight(GL_LIGHT0, GL_POSITION, (4.0, 6.0, 6.0))
+    glLight(GL_LIGHT0, GL_POSITION, (0.4, 0.6, 1.2))
 
 FPS = 30.0
 
@@ -216,8 +230,30 @@ def main():
 
         render(frame / FPS)
 
-        for obj in objects:
-            obj.draw()
+        #for obj in objects.values():
+        #    obj.draw()
+
+        # Tests
+        objects['Campo'].draw()
+
+        for i in xrange(ROD_NUMBER):
+            glPushMatrix()
+            glTranslate((i - float(ROD_NUMBER-1) / 2.0) * ROD_DISTANCE, 0.0, ROD_HEIGHT)
+            glPushMatrix()
+            glRotate(90.0, 1.0, 0.0, 0.0)
+            glScale(ROD_DIAMETER * CYLINDER_FACTOR, ROD_DIAMETER * CYLINDER_FACTOR, FIELD_HEIGHT * CYLINDER_FACTOR)
+            objects['Stecca'].draw()
+            glPopMatrix()
+            configuration = ROD_CONFIGURATION[i]
+            for j in xrange(configuration[0]):
+                glPushMatrix()
+                glTranslate(0.0, (j - float(configuration[0]-1) / 2.0) * configuration[1], 0.0)
+                if configuration[2] == 0:
+                    objects['Omino_rosso'].draw()
+                else:
+                    objects['Omino_blu'].draw()
+                glPopMatrix()
+            glPopMatrix()
 
         pygame.display.flip()
         clock.tick(FPS)
