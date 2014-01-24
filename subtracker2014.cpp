@@ -706,10 +706,9 @@ void doIt(FrameReader& frameReader) {
 							circle( display, ball, 8, Scalar(0,255,0), 2 );
 							imshow("Display", display);
 
-							this_thread::sleep_until(playback_start + i * duration<double>(1. / 120.));
+							this_thread::sleep_until(playback_start + i * duration<double>(1. / 125.));
 
 							if(stop.exchange(false)) {
-								cerr << "PLAYBACK STOPPED" << endl;
 								return;
 							}
 						}
