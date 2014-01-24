@@ -14,13 +14,18 @@ using namespace std;
 using namespace chrono;
 using namespace cv;
 
-static const int frame_count_interval = 5;
+static const seconds frame_count_interval(5);
 static const int stats_interval = 1;
 static const int buffer_size = 100;
 
+// video clock - starting at first frame
+struct video_clock {
+	typedef nanoseconds duration;
+};
+
 struct frame_info {
-    time_point<high_resolution_clock> timestamp;
-    int number;
+    time_point<video_clock> timestamp;
+    time_point<system_clock> playback_time;
     Mat data;
 };
 
@@ -28,7 +33,7 @@ class FrameReader {
 
 private:
     deque<frame_info> queue;
-    deque<time_point<high_resolution_clock>> frame_times;
+    deque<time_point<video_clock>> frame_times;
     mutex queue_mutex;
     condition_variable queue_not_empty;
     condition_variable queue_not_full;
@@ -36,8 +41,9 @@ private:
     int count;
     thread t;
     VideoCapture cap;
-    time_point<high_resolution_clock> last_stats;
+    time_point<system_clock> last_stats;
     bool fromFile = false;
+    time_point<system_clock> video_start_time;
 
 public:
     FrameReader(int device) {
@@ -46,6 +52,7 @@ public:
         last_stats = high_resolution_clock::now();
         cap = v4l2cap(device, 320, 240, 125);
         t = thread(&FrameReader::read, this);
+        video_start_time = system_clock::now();
     }
 
     FrameReader(const char* file) {
@@ -66,7 +73,7 @@ public:
             // Delay di 1s per dare il tempo alla webcam di inizializzarsi
             this_thread::sleep_for(seconds(1));
         }
-        auto start = high_resolution_clock::now();
+        video_start_time = system_clock::now();
         long unsigned int enqueued_frames = 0;
         while(running) {
             Mat frame;
@@ -80,39 +87,48 @@ public:
                 }
             }
             count++;
-            auto now = high_resolution_clock::now();
-            frame_times.push_back(now);
-            while(now - frame_times.front() > seconds(frame_count_interval)) {
+            auto now = system_clock::now();
+
+            time_point<video_clock> timestamp;
+            if(fromFile) {
+            	double posMsec = cap.get(CV_CAP_PROP_POS_MSEC);
+            	timestamp = time_point<video_clock>(duration_cast<nanoseconds>(duration<double, milli>(posMsec)));
+            } else {
+            	timestamp = time_point<video_clock>(now - video_start_time);
+            }
+
+            frame_times.push_back(timestamp);
+            while(timestamp - frame_times.front() > frame_count_interval) {
                 frame_times.pop_front();
             }
+
             if(now - last_stats > seconds(stats_interval)) {
                 fprintf(stderr, "Queue size: %lu\n",
                     (long unsigned)queue.size());
                 fprintf(stderr, "Received %lu frames in the last %d seconds.\n",
                     (long unsigned) frame_times.size(),
-                    frame_count_interval);
+                    seconds(frame_count_interval).count());
                 fprintf(stderr, "Processed %lu frames in %.3f seconds\n",
                     (long unsigned) (enqueued_frames - queue.size()),
-                    float(duration_cast<milliseconds>(now - start).count())/1000);
+                    float(duration_cast<duration<float>>(now - video_start_time).count()));
                 last_stats = now;
             }
             unique_lock<mutex> lock(queue_mutex);
-            if (!fromFile) {
-                if (queue.size() < buffer_size) {
-                    queue.push_back({now, count, frame});
-                    queue_not_empty.notify_all();
-                    enqueued_frames++;
-                } else {
-                    fprintf(stderr, "Frame dropped!\n");
-                }
-            } else {
+            if (fromFile) {
                 while (queue.size() >= buffer_size) {
                     queue_not_full.wait(lock);
                 }
-                queue.push_back({now, count, frame});
-                queue_not_empty.notify_all();
-                enqueued_frames++;
             }
+
+            assert(!fromFile || queue.size() < buffer_size);
+
+			if (queue.size() < buffer_size) {
+				queue.push_back({timestamp, video_start_time + timestamp.time_since_epoch(), frame});
+				queue_not_empty.notify_all();
+				enqueued_frames++;
+			} else {
+				fprintf(stderr, "Frame dropped!\n");
+			}
         }
     }
 

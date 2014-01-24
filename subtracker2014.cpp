@@ -529,7 +529,7 @@ void doIt(FrameReader& frameReader) {
 		}
 
 		if ( current_time >= timeline_span ) {
-			timestamps.push_back(double(duration_cast<milliseconds>(subotto.frameInfo.timestamp.time_since_epoch()).count()) / 1000.);
+			timestamps.push_back(duration_cast<duration<double>>(subotto.frameInfo.playback_time.time_since_epoch()).count());
 		}
 		
 		Mat tableFrame;
