@@ -15,7 +15,7 @@
 using namespace cv;
 using namespace std;
 
-VideoCapture frameReader;
+unique_ptr<FrameReader> frameReader;
 
 shared_ptr<SubottoTrackingParams> trackerParams(new SubottoTrackingParams());
 unique_ptr<SubottoTracker> tracker;
@@ -24,7 +24,7 @@ SubottoReference reference;
 SubottoMetrics metrics;
 
 void onChange(int a, void* b) {
-	tracker = unique_ptr<SubottoTracker>(new SubottoTracker(frameReader, reference, metrics, *trackerParams));
+	tracker = unique_ptr<SubottoTracker>(new SubottoTracker(*frameReader, reference, metrics, *trackerParams));
 }
 
 int main(int argc, char* argv[]) {
@@ -41,7 +41,7 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 
-	frameReader.open(1);
+	frameReader = unique_ptr<FrameReader>(new FrameReader(videoName.c_str(), false));
 
 	reference.image = imread(referenceImageName);
 

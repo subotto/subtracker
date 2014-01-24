@@ -7,7 +7,6 @@
 using namespace cv;
 using namespace std;
 
-VideoCapture cap;
 SubottoMetrics metrics;
 SubottoReference reference;
 SubottoTrackingParams trackingParams;
@@ -26,7 +25,7 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 
-	cap.open(videoName);
+	FrameReader frameReader(videoName.c_str(), false);
 
 	reference.image = imread(referenceImageName);
 
@@ -34,7 +33,7 @@ int main(int argc, char* argv[]) {
 		reference.mask = imread(referenceImageMaskName, CV_LOAD_IMAGE_GRAYSCALE);
 	}
 
-	SubottoTracker tracker(cap, reference, metrics, trackingParams);
+	SubottoTracker tracker(frameReader, reference, metrics, trackingParams);
 
 	Trackbar<float> fx("camera", "fx", 160.f, -1000.f, 1000.f, 0.1f);
 	Trackbar<float> fy("camera", "fy", 160.f, -1000.f, 1000.f, 0.1f);
