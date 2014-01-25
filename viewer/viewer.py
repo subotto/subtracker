@@ -8,6 +8,7 @@ import threading
 import urllib2
 import time
 import json
+import Queue
 
 import pygame
 import pygame.locals
@@ -37,7 +38,7 @@ class RequestThread(threading.Thread):
         self.stop = False
         self.last_timestamp = 0.0
         self.daemon = True
-        self.frames = []
+        self.frames = Queue.Queue()
 
     def run(self):
         while not self.stop:
@@ -47,10 +48,11 @@ class RequestThread(threading.Thread):
                 print "Request failed or timed out"
                 continue
             data = json.load(response)
-            self.frames.extend(data['data'])
+            for frame in data['data']:
+                self.frames.put(frame)
             if len(data['data']) > 0:
-                last_timestamp = data['data'][-1]['timestamp']
-            print last_timestamp
+                self.last_timestamp = data['data'][-1]['timestamp']
+            print self.last_timestamp
             time.sleep(REQUEST_SLEEP)
 
 class ObjObject:
@@ -230,12 +232,37 @@ def render(time):
 
     glLight(GL_LIGHT0, GL_POSITION, (0.4, 0.6, 1.2))
 
-FPS = 30.0
-
-field_configuration = {
+time_delta = None
+current_frame = {
     'ball_x': 0.2,
     'ball_y': 0.1,
 }
+
+def update_timing(frames):
+    global time_delta, current_frame
+
+    now = time.time()
+
+    if time_delta is not None:
+        actual_time = now - time_delta
+    while True:
+        try:
+            frame = frames.get(block=False)
+        except Queue.Empty:
+            break
+        else:
+            if time_delta is None:
+                time_delta = now - frame['timestamp']
+                actual_time = frame['timestamp']
+
+            if actual_time > frame['timestamp']:
+                continue
+            else:
+                current_frame = frame
+                break
+    print frames.qsize()
+
+fps = 30.0
 
 def main():
 
@@ -272,7 +299,9 @@ def main():
             if event.type == pygame.locals.VIDEORESIZE:
                 resize(event.w, event.h)
 
-        render(frame / FPS)
+        update_timing(thread.frames)
+
+        render(frame / fps)
 
         objects['Campo'].draw()
 
@@ -297,14 +326,16 @@ def main():
             glPopMatrix()
 
         glPushMatrix()
-        glTranslate(field_configuration['ball_x'],
-                    field_configuration['ball_y'],
+        glTranslate(current_frame['ball_x'],
+                    current_frame['ball_y'],
                     0.0)
         objects['Pallina'].draw()
         glPopMatrix()
 
+        print time_delta, current_frame['ball_x'], current_frame['ball_y']
+
         pygame.display.flip()
-        clock.tick(FPS)
+        clock.tick(fps)
         frame += 1
 
 if __name__ == '__main__':
