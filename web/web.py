@@ -47,23 +47,22 @@ class Application:
             if len(new_data) > 0:
                 last_id = new_data[-1].id
 
-            # Make a copy of data, also because we want to convert
-            # units without touching the original one
-            new_data = [x.clone() for x in new_data]
-            for x in new_data:
-                x.convert_units()
-
             #print >> sys.stderr, "Read %d records" % (len(new_data))
             self.buffer += new_data
             self.buffer = self.buffer[-BUFFER_LEN:]
+            session.expunge_all()
             session.rollback()
             time.sleep(SLEEP_TIME)
 
         session.rollback()
         session.close()
 
-    def select_records(self, last_timestamp):
-        return [x for x in self.buffer if x.timestamp > last_timestamp]
+    def select_records(self, last_timestamp, convert_units):
+        res = [x.clone() for x in self.buffer if x.timestamp > last_timestamp]
+        if convert_units == 1:
+            for x in res:
+                x.convert_units()
+        return res
 
     def error(self, environ, start_response):
         status = '400 Bad Request'
@@ -83,12 +82,13 @@ class Application:
                 request_tuples = [tuple(x.split('=', 1)) for x in environ['QUERY_STRING'].split('&')]
                 request_params = dict([x for x in request_tuples if len(x) == 2])
                 last_timestamp = float(request_params.get('last_timestamp', -1.0))
+                convert_units = int(request_params.get('convert_units', 1))
             except Exception:
                 #raise
                 return self.error(environ, start_response)
 
         obj_response = {
-            'data': self.select_records(last_timestamp),
+            'data': self.select_records(last_timestamp, convert_units),
             'fps': 24.0,
             'buffer_len': BUFFER_LEN,
             'version': 1,

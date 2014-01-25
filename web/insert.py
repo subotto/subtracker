@@ -30,6 +30,10 @@ if __name__ == '__main__':
             now = time.time()
             if now - last_commit >= COMMIT_FREQ:
                 last_commit = now
+                # After the implicit flush, all the objects in the
+                # session are weakly references by the session, so
+                # they're immediately pruned; i.e., this shouldn't
+                # have memory leaks
                 session.commit()
 
     except KeyboardInterrupt:
