@@ -194,11 +194,17 @@ def render(time):
 
     glMatrixMode(GL_MODELVIEW)
     glLoadIdentity()
-    gluLookAt(0.8 * math.cos(time), 0.8 * math.sin(time), 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
+    #gluLookAt(0.8 * math.cos(time), 0.8 * math.sin(time), 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
+    gluLookAt(0.0, -0.8, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
 
     glLight(GL_LIGHT0, GL_POSITION, (0.4, 0.6, 1.2))
 
 FPS = 30.0
+
+field_configuration = {
+    'ball_x': 0.2,
+    'ball_y': 0.1,
+}
 
 def main():
 
@@ -233,15 +239,12 @@ def main():
 
         render(frame / FPS)
 
-        #for obj in objects.values():
-        #    obj.draw()
-
-        # Tests
         objects['Campo'].draw()
 
         for i in xrange(ROD_NUMBER):
             glPushMatrix()
             glTranslate((i - float(ROD_NUMBER-1) / 2.0) * ROD_DISTANCE, 0.0, ROD_HEIGHT)
+            #glRotate(30.0, 0.0, 1.0, 0.0)
             glPushMatrix()
             glRotate(90.0, 1.0, 0.0, 0.0)
             glScale(ROD_DIAMETER * CYLINDER_FACTOR, ROD_DIAMETER * CYLINDER_FACTOR, FIELD_HEIGHT * CYLINDER_FACTOR)
@@ -257,6 +260,13 @@ def main():
                     objects['Omino_blu'].draw()
                 glPopMatrix()
             glPopMatrix()
+
+        glPushMatrix()
+        glTranslate(field_configuration['ball_x'],
+                    field_configuration['ball_y'],
+                    0.0)
+        objects['Pallina'].draw()
+        glPopMatrix()
 
         pygame.display.flip()
         clock.tick(FPS)
