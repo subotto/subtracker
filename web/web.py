@@ -31,7 +31,7 @@ class Application:
 
         self.thread = threading.Thread()
         self.thread.run = self.worker_run
-        self.thread.damon = True
+        self.thread.daemon = True
 
         self.thread.start()
 
