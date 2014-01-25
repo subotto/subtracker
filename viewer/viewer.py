@@ -4,6 +4,10 @@
 import sys
 import os
 import math
+import threading
+import urllib2
+import time
+import json
 
 import pygame
 import pygame.locals
@@ -13,6 +17,10 @@ from OpenGL.GLU import *
 
 from metrics import *
 
+REQUEST_URL = 'http://uz.sns.it/24ore/tracking.json?last_timestamp=%(last_timestamp)f&convert_units=0'
+REQUEST_TIMEOUT = 2.0
+REQUEST_SLEEP = 0.5
+
 def open_resource(x):
     return open(os.path.join(os.path.dirname(__file__), x))
 
@@ -21,6 +29,29 @@ def my_int(x):
         return -1
     else:
         return int(x)
+
+class RequestThread(threading.Thread):
+
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self.stop = False
+        self.last_timestamp = 0.0
+        self.daemon = True
+        self.frames = []
+
+    def run(self):
+        while not self.stop:
+            try:
+                response = urllib2.urlopen(REQUEST_URL % {'last_timestamp': self.last_timestamp}, timeout=REQUEST_TIMEOUT)
+            except urllib2.URLError:
+                print "Request failed or timed out"
+                continue
+            data = json.load(response)
+            self.frames.extend(data['data'])
+            if len(data['data']) > 0:
+                last_timestamp = data['data'][-1]['timestamp']
+            print last_timestamp
+            time.sleep(REQUEST_SLEEP)
 
 class ObjObject:
 
@@ -207,6 +238,10 @@ field_configuration = {
 }
 
 def main():
+
+    # Spawn request thread
+    thread = RequestThread()
+    thread.start()
 
     # Initialize pygame stuff
     pygame.init()
