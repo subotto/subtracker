@@ -506,14 +506,18 @@ void doIt(FrameReader& frameReader) {
 	thread playback_thread;
 
 	for (int i = 0; ; i++) {
-		int c = waitKey(play);
+		if (!play || i % 10 == 0) {
+			int c = waitKey(play);
 
-		if (c == ' ') {
-			play = !play;
-		}
+			if (c == ' ') {
+				play = !play;
+			}
 
-		if (c == 'd') {
-			debug = !debug;
+			if (c == 'd') {
+				debug = !debug;
+			}
+
+			dumpTime("cycle", "wait key");
 		}
 
 		dumpTime("cycle", "start cycle");
