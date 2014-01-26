@@ -132,8 +132,7 @@ private:
 	SubottoReference scaledReference;
 	SubottoFollowingParams params;
 	SubottoMetrics metrics;
-
-	FeatureDetectionResult scaledReferenceFeatures;
+	std::vector<KeyPoint> features;
 };
 
 /*

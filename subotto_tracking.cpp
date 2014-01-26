@@ -164,9 +164,10 @@ SubottoFollower::SubottoFollower(SubottoReference reference,
 		resize(reference.mask, scaledReference.mask, params.opticalFlowSize);
 	}
 
-	scaledReferenceFeatures = detectFeatures(scaledReference.image, scaledReference.mask, params.opticalFlow.detection);
-
 	scaledReference.metrics = reference.metrics;
+
+	GoodFeaturesToTrackDetector(params.opticalFlow.detection.features).detect(
+			scaledReference.image, features, scaledReference.mask);
 }
 
 SubottoFollower::~SubottoFollower() {
@@ -177,17 +178,22 @@ Mat SubottoFollower::follow(Mat frame, Mat previousTransform) {
 	Size size = scaledReference.image.size();
 
 	warpPerspective(frame, warped, previousTransform * sizeToReference(scaledReference.metrics, size), size,
-			CV_WARP_INVERSE_MAP | CV_INTER_LINEAR);
+			WARP_INVERSE_MAP | INTER_LINEAR);
 
-	PointMap map = opticalFlow(scaledReferenceFeatures, scaledReference.image, warped);
+	FeatureDetectionResult featureDetectionResults {features};
+	PointMap map = opticalFlow(featureDetectionResults, scaledReference.image, warped);
 
 	Mat correction;
 	if (map.from.size() < 6) {
 		correction = Mat::eye(3, 3, CV_32F);
 	} else {
 		float ransacThreshold = params.ransacThreshold / 100.f;
-		estimateGlobalMotionRobust(map.from, map.to, LINEAR_SIMILARITY, RansacParams(6, ransacThreshold, 0.5f, 0.99f)).convertTo(
-				correction, CV_32F);
+		int ninliers;
+		float rmse;
+		correction = estimateGlobalMotionRobust(map.from, map.to,
+				LINEAR_SIMILARITY,
+				RansacParams(6, ransacThreshold, 0.1f, 0.99f), &rmse,
+				&ninliers);
 	}
 
 	return previousTransform * sizeToReference(scaledReference.metrics, size) * correction * referenceToSize(scaledReference.metrics, size);
