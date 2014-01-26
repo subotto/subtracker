@@ -52,16 +52,18 @@ PointMap matchFeatures(FeatureDetectionResult features, Mat image,
 	auto imageFeatures = detectFeatures(image, Mat(), params.detection);
 	auto dm = createDescriptorMatcher();
 
-	vector<DMatch> matches;
-	dm->match(features.descriptors, imageFeatures.descriptors, matches);
+	vector<vector<DMatch>> matchesGroups;
+	dm->knnMatch(features.descriptors, imageFeatures.descriptors, matchesGroups, params.knn, Mat());
 
 	PointMap map;
-	for (DMatch match : matches) {
-		auto from = features.keyPoints[match.queryIdx].pt;
-		auto to = imageFeatures.keyPoints[match.trainIdx].pt;
+	for (auto matches : matchesGroups) {
+		for (DMatch match : matches) {
+			auto from = features.keyPoints[match.queryIdx].pt;
+			auto to = imageFeatures.keyPoints[match.trainIdx].pt;
 
-		map.from.push_back(from);
-		map.to.push_back(to);
+			map.from.push_back(from);
+			map.to.push_back(to);
+		}
 	}
 
 	return map;
@@ -141,7 +143,7 @@ Mat SubottoDetector::detect(Mat frame) {
 		flowCorrection = Mat::eye(3, 3, CV_32F);
 	} else {
 		float ransacThreshold = params.flowRansacThreshold / 100.f;
-		estimateGlobalMotionRobust(flowMap.from, flowMap.to, LINEAR_SIMILARITY, RansacParams(6, ransacThreshold, 0.5f, 0.99f)).convertTo(
+		findHomography(flowMap.from, flowMap.to, RANSAC, ransacThreshold).convertTo(
 				flowCorrection, CV_32F);
 	}
 
@@ -215,16 +217,16 @@ Mat correctDistortion(Mat frameDistorted) {
 SubottoTracking SubottoTracker::next() {
 	SubottoTracking subottoTracking;
 
-//	dumpTime("subotto tracking", "start");
+	dumpTime("subotto tracking", "start");
 
 	frame_info frameInfo = frameReader.get();
 
-//	dumpTime("subotto tracking", "read frame");
+	dumpTime("subotto tracking", "read frame");
 
 	Mat frameDistorted = frameInfo.data;
 	Mat frame = correctDistortion(frameDistorted);
 
-//	dumpTime("subotto tracking", "correct distortion");
+	dumpTime("subotto tracking", "correct distortion");
 
 	Mat subottoTransform;
 
@@ -237,7 +239,7 @@ SubottoTracking SubottoTracker::next() {
 
 	if (shouldFollow && !nearTransform.empty()) {
 		Mat followingTransform = follower->follow(frame, nearTransform);
-//		dumpTime("subotto tracking", "follow");
+		dumpTime("subotto tracking", "follow");
 
 		if (subottoTransform.empty()) {
 			followingTransform.copyTo(subottoTransform);
@@ -250,9 +252,9 @@ SubottoTracking SubottoTracker::next() {
 	Mat followDetectedTransform;
 	if (shouldDetect || subottoTransform.empty()) {
 		Mat detectionTransform = detector->detect(frame);
-//		dumpTime("subotto tracking", "detect");
+		dumpTime("subotto tracking", "detect");
 		followDetectedTransform = follower->follow(frame, detectionTransform);
-//		dumpTime("subotto tracking", "follow");
+		dumpTime("subotto tracking", "follow");
 
 		if (subottoTransform.empty()) {
 			followDetectedTransform.copyTo(subottoTransform);
@@ -262,7 +264,7 @@ SubottoTracking SubottoTracker::next() {
 		}
 	}
 
-//	dumpTime("subotto tracking", "update transform");
+	dumpTime("subotto tracking", "update transform");
 
 	if (nearTransform.empty() || shouldDetect) {
 		subottoTransform.copyTo(nearTransform);
@@ -271,7 +273,7 @@ SubottoTracking SubottoTracker::next() {
 		accumulateWeighted(subottoTransform, nearTransform, alpha);
 	}
 
-//	dumpTime("subotto tracking", "update near transform");
+	dumpTime("subotto tracking", "update near transform");
 
 	frameCount++;
 

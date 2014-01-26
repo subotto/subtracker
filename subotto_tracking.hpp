@@ -16,8 +16,8 @@ struct SubottoReference {
 };
 
 struct FeatureDetectionParams {
-	int features = 300;
-	int levels = 3;
+	int features;
+	int levels;
 };
 
 struct FeatureDetectionResult {
@@ -27,6 +27,7 @@ struct FeatureDetectionResult {
 
 struct FeatureMatchingParams {
 	FeatureDetectionParams detection;
+	int knn;
 };
 
 struct PointMap {
@@ -39,37 +40,31 @@ struct OpticalFlowParams {
 };
 
 struct SubottoDetectorParams {
-	FeatureDetectionParams referenceDetection;
+	FeatureDetectionParams referenceDetection {300, 3};
 
-	FeatureMatchingParams coarseMatching;
+	FeatureMatchingParams coarseMatching { {300, 3}, 2 };
 	int coarseRansacThreshold = 2000;
 	int coarseRansacOutliersRatio = 60;
 
-	FeatureMatchingParams fineMatching;
+	FeatureMatchingParams fineMatching { {300, 3}, 2 };
 	int fineRansacThreshold = 200;
 
-	OpticalFlowParams opticalFlow;
-	int flowRansacThreshold = 200;
+	OpticalFlowParams opticalFlow { {100, 3} };
+	int flowRansacThreshold = 100;
 };
 
 struct SubottoFollowingParams {
-	OpticalFlowParams opticalFlow;
-	int ransacThreshold = 200;
+	OpticalFlowParams opticalFlow { {100, 1} };
+	int ransacThreshold = 100;
 
-	cv::Size opticalFlowSize;
-
-	SubottoFollowingParams() {
-		opticalFlow.detection.features = 100;
-		opticalFlow.detection.levels = 3;
-		opticalFlowSize = cv::Size(160, 80);
-	}
+	cv::Size opticalFlowSize {128, 64};
 };
 
 struct SubottoTrackingParams {
 	SubottoDetectorParams detectionParams;
 	SubottoFollowingParams followingParams;
 
-	int detectionSkipFrames = 60;
+	int detectionSkipFrames = 120;
 	int detectionAlpha = 100;
 
 	int followingSkipFrames = 0;
