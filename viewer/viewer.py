@@ -232,6 +232,8 @@ def render(time):
 
     glLight(GL_LIGHT0, GL_POSITION, (0.4, 0.6, 1.2))
 
+MAX_LATENESS = 0.5
+
 time_delta = None
 current_frame = {
     'ball_x': 0.2,
@@ -245,21 +247,40 @@ def update_timing(frames):
 
     if time_delta is not None:
         actual_time = now - time_delta
+    empty_queue = False
     while True:
         try:
             frame = frames.get(block=False)
         except Queue.Empty:
+            empty_queue = True
             break
         else:
             if time_delta is None:
                 time_delta = now - frame['timestamp']
                 actual_time = frame['timestamp']
 
+            # If the frame is late, drop it
             if actual_time > frame['timestamp']:
                 continue
+
+            # If not, keep it and use it to draw next field
             else:
                 current_frame = frame
                 break
+
+    # Synchronization check
+    if time_delta is not None:
+
+        # If there are no enqueued frames, do not let the time pass
+        if empty_queue:
+            time_delta += 1/fps
+
+        # If we're too much behind, make a time jump
+        else:
+            lateness = current_frame['timestamp'] - actual_time
+            if lateness > MAX_LATENESS:
+                time_delta -= lateness
+
     print frames.qsize()
 
 fps = 30.0
