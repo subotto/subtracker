@@ -4,7 +4,7 @@
 import math
 import os
 
-from sqlalchemy import create_engine, Column, Integer, Float
+from sqlalchemy import create_engine, Column, Integer, Float, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship, backref
 from sqlalchemy.schema import Index
@@ -46,6 +46,8 @@ class Log(Base):
     rod_blue_2_angle = Column(Float, nullable=True)
     rod_blue_3_shift = Column(Float, nullable=True)
     rod_blue_3_angle = Column(Float, nullable=True)
+
+    interesting = Column(Boolean, nullable=False, default=False)
 
     TUPLE_LEN = 1 + 2 + 2 * 8
 

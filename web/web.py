@@ -11,7 +11,7 @@ sys.path.append(os.path.dirname(__file__))
 
 from data import Session, Log
 
-BUFFER_LEN = 200
+BUFFER_LEN = 1000
 SLEEP_TIME = 0.5
 
 class LogJSONEncoder(json.JSONEncoder):
@@ -43,7 +43,7 @@ class Application:
         last_id -= BUFFER_LEN
 
         while not self.closing:
-            new_data = session.query(Log).filter(Log.id > last_id).order_by(Log.id).all()
+            new_data = session.query(Log).filter(Log.id > last_id).filter(Log.interesting == True).order_by(Log.id).all()
             if len(new_data) > 0:
                 last_id = new_data[-1].id
 

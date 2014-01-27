@@ -273,7 +273,8 @@ def update_timing(frames):
 
         # If there are no enqueued frames, do not let the time pass
         if empty_queue:
-            time_delta += 1/fps
+            #time_delta += 1/fps
+            time_delta = None
 
         # If we're too much behind, make a time jump
         else:
