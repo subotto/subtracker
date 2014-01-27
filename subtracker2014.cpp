@@ -576,6 +576,11 @@ void doIt(FrameReader& frameReader) {
 				debug = !debug;
 			}
 
+			switch(c) {
+			case 'f':
+				toggle(panel, "frame", SHOW);
+			}
+
 			dumpTime("cycle", "wait key");
 		}
 
@@ -588,7 +593,7 @@ void doIt(FrameReader& frameReader) {
 
 		dumpTime("cycle", "detect subotto");
 
-		show(panel, "general", "frame", frame);
+		show(panel, "frame", "frame", frame);
 
 		if ( current_time >= timeline_span ) {
 			timestamps.push_back(duration_cast<duration<double>>(frame_info.playback_time.time_since_epoch()).count());

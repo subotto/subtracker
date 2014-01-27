@@ -17,10 +17,22 @@ struct show_status_t {
 	cv::Mat image;
 };
 
+enum togglable_t {
+	SHOW,
+	TIME,
+	TRACKBAR,
+	TOGGLABLE_END
+};
+
+struct toggle_status_t {
+	bool toggled[TOGGLABLE_END];
+};
+
 struct control_panel_t {
 	typedef std::unordered_map<std::string, show_status_t> show_status_by_name_t;
 
 	std::unordered_map<std::string, show_status_by_name_t> show_status;
+	std::unordered_map<std::string, toggle_status_t> toggle_status;
 };
 
 void show(control_panel_t& panel, std::string category, std::string name, cv::Mat image, show_params_t params = show_params_t());
@@ -49,5 +61,12 @@ enum log_level_t {
 };
 
 std::ostream& logger(control_panel_t& panel, std::string category, log_level_t level = INFO);
+
+enum {
+	TOGGLE = -1
+};
+
+void toggle(control_panel_t& panel, std::string category, togglable_t togglable, int status = TOGGLE);
+bool is_toggled(control_panel_t& panel, std::string category, togglable_t togglable);
 
 #endif /* CONTROL_HPP_ */

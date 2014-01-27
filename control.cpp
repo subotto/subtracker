@@ -6,6 +6,10 @@
 using namespace cv;
 using namespace std;
 
+bool will_show(control_panel_t& panel, string category, string name) {
+	return is_toggled(panel, category, SHOW);
+}
+
 static void update_show(control_panel_t& panel, string category, string name) {
 	show_status_t& status = panel.show_status[category][name];
 
@@ -13,12 +17,12 @@ static void update_show(control_panel_t& panel, string category, string name) {
 	window_name_buf << category << "-" << name;
 	string window_name = window_name_buf.str();
 
-	namedWindow(window_name, WINDOW_NORMAL);
-	imshow(window_name, status.image);
-}
-
-bool will_show(control_panel_t& panel, std::string category, std::string name) {
-	return true;
+	if(will_show(panel, category, name)) {
+		namedWindow(window_name, WINDOW_NORMAL);
+		imshow(window_name, status.image);
+	} else {
+		destroyWindow(window_name);
+	}
 }
 
 void show(control_panel_t& panel, string category, string name, cv::Mat image, show_params_t params) {
@@ -41,4 +45,24 @@ void dump_time(control_panel_t& panel, string category, string name) {
 
 ostream& logger(control_panel_t& panel, string category, log_level_t level) {
 
+}
+
+void toggle(control_panel_t& panel, string category, togglable_t togglable, int status) {
+	bool& toggled = panel.toggle_status[category].toggled[togglable];
+
+	if (status == TOGGLE) {
+		toggled = !toggled;
+	} else {
+		toggled = status;
+	}
+
+	for(auto entry : panel.show_status[category]) {
+		update_show(panel, category, entry.first);
+	}
+}
+
+bool is_toggled(control_panel_t& panel, string category, togglable_t togglable) {
+	bool& toggled = panel.toggle_status[category].toggled[togglable];
+
+	return toggled;
 }
