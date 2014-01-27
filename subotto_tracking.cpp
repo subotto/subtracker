@@ -119,8 +119,13 @@ Mat SubottoDetector::detect(Mat frame) {
 	float ransacThreshold = params.coarseRansacThreshold / 100.f;
 	float ransacOutliersRatio = params.coarseRansacOutliersRatio / 100.f;
 
-	RansacParams ransacParams(4, ransacThreshold, ransacOutliersRatio, 0.99f);
-	Mat coarseTransform = estimateGlobalMotionRobust(coarseMap.from, coarseMap.to, LINEAR_SIMILARITY, ransacParams);
+	Mat coarseTransform;
+	if(coarseMap.from.size() < 4) {
+		coarseTransform = Mat::eye(3, 3, CV_32F);
+	} else {
+		RansacParams ransacParams(4, ransacThreshold, ransacOutliersRatio, 0.99f);
+		coarseTransform = estimateGlobalMotionRobust(coarseMap.from, coarseMap.to, LINEAR_SIMILARITY, ransacParams);
+	}
 
 	Mat warped;
 	Size size(reference.image.size());
@@ -129,9 +134,14 @@ Mat SubottoDetector::detect(Mat frame) {
 	PointMap fineMap = matchFeatures(referenceFeatures, warped,
 			params.fineMatching);
 	float fineRansacThreshold = params.fineRansacThreshold / 100.f;
+
 	Mat fineCorrection;
-	findHomography(fineMap.from, fineMap.to, RANSAC, fineRansacThreshold).convertTo(
-			fineCorrection, CV_32F);
+	if(fineMap.from.size() < 6) {
+		fineCorrection = Mat::eye(3, 3, CV_32F);
+	} else {
+		findHomography(fineMap.from, fineMap.to, RANSAC, fineRansacThreshold).convertTo(
+				fineCorrection, CV_32F);
+	}
 
 	Mat fineTransform = coarseTransform * fineCorrection;
 	warpPerspective(frame, warped, fineTransform, size, CV_WARP_INVERSE_MAP);
