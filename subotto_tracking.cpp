@@ -12,31 +12,6 @@ using namespace std;
 using namespace cv;
 using namespace cv::videostab;
 
-PointMap opticalFlow(FeatureDetectionResult features, Mat referenceImage,
-		Mat image) {
-	SparsePyrLkOptFlowEstimator ofe;
-
-	vector<Point_<float>> from, to;
-	for (KeyPoint keyPoint : features.keyPoints) {
-		from.push_back(keyPoint.pt);
-	}
-
-	vector<uchar> status;
-	ofe.run(referenceImage, image, from, to, status, noArray());
-
-	PointMap map;
-	for (int i = 0; i < from.size(); i++) {
-		if (!status[i]) {
-			continue;
-		}
-
-		map.from.push_back(from[i]);
-		map.to.push_back(to[i]);
-	}
-
-	return map;
-}
-
 Point_<float> applyTransform(Point_<float> p, Mat m) {
 	Mat pm = (Mat_<float>(3, 1) << p.x, p.y, 1);
 	Mat tpm = m * pm;
@@ -134,56 +109,62 @@ Mat detect_table(Mat frame, Mat reference_image, Mat reference_mask, SubottoDete
 	return transform;
 }
 
-SubottoFollower::SubottoFollower(SubottoReference reference,
-		SubottoMetrics metrics,
-		SubottoFollowingParams params) :
-		params(params), metrics(metrics) {
-	resize(reference.image, scaledReference.image, params.opticalFlowSize);
+Mat follow_table(Mat frame, Mat previousTransform, Mat reference_image, Mat reference_mask, SubottoFollowingParams params) {
+	Size size = reference_image.size();
 
-	if(!reference.mask.empty()) {
-		resize(reference.mask, scaledReference.mask, params.opticalFlowSize);
+	Mat warped;
+
+	warpPerspective(frame, warped,
+			previousTransform
+					* sizeToReference(params.metrics, size),
+			reference_image.size(), WARP_INVERSE_MAP | INTER_LINEAR);
+
+	vector<KeyPoint> optical_flow_features;
+
+	GoodFeaturesToTrackDetector(300).detect(warped, optical_flow_features);
+
+	SparsePyrLkOptFlowEstimator ofe;
+
+	vector<Point2f> optical_flow_from, optical_flow_to;
+	vector<uchar> status;
+
+	for(KeyPoint kp : optical_flow_features) {
+		optical_flow_from.push_back(kp.pt);
 	}
 
-	scaledReference.metrics = reference.metrics;
+	ofe.run(reference_image, warped, optical_flow_from, optical_flow_to, status, noArray());
 
-	GoodFeaturesToTrackDetector(params.opticalFlow.detection.features).detect(
-			scaledReference.image, features, scaledReference.mask);
-}
+	vector<Point2f> good_optical_flow_from, good_optical_flow_to;
 
-SubottoFollower::~SubottoFollower() {
-}
+	for (int i = 0; i < optical_flow_from.size(); i++) {
+		if (!status[i]) {
+			continue;
+		}
 
-Mat SubottoFollower::follow(Mat frame, Mat previousTransform) {
-	Mat warped;
-	Size size = scaledReference.image.size();
-
-	warpPerspective(frame, warped, previousTransform * sizeToReference(scaledReference.metrics, size), size,
-			WARP_INVERSE_MAP | INTER_LINEAR);
-
-	FeatureDetectionResult featureDetectionResults {features};
-	PointMap map = opticalFlow(featureDetectionResults, scaledReference.image, warped);
+		good_optical_flow_from.push_back(optical_flow_from[i]);
+		good_optical_flow_to.push_back(optical_flow_to[i]);
+	}
 
 	Mat correction;
-	if (map.from.size() < 6) {
+	if (good_optical_flow_from.size() < 6) {
 		correction = Mat::eye(3, 3, CV_32F);
 	} else {
 		float ransacThreshold = params.ransacThreshold / 100.f;
 		int ninliers;
 		float rmse;
-		correction = estimateGlobalMotionRobust(map.from, map.to,
+		correction = estimateGlobalMotionRobust(optical_flow_from, optical_flow_to,
 				LINEAR_SIMILARITY,
 				RansacParams(6, ransacThreshold, 0.1f, 0.99f), &rmse,
 				&ninliers);
 	}
 
-	return previousTransform * sizeToReference(scaledReference.metrics, size) * correction * referenceToSize(scaledReference.metrics, size);
+	return previousTransform * sizeToReference(params.metrics, size) * correction * referenceToSize(params.metrics, size);
 }
 
 SubottoTracker::SubottoTracker(FrameReader& frameReader, SubottoReference reference,
 		SubottoMetrics metrics,
 		SubottoTrackingParams params) :
-		frameReader(frameReader), params(params), reference(reference), follower(
-				new SubottoFollower(reference, metrics, params.followingParams)) {
+		frameReader(frameReader), params(params), reference(reference) {
 }
 
 SubottoTracker::~SubottoTracker() {
@@ -223,30 +204,14 @@ SubottoTracking SubottoTracker::next() {
 	}
 
 	if (shouldFollow && !nearTransform.empty()) {
-		Mat followingTransform = follower->follow(frame, nearTransform);
+		subottoTransform = follow_table(frame, nearTransform, reference.image, reference.mask, params.followingParams);
 		dumpTime("subotto tracking", "follow");
-
-		if (subottoTransform.empty()) {
-			followingTransform.copyTo(subottoTransform);
-		} else {
-			accumulateWeighted(followingTransform, subottoTransform,
-					params.followingAlpha / 100.f);
-		}
 	}
 
 	Mat followDetectedTransform;
 	if (shouldDetect || subottoTransform.empty()) {
-		Mat detectionTransform = detect_table(frame, reference.image, reference.mask, params.detectionParams);
+		subottoTransform = detect_table(frame, reference.image, reference.mask, params.detectionParams);
 		dumpTime("subotto tracking", "detect");
-		followDetectedTransform = follower->follow(frame, detectionTransform);
-		dumpTime("subotto tracking", "follow");
-
-		if (subottoTransform.empty()) {
-			followDetectedTransform.copyTo(subottoTransform);
-		} else {
-			accumulateWeighted(followDetectedTransform, subottoTransform,
-					params.detectionAlpha / 100.f);
-		}
 	}
 
 	dumpTime("subotto tracking", "update transform");

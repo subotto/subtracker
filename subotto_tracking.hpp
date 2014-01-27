@@ -57,6 +57,8 @@ struct SubottoFollowingParams {
 	int ransacThreshold = 100;
 
 	cv::Size opticalFlowSize {128, 64};
+
+	SubottoReferenceMetrics metrics;
 };
 
 struct SubottoTrackingParams {
@@ -81,26 +83,6 @@ struct SubottoTracking {
 };
 
 /*
- * Improves the position of the Subotto by estimating the optical flow
- * from the reference image to the given frame.
- * It needs an initial transform which should be a good approximation of the real transform.
- * Indeed, it takes advantage from the locality of the optical flow.
- * This operations should be fast enough to be run (almost) online.
- */
-class SubottoFollower {
-public:
-	SubottoFollower(SubottoReference reference, SubottoMetrics metrics, SubottoFollowingParams params);
-	virtual ~SubottoFollower();
-
-	cv::Mat follow(cv::Mat frame, cv::Mat initialTransform);
-private:
-	SubottoReference scaledReference;
-	SubottoFollowingParams params;
-	SubottoMetrics metrics;
-	std::vector<KeyPoint> features;
-};
-
-/*
  * Combines a SubottoDetector and a SubottoFollower to track the position of the subotto over time.
  * It invokes the SubottoDetector only once in a while, ad uses the SubottoFollower to
  * track the subotto (almost) frame to frame.
@@ -116,8 +98,6 @@ private:
 	SubottoReference reference;
 	SubottoMetrics metrics;
 	SubottoTrackingParams params;
-
-	std::unique_ptr<SubottoFollower> follower;
 
 	cv::Mat previousTransform;
 	cv::Mat nearTransform;
