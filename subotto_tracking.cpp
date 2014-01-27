@@ -30,21 +30,24 @@ static Point_<float> applyTransform(Point_<float> p, Mat m) {
 }
 
 Mat detect_table(Mat frame, table_detection_params_t params) {
-	Mat& reference_image = params.reference.image;
-	Mat& reference_mask = params.reference.mask;
-	auto& reference_metrics = params.reference.metrics;
+	const SubottoReference& reference = *params.reference;
 
-	PyramidAdaptedFeatureDetector coarse_fd(new GoodFeaturesToTrackDetector(300), 3);
-	BriefDescriptorExtractor de;
+	const Mat& reference_image = reference.image;
+	const Mat& reference_mask = reference.mask;
+	auto& reference_metrics = reference.metrics;
 
+	OpponentColorDescriptorExtractor de(new BriefDescriptorExtractor(64));
+
+	PyramidAdaptedFeatureDetector frame_fd(new GoodFeaturesToTrackDetector(params.frame_features_per_level), params.frame_features_levels);
 	vector<KeyPoint> frame_features;
-	coarse_fd.detect(frame, frame_features, Mat());
+	frame_fd.detect(frame, frame_features, Mat());
+
+	PyramidAdaptedFeatureDetector reference_fd(new GoodFeaturesToTrackDetector(params.reference_features_per_level), params.reference_features_levels);
+	vector<KeyPoint> reference_features;
+	reference_fd.detect(reference_image, reference_features, reference_mask);
 
 	Mat frame_features_descriptions;
 	de.compute(frame, frame_features, frame_features_descriptions);
-
-	vector<KeyPoint> reference_features;
-	coarse_fd.detect(reference_image, reference_features, reference_mask);
 
 	Mat reference_features_descriptions;
 	de.compute(reference_image, reference_features, reference_features_descriptions);
@@ -53,6 +56,12 @@ Mat detect_table(Mat frame, table_detection_params_t params) {
 
 	BFMatcher dm;
 	dm.knnMatch(reference_features_descriptions, frame_features_descriptions, matches_groups, params.features_knn, Mat());
+
+	{
+		Mat matches;
+		drawMatches(reference_image, reference_features, frame, frame_features, matches_groups, matches);
+		show("matches", matches);
+	}
 
 	vector<Point2f> coarse_from, coarse_to;
 
@@ -80,7 +89,9 @@ Mat detect_table(Mat frame, table_detection_params_t params) {
 
 	vector<KeyPoint> optical_flow_features;
 
-	GoodFeaturesToTrackDetector(300).detect(warped, optical_flow_features);
+	PyramidAdaptedFeatureDetector optical_flow_fd(new GoodFeaturesToTrackDetector(params.optical_flow_features_per_level), params.optical_flow_features_levels);
+
+	optical_flow_fd.detect(reference_image, optical_flow_features);
 
 	SparsePyrLkOptFlowEstimator ofe;
 
@@ -91,7 +102,9 @@ Mat detect_table(Mat frame, table_detection_params_t params) {
 		optical_flow_from.push_back(kp.pt);
 	}
 
-	ofe.run(reference_image, warped, optical_flow_from, optical_flow_to, status, noArray());
+	if (!optical_flow_features.empty()) {
+		ofe.run(reference_image, warped, optical_flow_from, optical_flow_to, status, noArray());
+	}
 
 	vector<Point2f> good_optical_flow_from, good_optical_flow_to;
 
@@ -120,9 +133,11 @@ Mat detect_table(Mat frame, table_detection_params_t params) {
 }
 
 Mat follow_table(Mat frame, Mat previous_transform, table_following_params_t params) {
-	Mat& reference_image = params.reference.image;
-	Mat& reference_mask = params.reference.mask;
-	auto& reference_metrics = params.reference.metrics;
+	const SubottoReference& reference = *params.reference;
+
+	const Mat& reference_image = reference.image;
+	const Mat& reference_mask = reference.mask;
+	auto& reference_metrics = reference.metrics;
 
 	Size size = reference_image.size();
 
@@ -137,7 +152,7 @@ Mat follow_table(Mat frame, Mat previous_transform, table_following_params_t par
 
 	vector<KeyPoint> optical_flow_features;
 
-	GoodFeaturesToTrackDetector(300).detect(warped, optical_flow_features);
+	GoodFeaturesToTrackDetector(params.optical_flow_features).detect(warped, optical_flow_features);
 
 	SparsePyrLkOptFlowEstimator ofe;
 
@@ -148,7 +163,9 @@ Mat follow_table(Mat frame, Mat previous_transform, table_following_params_t par
 		optical_flow_from.push_back(kp.pt);
 	}
 
-	ofe.run(reference_image, warped, optical_flow_from, optical_flow_to, status, noArray());
+	if(!optical_flow_from.empty()) {
+		ofe.run(reference_image, warped, optical_flow_from, optical_flow_to, status, noArray());
+	}
 
 	vector<Point2f> good_optical_flow_from, good_optical_flow_to;
 
@@ -169,7 +186,7 @@ Mat follow_table(Mat frame, Mat previous_transform, table_following_params_t par
 		float rmse;
 		correction = estimateGlobalMotionRobust(optical_flow_from, optical_flow_to,
 				LINEAR_SIMILARITY,
-				RansacParams(6, params.optical_flow_ransac_threshold, 0.1f, 0.99f), &rmse,
+				RansacParams(6, params.optical_flow_ransac_threshold, 0.6f, 0.99f), &rmse,
 				&ninliers);
 	}
 
@@ -186,8 +203,8 @@ Mat track_table(Mat frame, table_tracking_status_t& status, table_tracking_param
 	Mat transform;
 
 	if (status.near_transform.empty() || status.frames_to_next_detection <= 0) {
-		transform = detect_table(undistorted, params.detection_params);
-		status.frames_to_next_detection = params.detection_every_frames;
+		transform = detect_table(undistorted, params.detection);
+		status.frames_to_next_detection = params.detect_every_frames;
 		status.near_transform = transform;
 	} else {
 		transform = follow_table(undistorted, status.near_transform, params.following_params);

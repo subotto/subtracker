@@ -11,15 +11,20 @@ template <typename T>
 class Trackbar {
 public:
 	Trackbar(std::string category, std::string name, T initial = 0, T start = 0, T end = 100, T step = 1);
+	Trackbar(std::string category, std::string name, T* variable, T start = 0, T end = 100, T step = 1);
 	virtual ~Trackbar();
 
 	T get();
 
-	virtual void onChange() {}
+	virtual void onChange() {
+		if (variable)
+			*variable = get();
+	}
 protected:
 	std::string windowName, trackbarName;
 
     int zero = 0;
+    T* variable;
 	T start;
 	T stop;
 	T step;
@@ -33,13 +38,24 @@ static void onTrackbarChange(int pos, void* userData) {
 
 template <typename T>
 Trackbar<T>::Trackbar(std::string category, std::string name, T initial, T start, T stop, T step)
-	: start(start), stop(stop), step(step), windowName(category) {
+	: start(start), stop(stop), step(step), windowName(category), variable(nullptr) {
 	std::stringstream s;
 	s << name << " " << start << "-" << stop;
 	trackbarName = s.str();
 	cv::namedWindow(windowName, CV_WINDOW_NORMAL);
 	cv::createTrackbar(trackbarName, windowName, &zero, int((stop - start) / step), onTrackbarChange<T>, this);
 	cv::setTrackbarPos(trackbarName, windowName, int((initial - start) / step));
+}
+
+template <typename T>
+Trackbar<T>::Trackbar(std::string category, std::string name, T* variable, T start, T stop, T step)
+	: start(start), stop(stop), step(step), windowName(category), variable(variable) {
+	std::stringstream s;
+	s << name << " " << start << "-" << stop;
+	trackbarName = s.str();
+	cv::namedWindow(windowName, CV_WINDOW_NORMAL);
+	cv::createTrackbar(trackbarName, windowName, &zero, int((stop - start) / step), onTrackbarChange<T>, this);
+	cv::setTrackbarPos(trackbarName, windowName, int((*variable - start) / step));
 }
 
 template <typename T>

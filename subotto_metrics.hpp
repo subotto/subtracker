@@ -9,8 +9,8 @@ struct SubottoMetrics {
 };
 
 struct SubottoReferenceMetrics {
-	cv::Point2f offset = cv::Point2f(0.01, -0.02);
-	cv::Size2f frameSize = cv::Size2f(1.55, 0.75);
+	cv::Point2f offset {-0.016f, -0.018f};
+	cv::Size2f frameSize {-1.98, -0.98};
 };
 
 cv::Mat unitsToSize(SubottoMetrics metrics, cv::Size size);

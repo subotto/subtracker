@@ -25,12 +25,14 @@ struct table_detection_params_t {
 	int features_knn = 2;
 
 	float coarse_ransac_threshold = 20.f;
-	float coarse_ransac_outliers_ratio = 0.5f;
+	float coarse_ransac_outliers_ratio = 0.75f;
 
-	int optical_flow_features;
+	int optical_flow_features_per_level = 200;
+	int optical_flow_features_levels = 3;
+
 	float optical_flow_ransac_threshold = 1.0f;
 
-	SubottoReference reference;
+	const SubottoReference* reference;
 };
 
 struct table_following_params_t {
@@ -39,14 +41,14 @@ struct table_following_params_t {
 
 	cv::Size optical_flow_size {128, 64};
 
-	SubottoReference reference;
+	const SubottoReference* reference;
 };
 
 struct table_tracking_params_t {
-	table_detection_params_t detection_params;
+	table_detection_params_t detection;
 	table_following_params_t following_params;
 
-	int detection_every_frames = 120;
+	int detect_every_frames = 120;
 	float near_transform_alpha = 0.25f;
 };
 
