@@ -227,18 +227,15 @@ def render(time):
 
     glMatrixMode(GL_MODELVIEW)
     glLoadIdentity()
-    #gluLookAt(0.8 * math.cos(time), 0.8 * math.sin(time), 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
-    gluLookAt(0.0, -0.8, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
+    gluLookAt(0.8 * math.cos(time / 10.0), 0.8 * math.sin(time / 10.0), 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
+    #gluLookAt(0.0, -0.8, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
 
     glLight(GL_LIGHT0, GL_POSITION, (0.4, 0.6, 1.2))
 
 MAX_LATENESS = 0.5
 
 time_delta = None
-current_frame = {
-    'ball_x': 0.2,
-    'ball_y': 0.1,
-}
+current_frame = None
 
 def update_timing(frames):
     global time_delta, current_frame
@@ -284,7 +281,7 @@ def update_timing(frames):
 
     print frames.qsize()
 
-fps = 30.0
+fps = 24.0
 
 def main():
 
@@ -327,34 +324,50 @@ def main():
 
         objects['Campo'].draw()
 
-        for i in xrange(ROD_NUMBER):
-            glPushMatrix()
-            glTranslate((i - float(ROD_NUMBER-1) / 2.0) * ROD_DISTANCE, 0.0, ROD_HEIGHT)
-            #glRotate(30.0, 0.0, 1.0, 0.0)
-            glPushMatrix()
-            glRotate(90.0, 1.0, 0.0, 0.0)
-            glScale(ROD_DIAMETER * CYLINDER_FACTOR, ROD_DIAMETER * CYLINDER_FACTOR, FIELD_HEIGHT * CYLINDER_FACTOR)
-            objects['Stecca'].draw()
-            glPopMatrix()
-            configuration = ROD_CONFIGURATION[i]
-            for j in xrange(configuration[0]):
+        counters = [0, 0]
+        if current_frame is not None:
+
+            for i, rod in enumerate(ROD_CONFIGURATION):
+                foosmen_num, foosmen_dist, team = rod
+                color = ROD_COLORS[team]
+                rod_str = 'rod_%s_%d' % (color, counters[team])
+                counters[team] += 1
+                angle_str = '%s_angle' % (rod_str)
+                shift_str = '%s_shift' % (rod_str)
+
                 glPushMatrix()
-                glTranslate(0.0, (j - float(configuration[0]-1) / 2.0) * configuration[1], 0.0)
-                if configuration[2] == 0:
-                    objects['Omino_rosso'].draw()
-                else:
-                    objects['Omino_blu'].draw()
+                glTranslate((i - float(ROD_NUMBER-1) / 2.0) * ROD_DISTANCE, 0.0, ROD_HEIGHT)
+
+                glPushMatrix()
+                glRotate(90.0, 1.0, 0.0, 0.0)
+                glScale(ROD_DIAMETER * CYLINDER_FACTOR, ROD_DIAMETER * CYLINDER_FACTOR, FIELD_HEIGHT * CYLINDER_FACTOR)
+                objects['Stecca'].draw()
                 glPopMatrix()
-            glPopMatrix()
 
-        glPushMatrix()
-        glTranslate(current_frame['ball_x'],
-                    current_frame['ball_y'],
-                    0.0)
-        objects['Pallina'].draw()
-        glPopMatrix()
+                if current_frame[shift_str] is not None:
+                    glTranslate(0.0, current_frame[shift_str], 0.0)
+                if current_frame[angle_str] is not None:
+                    glRotate(-90.0 / math.pi * current_frame[angle_str], 0.0, 1.0, 0.0)
 
-        print time_delta, current_frame['ball_x'], current_frame['ball_y']
+                for j in xrange(foosmen_num):
+                    glPushMatrix()
+                    glTranslate(0.0, (j - float(foosmen_num - 1) / 2.0) * foosmen_dist, 0.0)
+                    if team == 0:
+                        objects['Omino_rosso'].draw()
+                    else:
+                        objects['Omino_blu'].draw()
+                    glPopMatrix()
+                glPopMatrix()
+
+            if current_frame['ball_x'] is not None and current_frame['ball_y'] is not None:
+                glPushMatrix()
+                glTranslate(current_frame['ball_x'],
+                            current_frame['ball_y'],
+                            0.0)
+                objects['Pallina'].draw()
+                glPopMatrix()
+
+            #print time_delta, current_frame['ball_x'], current_frame['ball_y']
 
         pygame.display.flip()
         clock.tick(fps)
