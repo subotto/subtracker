@@ -8,6 +8,8 @@
 
 #include <iostream>
 
+#include "control.hpp"
+
 using namespace std;
 using namespace cv;
 using namespace cv::videostab;
@@ -29,7 +31,7 @@ static Point_<float> applyTransform(Point_<float> p, Mat m) {
 	return Point_<float>(tpm.at<float>(0, 0) / w, tpm.at<float>(1, 0) / w);
 }
 
-Mat detect_table(Mat frame, table_detection_params_t params) {
+Mat detect_table(Mat frame, table_detection_params_t params, control_panel_t& panel) {
 	const SubottoReference& reference = *params.reference;
 
 	const Mat& reference_image = reference.image;
@@ -60,7 +62,7 @@ Mat detect_table(Mat frame, table_detection_params_t params) {
 	{
 		Mat matches;
 		drawMatches(reference_image, reference_features, frame, frame_features, matches_groups, matches);
-		show("matches", matches);
+		show(panel, "table detect", "matches", matches);
 	}
 
 	vector<Point2f> coarse_from, coarse_to;
@@ -85,7 +87,7 @@ Mat detect_table(Mat frame, table_detection_params_t params) {
 	Mat warped;
 	warpPerspective(frame, warped, coarse_transform, reference_image.size(), WARP_INVERSE_MAP | INTER_LINEAR);
 
-	show("subotto phase 1", warped);
+	show(panel, "table detect", "after feature matching", warped);
 
 	vector<KeyPoint> optical_flow_features;
 
@@ -132,7 +134,7 @@ Mat detect_table(Mat frame, table_detection_params_t params) {
 	return transform;
 }
 
-Mat follow_table(Mat frame, Mat previous_transform, table_following_params_t params) {
+Mat follow_table(Mat frame, Mat previous_transform, table_following_params_t params, control_panel_t& panel) {
 	const SubottoReference& reference = *params.reference;
 
 	const Mat& reference_image = reference.image;
@@ -148,7 +150,7 @@ Mat follow_table(Mat frame, Mat previous_transform, table_following_params_t par
 					* sizeToReference(reference_metrics, size),
 			reference_image.size(), WARP_INVERSE_MAP | INTER_LINEAR);
 
-	show("follow table before", warped);
+	show(panel, "table detect", "follow table before", warped);
 
 	vector<KeyPoint> optical_flow_features;
 
@@ -193,21 +195,21 @@ Mat follow_table(Mat frame, Mat previous_transform, table_following_params_t par
 	return previous_transform * sizeToReference(reference_metrics, size) * correction * referenceToSize(reference_metrics, size);
 }
 
-void init_table_tracking(table_tracking_status_t& status, table_tracking_params_t params) {
+void init_table_tracking(table_tracking_status_t& status, table_tracking_params_t params, control_panel_t& panel) {
 	status.frames_to_next_detection = 0;
 }
 
-Mat track_table(Mat frame, table_tracking_status_t& status, table_tracking_params_t params) {
+Mat track_table(Mat frame, table_tracking_status_t& status, table_tracking_params_t params, control_panel_t& panel) {
 	Mat undistorted = correctDistortion(frame);
 
 	Mat transform;
 
 	if (status.near_transform.empty() || status.frames_to_next_detection <= 0) {
-		transform = detect_table(undistorted, params.detection);
+		transform = detect_table(undistorted, params.detection, panel);
 		status.frames_to_next_detection = params.detect_every_frames;
 		status.near_transform = transform;
 	} else {
-		transform = follow_table(undistorted, status.near_transform, params.following_params);
+		transform = follow_table(undistorted, status.near_transform, params.following_params, panel);
 		status.frames_to_next_detection--;
 		// smooth the previous transform
 		accumulateWeighted(transform, status.near_transform, params.near_transform_alpha);

@@ -11,6 +11,7 @@
 #include "blobs_tracker.hpp"
 #include "subotto_metrics.hpp"
 #include "subotto_tracking.hpp"
+#include "control.hpp"
 
 using namespace cv;
 using namespace std;
@@ -507,6 +508,8 @@ vector<pair<Point2f, float>> findLocalMaxima(Mat density, int radiusX, int radiu
 }
 
 void doIt(FrameReader& frameReader) {
+	control_panel_t panel;
+
 	Mat trajReprAvg;
 
 	bool play = true;
@@ -559,7 +562,7 @@ void doIt(FrameReader& frameReader) {
 	table_tracking_params.detection.reference = &reference;
 	table_tracking_params.following_params.reference = &reference;
 
-	init_table_tracking(table_tracking_status, table_tracking_params);
+	init_table_tracking(table_tracking_status, table_tracking_params, panel);
 
 	for (int i = 0; ; i++) {
 		if (true) {
@@ -581,13 +584,11 @@ void doIt(FrameReader& frameReader) {
 		auto frame_info = frameReader.get();
 		Mat frame = frame_info.data;
 
-		Mat table_transform = track_table(frame_info.data, table_tracking_status, table_tracking_params);
+		Mat table_transform = track_table(frame_info.data, table_tracking_status, table_tracking_params, panel);
 
 		dumpTime("cycle", "detect subotto");
 
-		if(debug) {
-			show("frame", frame);
-		}
+		show(panel, "general", "frame", frame);
 
 		if ( current_time >= timeline_span ) {
 			timestamps.push_back(duration_cast<duration<double>>(frame_info.playback_time.time_since_epoch()).count());
@@ -662,11 +663,11 @@ void doIt(FrameReader& frameReader) {
 			foosmenValues.push_back( foosmenValuesFrame );
 		}
 
-		if(debug) {
+		if(will_show(panel, "foosmen", "foosmen")) {
 			Mat tableFoosmen;
 			tableFrame.copyTo(tableFoosmen);
 			drawFoosmen(tableFoosmen, metrics, foosmenMetrics, barsShift, barsRot);
-			show("tableFoosmen", tableFoosmen);
+			show(panel, "foosmen", "foosmen", tableFoosmen);
 		}
 
 		int radiusX = localMaximaMinDistance.get() / metrics.length * tableFrameSize.width;

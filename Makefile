@@ -18,6 +18,7 @@ v4l2cap.hpp
 
 OBJECTS = \
 blobs_tracker.o \
+control.o \
 jobrunner.o \
 subotto_metrics.o \
 subotto_tracking.o \
