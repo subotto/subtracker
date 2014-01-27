@@ -66,10 +66,10 @@ int main(int argc, char* argv[]) {
 	createTrackbar("preliminaryRansacThreshold", "slidesDetection", &detectorParams.coarseRansacThreshold, 2000, onChange);
 	createTrackbar("preliminaryRansacOutliersRatio", "slidesDetection", &detectorParams.coarseRansacOutliersRatio, 100, onChange);
 
-	createTrackbar("secondaryFrameFeatures", "slidesDetection", &detectorParams.fineMatching.detection.features, 2000, onChange);
-	createTrackbar("secondaryFrameLevels", "slidesDetection", &detectorParams.fineMatching.detection.levels, 10, onChange);
-
-	createTrackbar("secondaryRansacThreshold", "slidesDetection", &detectorParams.fineRansacThreshold, 2000, onChange);
+//	createTrackbar("secondaryFrameFeatures", "slidesDetection", &detectorParams.fineMatching.detection.features, 2000, onChange);
+//	createTrackbar("secondaryFrameLevels", "slidesDetection", &detectorParams.fineMatching.detection.levels, 10, onChange);
+//
+//	createTrackbar("secondaryRansacThreshold", "slidesDetection", &detectorParams.fineRansacThreshold, 2000, onChange);
 
 	createTrackbar("followFeatures", "slides", &followerParams.opticalFlow.detection.features, 2000, onChange);
 	createTrackbar("followRansacThreshold", "slides", &followerParams.ransacThreshold, 2000, onChange);

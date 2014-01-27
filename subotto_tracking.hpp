@@ -40,17 +40,16 @@ struct OpticalFlowParams {
 };
 
 struct SubottoDetectorParams {
-	FeatureDetectionParams referenceDetection {300, 3};
+	FeatureDetectionParams referenceDetection {50, 3};
 
-	FeatureMatchingParams coarseMatching { {300, 3}, 2 };
+	FeatureMatchingParams coarseMatching { {1000, 3}, 10 };
 	int coarseRansacThreshold = 2000;
-	int coarseRansacOutliersRatio = 60;
-
-	FeatureMatchingParams fineMatching { {300, 3}, 2 };
-	int fineRansacThreshold = 200;
+	int coarseRansacOutliersRatio = 50;
 
 	OpticalFlowParams opticalFlow { {100, 3} };
 	int flowRansacThreshold = 100;
+
+	SubottoReferenceMetrics metrics;
 };
 
 struct SubottoFollowingParams {
@@ -79,40 +78,6 @@ struct SubottoTracking {
 	cv::Mat frame;
 	cv::Mat transform;
 	frame_info frameInfo;
-};
-
-/*
- * Finds the Subotto in a given frame, given a reference image of the Subotto (possibly masked).
- * Has no memory of previous frames.
- * The detection operation is slow, and cannot be run online for every frame.
- *
- * It uses a pipeline of three steps:
- * 	1) Coarse features matching
- * 	2) Fine features matching
- *
- * Coarse features matching:
- * Detects the coarse position of the Subotto in the frame, matching a few features.
- * The output of this phase is a linear similarity (translation, rotation and isotropic zoom)
- * which maps roughly the reference image to the frame.
- *
- * Fine features matching:
- * Improves the position of the Subotto and introduces perspective corrections, matching more features.
- * This phase takes in input the frame warped according to the previous transform
- * and outputs a perspective transform.
- */
-
-class SubottoDetector {
-public:
-	SubottoDetector(SubottoReference reference, SubottoMetrics metrics, SubottoDetectorParams params);
-	virtual ~SubottoDetector();
-
-	cv::Mat detect(cv::Mat frame);
-private:
-	SubottoReference reference;
-	SubottoDetectorParams params;
-	SubottoMetrics metrics;
-
-	FeatureDetectionResult referenceFeatures;
 };
 
 /*
@@ -152,7 +117,6 @@ private:
 	SubottoMetrics metrics;
 	SubottoTrackingParams params;
 
-	std::unique_ptr<SubottoDetector> detector;
 	std::unique_ptr<SubottoFollower> follower;
 
 	cv::Mat previousTransform;

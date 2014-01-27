@@ -12,66 +12,9 @@ using namespace std;
 using namespace cv;
 using namespace cv::videostab;
 
-unique_ptr<FeatureDetector> createFeatureDetector(
-		FeatureDetectionParams params) {
-	auto gfttd = new GoodFeaturesToTrackDetector(params.features);
-	auto pafd = new PyramidAdaptedFeatureDetector(gfttd, params.levels);
-	return unique_ptr<FeatureDetector>(pafd);
-}
-
-unique_ptr<DescriptorExtractor> createDescriptorExtractor() {
-	auto bde = new BriefDescriptorExtractor();
-	return unique_ptr<DescriptorExtractor>(bde);
-}
-
-unique_ptr<DescriptorMatcher> createDescriptorMatcher() {
-	auto dm = new BFMatcher(NORM_HAMMING);
-	return unique_ptr<DescriptorMatcher>(dm);
-}
-
-unique_ptr<ISparseOptFlowEstimator> createOpticalFlowEstimator() {
-	auto ofe = new SparsePyrLkOptFlowEstimator();
-	return unique_ptr<ISparseOptFlowEstimator>(ofe);
-}
-
-FeatureDetectionResult detectFeatures(Mat image, Mat mask,
-		FeatureDetectionParams params) {
-	auto fd = createFeatureDetector(params);
-	auto de = createDescriptorExtractor();
-
-	FeatureDetectionResult result;
-
-	fd->detect(image, result.keyPoints, mask);
-	de->compute(image, result.keyPoints, result.descriptors);
-
-	return result;
-}
-
-PointMap matchFeatures(FeatureDetectionResult features, Mat image,
-		FeatureMatchingParams params) {
-	auto imageFeatures = detectFeatures(image, Mat(), params.detection);
-	auto dm = createDescriptorMatcher();
-
-	vector<vector<DMatch>> matchesGroups;
-	dm->knnMatch(features.descriptors, imageFeatures.descriptors, matchesGroups, params.knn, Mat());
-
-	PointMap map;
-	for (auto matches : matchesGroups) {
-		for (DMatch match : matches) {
-			auto from = features.keyPoints[match.queryIdx].pt;
-			auto to = imageFeatures.keyPoints[match.trainIdx].pt;
-
-			map.from.push_back(from);
-			map.to.push_back(to);
-		}
-	}
-
-	return map;
-}
-
 PointMap opticalFlow(FeatureDetectionResult features, Mat referenceImage,
 		Mat image) {
-	auto ofe = createOpticalFlowEstimator();
+	SparsePyrLkOptFlowEstimator ofe;
 
 	vector<Point_<float>> from, to;
 	for (KeyPoint keyPoint : features.keyPoints) {
@@ -79,7 +22,7 @@ PointMap opticalFlow(FeatureDetectionResult features, Mat referenceImage,
 	}
 
 	vector<uchar> status;
-	ofe->run(referenceImage, image, from, to, status, noArray());
+	ofe.run(referenceImage, image, from, to, status, noArray());
 
 	PointMap map;
 	for (int i = 0; i < from.size(); i++) {
@@ -101,65 +44,92 @@ Point_<float> applyTransform(Point_<float> p, Mat m) {
 	return Point_<float>(tpm.at<float>(0, 0) / w, tpm.at<float>(1, 0) / w);
 }
 
-SubottoDetector::SubottoDetector(SubottoReference reference,
-		SubottoMetrics metrics,
-		SubottoDetectorParams params) :
-		reference(reference), metrics(metrics), params(params), referenceFeatures(
-				detectFeatures(reference.image, reference.mask,
-						params.referenceDetection)) {
-}
+Mat detect_table(Mat frame, Mat reference_image, Mat reference_mask, SubottoDetectorParams params) {
+	PyramidAdaptedFeatureDetector coarse_fd(new GoodFeaturesToTrackDetector(300), 3);
+	BriefDescriptorExtractor de;
 
-SubottoDetector::~SubottoDetector() {
-}
+	vector<KeyPoint> frame_features;
+	coarse_fd.detect(frame, frame_features, Mat());
 
-Mat SubottoDetector::detect(Mat frame) {
-	PointMap coarseMap = matchFeatures(referenceFeatures, frame,
-			params.coarseMatching);
+	Mat frame_features_descriptions;
+	de.compute(frame, frame_features, frame_features_descriptions);
+
+	vector<KeyPoint> reference_features;
+	coarse_fd.detect(reference_image, reference_features, reference_mask);
+
+	Mat reference_features_descriptions;
+	de.compute(reference_image, reference_features, reference_features_descriptions);
+
+	vector<vector<DMatch>> matches_groups;
+
+	BFMatcher dm;
+	dm.knnMatch(reference_features_descriptions, frame_features_descriptions, matches_groups, params.coarseMatching.knn, Mat());
 
 	float ransacThreshold = params.coarseRansacThreshold / 100.f;
 	float ransacOutliersRatio = params.coarseRansacOutliersRatio / 100.f;
 
-	Mat coarseTransform;
-	if(coarseMap.from.size() < 4) {
-		coarseTransform = Mat::eye(3, 3, CV_32F);
-	} else {
-		RansacParams ransacParams(4, ransacThreshold, ransacOutliersRatio, 0.99f);
-		coarseTransform = estimateGlobalMotionRobust(coarseMap.from, coarseMap.to, LINEAR_SIMILARITY, ransacParams);
+	vector<Point2f> coarse_from, coarse_to;
+
+	for (auto matches : matches_groups) {
+		for (DMatch match : matches) {
+			auto f = reference_features[match.queryIdx].pt;
+			auto t = frame_features[match.trainIdx].pt;
+
+			coarse_from.push_back(f);
+			coarse_to.push_back(t);
+		}
 	}
+
+	RansacParams ransac_params(6, ransacThreshold, ransacOutliersRatio, 0.99f);
+	float rmse;
+	int ninliers;
+	Mat coarse_transform = estimateGlobalMotionRobust(coarse_from, coarse_to, LINEAR_SIMILARITY, ransac_params, &rmse, &ninliers);
+
+	cerr << "subotto detect - rmse: " << rmse << " inliers: " << ninliers << "/" << coarse_from.size() << endl;
 
 	Mat warped;
-	Size size(reference.image.size());
-	warpPerspective(frame, warped, coarseTransform, size, CV_WARP_INVERSE_MAP);
+	warpPerspective(frame, warped, coarse_transform, reference_image.size(), WARP_INVERSE_MAP | INTER_LINEAR);
 
-	PointMap fineMap = matchFeatures(referenceFeatures, warped,
-			params.fineMatching);
-	float fineRansacThreshold = params.fineRansacThreshold / 100.f;
+	show("subotto phase 1", warped);
 
-	Mat fineCorrection;
-	if(fineMap.from.size() < 6) {
-		fineCorrection = Mat::eye(3, 3, CV_32F);
-	} else {
-		findHomography(fineMap.from, fineMap.to, RANSAC, fineRansacThreshold).convertTo(
-				fineCorrection, CV_32F);
+	vector<KeyPoint> optical_flow_features;
+
+	GoodFeaturesToTrackDetector(300).detect(warped, optical_flow_features);
+
+	SparsePyrLkOptFlowEstimator ofe;
+
+	vector<Point2f> optical_flow_from, optical_flow_to;
+	vector<uchar> status;
+
+	for(KeyPoint kp : optical_flow_features) {
+		optical_flow_from.push_back(kp.pt);
 	}
 
-	Mat fineTransform = coarseTransform * fineCorrection;
-	warpPerspective(frame, warped, fineTransform, size, CV_WARP_INVERSE_MAP);
+	ofe.run(reference_image, warped, optical_flow_from, optical_flow_to, status, noArray());
 
-	PointMap flowMap = opticalFlow(referenceFeatures, reference.image, warped);
+	vector<Point2f> good_optical_flow_from, good_optical_flow_to;
 
-	Mat flowCorrection;
-	if (flowMap.from.size() < 6) {
-		flowCorrection = Mat::eye(3, 3, CV_32F);
-	} else {
-		float ransacThreshold = params.flowRansacThreshold / 100.f;
-		findHomography(flowMap.from, flowMap.to, RANSAC, ransacThreshold).convertTo(
-				flowCorrection, CV_32F);
+	for (int i = 0; i < optical_flow_from.size(); i++) {
+		if (!status[i]) {
+			continue;
+		}
+
+		good_optical_flow_from.push_back(optical_flow_from[i]);
+		good_optical_flow_to.push_back(optical_flow_to[i]);
 	}
 
-	Mat flowTransform = fineTransform * flowCorrection;
+	Mat flow_correction;
+	if (good_optical_flow_from.size() < 6) {
+		flow_correction = Mat::eye(3, 3, CV_32F);
+	} else {
+		float ransac_threshold = params.flowRansacThreshold / 100.f;
+		findHomography(good_optical_flow_from, good_optical_flow_to, RANSAC, ransac_threshold).convertTo(
+				flow_correction, CV_32F);
+	}
 
-	Mat transform = flowTransform * referenceToSize(reference.metrics, size);
+	Mat flow_transform = coarse_transform * flow_correction;
+
+	Mat transform = flow_transform * referenceToSize(params.metrics, reference_image.size());
 
 	return transform;
 }
@@ -212,8 +182,7 @@ Mat SubottoFollower::follow(Mat frame, Mat previousTransform) {
 SubottoTracker::SubottoTracker(FrameReader& frameReader, SubottoReference reference,
 		SubottoMetrics metrics,
 		SubottoTrackingParams params) :
-		frameReader(frameReader), params(params), reference(reference), detector(
-				new SubottoDetector(reference, metrics, params.detectionParams)), follower(
+		frameReader(frameReader), params(params), reference(reference), follower(
 				new SubottoFollower(reference, metrics, params.followingParams)) {
 }
 
@@ -267,7 +236,7 @@ SubottoTracking SubottoTracker::next() {
 
 	Mat followDetectedTransform;
 	if (shouldDetect || subottoTransform.empty()) {
-		Mat detectionTransform = detector->detect(frame);
+		Mat detectionTransform = detect_table(frame, reference.image, reference.mask, params.detectionParams);
 		dumpTime("subotto tracking", "detect");
 		followDetectedTransform = follower->follow(frame, detectionTransform);
 		dumpTime("subotto tracking", "follow");
