@@ -12,14 +12,28 @@ using namespace std;
 using namespace cv;
 using namespace cv::videostab;
 
-Point_<float> applyTransform(Point_<float> p, Mat m) {
+static Mat correctDistortion(Mat frameDistorted) {
+//	Matx<float, 3, 3> cameraMatrix(160, 0, 160, 0, 160, 120, 0, 0, 1);
+//	float k = -0.025;
+//
+//	Mat frame;
+//	undistort(frameDistorted, frame, cameraMatrix, vector<float> {k, 0, 0, 0}, getDefaultNewCameraMatrix(cameraMatrix));
+
+	return frameDistorted;
+}
+
+static Point_<float> applyTransform(Point_<float> p, Mat m) {
 	Mat pm = (Mat_<float>(3, 1) << p.x, p.y, 1);
 	Mat tpm = m * pm;
 	float w = tpm.at<float>(2, 0);
 	return Point_<float>(tpm.at<float>(0, 0) / w, tpm.at<float>(1, 0) / w);
 }
 
-Mat detect_table(Mat frame, Mat reference_image, Mat reference_mask, SubottoDetectorParams params) {
+Mat detect_table(Mat frame, table_detection_params_t params) {
+	Mat& reference_image = params.reference.image;
+	Mat& reference_mask = params.reference.mask;
+	auto& reference_metrics = params.reference.metrics;
+
 	PyramidAdaptedFeatureDetector coarse_fd(new GoodFeaturesToTrackDetector(300), 3);
 	BriefDescriptorExtractor de;
 
@@ -38,10 +52,7 @@ Mat detect_table(Mat frame, Mat reference_image, Mat reference_mask, SubottoDete
 	vector<vector<DMatch>> matches_groups;
 
 	BFMatcher dm;
-	dm.knnMatch(reference_features_descriptions, frame_features_descriptions, matches_groups, params.coarseMatching.knn, Mat());
-
-	float ransacThreshold = params.coarseRansacThreshold / 100.f;
-	float ransacOutliersRatio = params.coarseRansacOutliersRatio / 100.f;
+	dm.knnMatch(reference_features_descriptions, frame_features_descriptions, matches_groups, params.features_knn, Mat());
 
 	vector<Point2f> coarse_from, coarse_to;
 
@@ -55,7 +66,7 @@ Mat detect_table(Mat frame, Mat reference_image, Mat reference_mask, SubottoDete
 		}
 	}
 
-	RansacParams ransac_params(6, ransacThreshold, ransacOutliersRatio, 0.99f);
+	RansacParams ransac_params(6, params.coarse_ransac_threshold, params.coarse_ransac_outliers_ratio, 0.99f);
 	float rmse;
 	int ninliers;
 	Mat coarse_transform = estimateGlobalMotionRobust(coarse_from, coarse_to, LINEAR_SIMILARITY, ransac_params, &rmse, &ninliers);
@@ -97,27 +108,32 @@ Mat detect_table(Mat frame, Mat reference_image, Mat reference_mask, SubottoDete
 	if (good_optical_flow_from.size() < 6) {
 		flow_correction = Mat::eye(3, 3, CV_32F);
 	} else {
-		float ransac_threshold = params.flowRansacThreshold / 100.f;
-		findHomography(good_optical_flow_from, good_optical_flow_to, RANSAC, ransac_threshold).convertTo(
+		findHomography(good_optical_flow_from, good_optical_flow_to, RANSAC, params.optical_flow_ransac_threshold).convertTo(
 				flow_correction, CV_32F);
 	}
 
 	Mat flow_transform = coarse_transform * flow_correction;
 
-	Mat transform = flow_transform * referenceToSize(params.metrics, reference_image.size());
+	Mat transform = flow_transform * referenceToSize(reference_metrics, reference_image.size());
 
 	return transform;
 }
 
-Mat follow_table(Mat frame, Mat previousTransform, Mat reference_image, Mat reference_mask, SubottoFollowingParams params) {
+Mat follow_table(Mat frame, Mat previous_transform, table_following_params_t params) {
+	Mat& reference_image = params.reference.image;
+	Mat& reference_mask = params.reference.mask;
+	auto& reference_metrics = params.reference.metrics;
+
 	Size size = reference_image.size();
 
 	Mat warped;
 
 	warpPerspective(frame, warped,
-			previousTransform
-					* sizeToReference(params.metrics, size),
+			previous_transform
+					* sizeToReference(reference_metrics, size),
 			reference_image.size(), WARP_INVERSE_MAP | INTER_LINEAR);
+
+	show("follow table before", warped);
 
 	vector<KeyPoint> optical_flow_features;
 
@@ -149,91 +165,38 @@ Mat follow_table(Mat frame, Mat previousTransform, Mat reference_image, Mat refe
 	if (good_optical_flow_from.size() < 6) {
 		correction = Mat::eye(3, 3, CV_32F);
 	} else {
-		float ransacThreshold = params.ransacThreshold / 100.f;
 		int ninliers;
 		float rmse;
 		correction = estimateGlobalMotionRobust(optical_flow_from, optical_flow_to,
 				LINEAR_SIMILARITY,
-				RansacParams(6, ransacThreshold, 0.1f, 0.99f), &rmse,
+				RansacParams(6, params.optical_flow_ransac_threshold, 0.1f, 0.99f), &rmse,
 				&ninliers);
 	}
 
-	return previousTransform * sizeToReference(params.metrics, size) * correction * referenceToSize(params.metrics, size);
+	return previous_transform * sizeToReference(reference_metrics, size) * correction * referenceToSize(reference_metrics, size);
 }
 
-SubottoTracker::SubottoTracker(FrameReader& frameReader, SubottoReference reference,
-		SubottoMetrics metrics,
-		SubottoTrackingParams params) :
-		frameReader(frameReader), params(params), reference(reference) {
+void init_table_tracking(table_tracking_status_t& status, table_tracking_params_t params) {
+	status.frames_to_next_detection = 0;
 }
 
-SubottoTracker::~SubottoTracker() {
-}
+Mat track_table(Mat frame, table_tracking_status_t& status, table_tracking_params_t params) {
+	Mat undistorted = correctDistortion(frame);
 
-Mat correctDistortion(Mat frameDistorted) {
-//	Matx<float, 3, 3> cameraMatrix(160, 0, 160, 0, 160, 120, 0, 0, 1);
-//	float k = -0.025;
-//
-//	Mat frame;
-//	undistort(frameDistorted, frame, cameraMatrix, vector<float> {k, 0, 0, 0}, getDefaultNewCameraMatrix(cameraMatrix));
+	Mat transform;
 
-	return frameDistorted;
-}
-
-SubottoTracking SubottoTracker::next() {
-	SubottoTracking subottoTracking;
-
-	dumpTime("subotto tracking", "start");
-
-	frame_info frameInfo = frameReader.get();
-
-	dumpTime("subotto tracking", "read frame");
-
-	Mat frameDistorted = frameInfo.data;
-	Mat frame = correctDistortion(frameDistorted);
-
-	dumpTime("subotto tracking", "correct distortion");
-
-	Mat subottoTransform;
-
-	bool shouldFollow = frameCount % (params.followingSkipFrames + 1) == 0;
-	bool shouldDetect = frameCount % (params.detectionSkipFrames + 1) == 0;
-
-	if(!previousTransform.empty()) {
-		previousTransform.copyTo(subottoTransform);
-	}
-
-	if (shouldFollow && !nearTransform.empty()) {
-		subottoTransform = follow_table(frame, nearTransform, reference.image, reference.mask, params.followingParams);
-		dumpTime("subotto tracking", "follow");
-	}
-
-	Mat followDetectedTransform;
-	if (shouldDetect || subottoTransform.empty()) {
-		subottoTransform = detect_table(frame, reference.image, reference.mask, params.detectionParams);
-		dumpTime("subotto tracking", "detect");
-	}
-
-	dumpTime("subotto tracking", "update transform");
-
-	if (nearTransform.empty() || shouldDetect) {
-		subottoTransform.copyTo(nearTransform);
+	if (status.near_transform.empty() || status.frames_to_next_detection <= 0) {
+		transform = detect_table(undistorted, params.detection_params);
+		status.frames_to_next_detection = params.detection_every_frames;
+		status.near_transform = transform;
 	} else {
-		float alpha = params.nearTransformSmoothingAlpha / 100.f;
-		accumulateWeighted(subottoTransform, nearTransform, alpha);
+		transform = follow_table(undistorted, status.near_transform, params.following_params);
+		status.frames_to_next_detection--;
+		// smooth the previous transform
+		accumulateWeighted(transform, status.near_transform, params.near_transform_alpha);
 	}
 
-	dumpTime("subotto tracking", "update near transform");
-
-	frameCount++;
-
-	subottoTransform.copyTo(previousTransform);
-
-	subottoTracking.frame = frame;
-	subottoTracking.transform = subottoTransform;
-	subottoTracking.frameInfo = frameInfo;
-
-	return subottoTracking;
+	return transform;
 }
 
 void drawSubottoBorders(Mat& outImage, const Mat& transform, Scalar color) {

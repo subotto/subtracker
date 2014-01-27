@@ -29,10 +29,8 @@ BINARIES = \
 subtracker2014
 
 TEST_BINARIES = \
-tests/camera_undistort_test \
 tests/framereader_test \
-tests/jobrunner_test \
-tests/subotto_tracking_test
+tests/jobrunner_test
 
 all: $(BINARIES)
 

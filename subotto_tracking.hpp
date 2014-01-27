@@ -15,95 +15,57 @@ struct SubottoReference {
 	SubottoReferenceMetrics metrics;
 };
 
-struct FeatureDetectionParams {
-	int features;
-	int levels;
+struct table_detection_params_t {
+	int reference_features_per_level = 300;
+	int reference_features_levels = 3;
+
+	int frame_features_per_level = 500;
+	int frame_features_levels = 3;
+
+	int features_knn = 2;
+
+	float coarse_ransac_threshold = 20.f;
+	float coarse_ransac_outliers_ratio = 0.5f;
+
+	int optical_flow_features;
+	float optical_flow_ransac_threshold = 1.0f;
+
+	SubottoReference reference;
 };
 
-struct FeatureDetectionResult {
-	std::vector<cv::KeyPoint> keyPoints;
-	cv::Mat descriptors;
+struct table_following_params_t {
+	int optical_flow_features = 100;
+	float optical_flow_ransac_threshold = 1.0f;
+
+	cv::Size optical_flow_size {128, 64};
+
+	SubottoReference reference;
 };
 
-struct FeatureMatchingParams {
-	FeatureDetectionParams detection;
-	int knn;
+struct table_tracking_params_t {
+	table_detection_params_t detection_params;
+	table_following_params_t following_params;
+
+	int detection_every_frames = 120;
+	float near_transform_alpha = 0.25f;
 };
 
-struct PointMap {
-	std::vector<cv::Point_<float>> from;
-	std::vector<cv::Point_<float>> to;
+struct table_tracking_status_t {
+	cv::Mat near_transform;
+	int frames_to_next_detection;
 };
 
-struct OpticalFlowParams {
-	FeatureDetectionParams detection;
-};
-
-struct SubottoDetectorParams {
-	FeatureDetectionParams referenceDetection {50, 3};
-
-	FeatureMatchingParams coarseMatching { {1000, 3}, 10 };
-	int coarseRansacThreshold = 2000;
-	int coarseRansacOutliersRatio = 50;
-
-	OpticalFlowParams opticalFlow { {100, 3} };
-	int flowRansacThreshold = 100;
-
-	SubottoReferenceMetrics metrics;
-};
-
-struct SubottoFollowingParams {
-	OpticalFlowParams opticalFlow { {100, 1} };
-	int ransacThreshold = 100;
-
-	cv::Size opticalFlowSize {128, 64};
-
-	SubottoReferenceMetrics metrics;
-};
-
-struct SubottoTrackingParams {
-	SubottoDetectorParams detectionParams;
-	SubottoFollowingParams followingParams;
-
-	int detectionSkipFrames = 120;
-	int detectionAlpha = 100;
-
-	int followingSkipFrames = 0;
-	int followingAlpha = 100;
-
-	int nearTransformSmoothingAlpha = 25;
-
-	SubottoTrackingParams() {}
-};
-
-struct SubottoTracking {
+struct table_tracking_t {
+	frame_info frameInfo;
 	cv::Mat frame;
 	cv::Mat transform;
-	frame_info frameInfo;
 };
 
-/*
- * Combines a SubottoDetector and a SubottoFollower to track the position of the subotto over time.
- * It invokes the SubottoDetector only once in a while, ad uses the SubottoFollower to
- * track the subotto (almost) frame to frame.
- */
-class SubottoTracker {
-public:
-	SubottoTracker(FrameReader& frameReader, SubottoReference reference, SubottoMetrics metrics, SubottoTrackingParams params);
-	virtual ~SubottoTracker();
+Mat detect_table(Mat frame, table_detection_params_t params);
+Mat follow_table(Mat frame, Mat previous_transform, table_following_params_t params);
 
-	SubottoTracking next();
-private:
-	FrameReader& frameReader;
-	SubottoReference reference;
-	SubottoMetrics metrics;
-	SubottoTrackingParams params;
-
-	cv::Mat previousTransform;
-	cv::Mat nearTransform;
-
-	int frameCount = 0;
-};
+void init_table_tracking(table_tracking_status_t& status, table_tracking_params_t params);
+Mat track_table(Mat frame, table_tracking_status_t& status, table_tracking_params_t params);
 
 void drawSubottoBorders(cv::Mat& outImage, const cv::Mat& transform, cv::Scalar color);
 

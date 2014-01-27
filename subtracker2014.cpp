@@ -18,7 +18,6 @@ using namespace chrono;
 
 SubottoReference reference;
 SubottoMetrics metrics;
-unique_ptr<SubottoTracker> tracker;
 
 enum {
 	GOALKEEPER,
@@ -472,8 +471,6 @@ void doIt(FrameReader& frameReader) {
 	namedWindow( "Display", WINDOW_NORMAL );
 	deque<Mat> frames;	// used for display only
 
-	tracker = unique_ptr<SubottoTracker>(new SubottoTracker(frameReader, reference, metrics, SubottoTrackingParams()));
-
 	Size tableFrameSize(128, 64);
 
 	TableDescription table;
@@ -505,6 +502,14 @@ void doIt(FrameReader& frameReader) {
 
 	thread playback_thread;
 
+	table_tracking_status_t table_tracking_status;
+	table_tracking_params_t table_tracking_params;
+
+	table_tracking_params.detection_params.reference = reference;
+	table_tracking_params.following_params.reference = reference;
+
+	init_table_tracking(table_tracking_status, table_tracking_params);
+
 	for (int i = 0; ; i++) {
 		if (!play || i % 10 == 0) {
 			int c = waitKey(play);
@@ -522,22 +527,23 @@ void doIt(FrameReader& frameReader) {
 
 		dumpTime("cycle", "start cycle");
 
-		auto subotto = tracker->next();
+		auto frame_info = frameReader.get();
+		Mat frame = frame_info.data;
+
+		Mat table_transform = track_table(frame_info.data, table_tracking_status, table_tracking_params);
 
 		dumpTime("cycle", "detect subotto");
 
-		Mat frame = subotto.frame;
-		
 		if(debug) {
 			show("frame", frame);
 		}
 
 		if ( current_time >= timeline_span ) {
-			timestamps.push_back(duration_cast<duration<double>>(subotto.frameInfo.playback_time.time_since_epoch()).count());
+			timestamps.push_back(duration_cast<duration<double>>(frame_info.playback_time.time_since_epoch()).count());
 		}
 		
 		Mat tableFrame;
-		getTableFrame(frame, tableFrame, tableFrameSize, subotto.transform);
+		getTableFrame(frame, tableFrame, tableFrameSize, table_transform);
 		Size size = tableFrame.size();
 
 		dumpTime("cycle", "warp table frame");
