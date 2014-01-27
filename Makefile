@@ -22,7 +22,8 @@ jobrunner.o \
 subotto_metrics.o \
 subotto_tracking.o \
 utility.o \
-v4l2cap.o
+v4l2cap.o \
+subtracker2014.o
 
 BINARIES = \
 subtracker2014
@@ -33,18 +34,21 @@ tests/framereader_test \
 tests/jobrunner_test \
 tests/subotto_tracking_test
 
-all: $(BINARIES) tests
+all: $(BINARIES)
 
 tests: $(TEST_BINARIES)
 .PHONY: tests
 
 clean:
-	rm $(OBJECTS)
-	rm $(BINARIES)
-	rm $(TEST_BINARIES)
+	rm -f $(OBJECTS)
+	rm -f $(BINARIES)
+	rm -f $(TEST_BINARIES)
 
 %.o: %.cpp $(HEADERS) Makefile
 	$(CPP) $(CPPFLAGS) -c $<
 
-%: %.cpp $(OBJECTS) Makefile
-	$(CPP) $(CPPFLAGS) -o $@ $< $(OBJECTS) $(LIBS)
+subtracker2014: $(OBJECTS) Makefile
+	$(CPP) $(CPPFLAGS) $(LIBS) -o $@ $(OBJECTS)
+
+Makefile:
+
