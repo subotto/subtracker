@@ -29,6 +29,9 @@ while True:
         radius = 0.3
         print ",".join(["%.6f" % (now)] + [str(x) for x in [radius * math.cos(omega), radius * math.sin(omega)]])
 
+    elif mode == 'null':
+        print "%.6f" % (now)
+
     sys.stdout.flush()
     time.sleep(1.0 / FREQ)
     i += 1
