@@ -96,13 +96,13 @@ ostream& logger(control_panel_t& panel, string category, log_level_t level) {
 	}
 }
 
-void set_log_level(control_panel_t& panel, std::string category, log_level_t level) {
+void set_log_level(control_panel_t& panel, string category, log_level_t level) {
 	panel.log_status[category].level = level;
 
 	logger(panel, "control panel", INFO) << "log level for " << category << " set to: " << level_to_string(level) << endl;
 }
 
-bool is_loggable(control_panel_t& panel, std::string category, log_level_t level) {
+bool is_loggable(control_panel_t& panel, string category, log_level_t level) {
 	return level >= panel.log_status[category].level;
 }
 
@@ -142,4 +142,22 @@ bool is_toggled(control_panel_t& panel, string category, togglable_t togglable) 
 	auto& toggled = panel.toggle_status[category].toggled[togglable];
 
 	return toggled;
+}
+
+void color_picker(control_panel_t& panel, string category, string name, Scalar& color) {
+	string bgr_names[] {"blue", "green", "red"};
+	for(int k = 0; k < 3; k++) {
+		stringstream name_buf;
+		name_buf << name << " color " << bgr_names[k];
+		trackbar(panel, category, name_buf.str(), color.val[k], {0.f, 1.f, 0.01f});
+	}
+}
+
+void color_qf_picker(control_panel_t& panel, string category, string name, Matx<float, 1, 6>& qf) {
+	string qf_names[] {"bb", "gg", "rr", "bg", "gr", "rb"};
+	for(int k = 0; k < 6; k++) {
+		stringstream name_buf;
+		name_buf << name << " QF " << qf_names[k];
+		trackbar(panel, category, name_buf.str(), qf.val[k], {k<3 ? 0.f : -100.f, 100.f, 0.01f});
+	}
 }

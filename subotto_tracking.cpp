@@ -166,6 +166,9 @@ Mat detect_table(Mat frame, table_detection_params_t& params, control_panel_t& p
 }
 
 Mat follow_table(Mat frame, Mat previous_transform, table_following_params_t& params, control_panel_t& panel) {
+	trackbar(panel, "table detect", "follow optical flow features", params.optical_flow_features, {0, 1000, 1});
+	trackbar(panel, "table detect", "follow optical flow ransac threshold", params.optical_flow_ransac_threshold, {0.0f, 100.f, 0.1f});
+
 	const SubottoReference& reference = *params.reference;
 
 	const Mat& reference_image = reference.image;

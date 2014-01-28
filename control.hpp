@@ -180,4 +180,8 @@ void trackbar(control_panel_t& panel, std::string category, std::string name, T&
 	update_trackbar(panel, category, name);
 }
 
+void color_picker(control_panel_t& panel, std::string category, std::string name, cv::Scalar& color);
+
+void color_qf_picker(control_panel_t& panel, std::string category, std::string name, cv::Matx<float, 1, 6>& qf);
+
 #endif /* CONTROL_HPP_ */
