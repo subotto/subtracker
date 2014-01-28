@@ -8,6 +8,7 @@ LIBS = $(shell pkg-config --libs opencv)
 HEADERS = \
 blobs_finder.hpp \
 blobs_tracker.hpp \
+control.hpp \
 framereader.hpp \
 jobrunner.hpp \
 median.hpp \

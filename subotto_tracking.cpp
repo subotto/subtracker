@@ -31,7 +31,18 @@ static Point_<float> applyTransform(Point_<float> p, Mat m) {
 	return Point_<float>(tpm.at<float>(0, 0) / w, tpm.at<float>(1, 0) / w);
 }
 
-Mat detect_table(Mat frame, table_detection_params_t params, control_panel_t& panel) {
+Mat detect_table(Mat frame, table_detection_params_t& params, control_panel_t& panel) {
+	trackbar(panel, "table detect", "coarse reference features per level", params.reference_features_per_level, {0, 1000, 1});
+	trackbar(panel, "table detect", "coarse reference features levels", params.reference_features_levels, {0, 10, 1});
+	trackbar(panel, "table detect", "coarse frame features per level", params.frame_features_per_level, {0, 1000, 1});
+	trackbar(panel, "table detect", "coarse frame features levels", params.frame_features_levels, {0, 10, 1});
+	trackbar(panel, "table detect", "coarse features knn", params.features_knn, {0, 10, 1});
+	trackbar(panel, "table detect", "coarse ransac threshold", params.coarse_ransac_threshold, {0.0f, 100.f, 0.1f});
+	trackbar(panel, "table detect", "coarse ransac outliers ratio", params.coarse_ransac_outliers_ratio, {0.0f, 1.f, 0.01f});
+	trackbar(panel, "table detect", "optical flow features", params.optical_flow_features_per_level, {0, 1000, 1});
+	trackbar(panel, "table detect", "optical flow features levels", params.optical_flow_features_levels, {0, 10, 1});
+	trackbar(panel, "table detect", "optical flow ransac threshold", params.optical_flow_ransac_threshold, {0.0f, 10.f, 0.1f});
+
 	const SubottoReference& reference = *params.reference;
 
 	const Mat& reference_image = reference.image;
@@ -154,7 +165,7 @@ Mat detect_table(Mat frame, table_detection_params_t params, control_panel_t& pa
 	return transform;
 }
 
-Mat follow_table(Mat frame, Mat previous_transform, table_following_params_t params, control_panel_t& panel) {
+Mat follow_table(Mat frame, Mat previous_transform, table_following_params_t& params, control_panel_t& panel) {
 	const SubottoReference& reference = *params.reference;
 
 	const Mat& reference_image = reference.image;
@@ -215,11 +226,13 @@ Mat follow_table(Mat frame, Mat previous_transform, table_following_params_t par
 	return previous_transform * sizeToReference(reference_metrics, size) * correction * referenceToSize(reference_metrics, size);
 }
 
-void init_table_tracking(table_tracking_status_t& status, table_tracking_params_t params, control_panel_t& panel) {
+void init_table_tracking(table_tracking_status_t& status, table_tracking_params_t& params, control_panel_t& panel) {
 	status.frames_to_next_detection = 0;
 }
 
-Mat track_table(Mat frame, table_tracking_status_t& status, table_tracking_params_t params, control_panel_t& panel) {
+Mat track_table(Mat frame, table_tracking_status_t& status, table_tracking_params_t& params, control_panel_t& panel) {
+	trackbar(panel, "table detect", "detect every", params.detect_every_frames, {0, 1000, 1});
+
 	Mat undistorted = correctDistortion(frame);
 
 	Mat transform;

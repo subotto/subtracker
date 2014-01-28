@@ -22,10 +22,10 @@ bool will_show(control_panel_t& panel, string category, string name) {
 }
 
 static void update_show(control_panel_t& panel, string category, string name) {
-	show_status_t& status = panel.show_status[category][name];
+	show_status_t& status = panel.show_status[category].at(name);
 
 	stringstream window_name_buf;
-	window_name_buf << category << "-" << name;
+	window_name_buf << "Display: " << category << " - " << name;
 	string window_name = window_name_buf.str();
 
 	if(will_show(panel, category, name)) {
@@ -43,11 +43,6 @@ void show(control_panel_t& panel, string category, string name, cv::Mat image, s
 	status.params = params;
 
 	update_show(panel, category, name);
-}
-
-template<typename T>
-void trackbar(control_panel_t& panel, string category, string name, T& variable, trackbar_params_t<T> params) {
-
 }
 
 void dump_time(control_panel_t& panel, string category, string name) {
@@ -134,8 +129,12 @@ void toggle(control_panel_t& panel, string category, togglable_t togglable, int 
 	logger(panel, "control panel", INFO) <<
 			(toggled ? "enabled" : "disabled") << " " << category << " " << togglable_to_string(togglable) << endl;
 
-	for(auto entry : panel.show_status[category]) {
+	for(auto& entry : panel.show_status[category]) {
 		update_show(panel, category, entry.first);
+	}
+
+	for(auto& entry : panel.trackbar_status[category]) {
+		update_trackbar(panel, category, entry.first);
 	}
 }
 

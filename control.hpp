@@ -2,12 +2,14 @@
 #define CONTROL_HPP_
 
 #include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
 
 #include <string>
 #include <iostream>
 #include <unordered_map>
 #include <chrono>
 #include <atomic>
+#include <memory>
 
 struct show_params_t {
 	float contrast = 1.f;
@@ -47,10 +49,59 @@ struct log_status_t {
 	std::atomic<log_level_t> level {WARNING};
 };
 
+template<typename T>
+struct trackbar_params_t {
+	T start;
+	T end;
+	T step;
+};
+
+struct trackbar_base_status_t {
+	virtual ~trackbar_base_status_t() {
+	};
+};
+
+template<typename T>
+struct trackbar_type_status_t : public trackbar_base_status_t {
+	trackbar_params_t<T> params;
+	T& variable;
+
+	trackbar_type_status_t(trackbar_params_t<T> params, T& variable)
+	: params(params), variable(variable)
+	{}
+
+	virtual ~trackbar_type_status_t() {
+
+	}
+};
+
+struct control_panel_t;
+
+struct trackbar_status_t {
+	control_panel_t& panel;
+
+	std::string category;
+	std::string name;
+	std::unique_ptr<trackbar_base_status_t> type;
+
+	int count;
+	cv::TrackbarCallback callback;
+
+	template<typename T>
+	trackbar_status_t(control_panel_t& panel, std::string category, std::string name, trackbar_params_t<T> params, T& variable)
+	: panel(panel), category(category), name(name), type(new trackbar_type_status_t<T>(params, variable))
+	{}
+
+	~trackbar_status_t() {
+	}
+};
+
 struct control_panel_t {
 	typedef std::unordered_map<std::string, show_status_t> show_status_by_name_t;
+	typedef std::unordered_map<std::string, trackbar_status_t> trackbar_status_by_name_t;
 
 	std::unordered_map<std::string, show_status_by_name_t> show_status;
+	std::unordered_map<std::string, trackbar_status_by_name_t> trackbar_status;
 	std::unordered_map<std::string, toggle_status_t> toggle_status;
 	std::unordered_map<std::string, time_status_t> time_status;
 	std::unordered_map<std::string, log_status_t> log_status;
@@ -61,16 +112,6 @@ void init_control_panel(control_panel_t& panel);
 void show(control_panel_t& panel, std::string category, std::string name, cv::Mat image, show_params_t params = show_params_t());
 
 bool will_show(control_panel_t& panel, std::string category, std::string name);
-
-template<typename T>
-struct trackbar_params_t {
-	T start;
-	T end;
-	T step;
-};
-
-template<typename T>
-void trackbar(control_panel_t& panel, std::string category, std::string name, T& variable, trackbar_params_t<T> params);
 
 void dump_time(control_panel_t& panel, std::string category, std::string name);
 
@@ -86,5 +127,65 @@ enum {
 
 void toggle(control_panel_t& panel, std::string category, togglable_t togglable, int status = TOGGLE);
 bool is_toggled(control_panel_t& panel, std::string category, togglable_t togglable);
+
+template <typename T>
+static void on_trackbar_change(int value_int, void *status_p) {
+	trackbar_status_t& status = *static_cast<trackbar_status_t*>(status_p);
+
+	trackbar_type_status_t<T>& type = static_cast< trackbar_type_status_t<T>& >(*status.type);
+	trackbar_params_t<T>& params = type.params;
+
+	std::string category = status.category;
+	std::string name = status.name;
+
+	std::stringstream trackbar_name_buf;
+	trackbar_name_buf << name;
+	std::string trackbar_name = trackbar_name_buf.str();
+
+	std::stringstream window_name_buf;
+	window_name_buf << "Trackbars: " << category;
+	std::string window_name = window_name_buf.str();
+
+	T value = params.start + value_int * params.step;
+	type.variable = value_int;
+
+	logger(status.panel, "control panel", INFO) <<
+			"changing trackbar " << category << " " << name << " value to: " << value_int << std::endl;
+}
+
+static void update_trackbar(control_panel_t& panel, std::string category, std::string name) {
+	static int zero;
+
+	trackbar_status_t& status = panel.trackbar_status[category].at(name);
+
+	std::stringstream trackbar_name_buf;
+	trackbar_name_buf << name;
+	std::string trackbar_name = trackbar_name_buf.str();
+
+	std::stringstream window_name_buf;
+	window_name_buf << "Trackbars: " << category;
+	std::string window_name = window_name_buf.str();
+
+	if(is_toggled(panel, category, TRACKBAR)) {
+		cv::namedWindow(window_name, CV_WINDOW_NORMAL);
+		cv::createTrackbar(trackbar_name, window_name, &zero, status.count, status.callback, &status);
+	} else {
+		cv::destroyWindow(window_name);
+	}
+}
+
+template<typename T>
+void trackbar(control_panel_t& panel, std::string category, std::string name, T& variable, trackbar_params_t<T> params) {
+	panel.trackbar_status[category].emplace(name, panel, category, name, params, variable);
+
+	// Perche' l'STL usa pairs di pairs ?!?
+
+	trackbar_status_t& status = panel.trackbar_status[category].at(name);
+
+	status.count = int((params.end - params.start) / params.step);
+	status.callback = on_trackbar_change<T>;
+
+	update_trackbar(panel, category, name);
+}
 
 #endif /* CONTROL_HPP_ */

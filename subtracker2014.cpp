@@ -78,50 +78,6 @@ ColorQuadraticForm redColorPrecision("color2Precision", Matx<float, 1, 6>(
 
 table_tracking_params_t table_tracking_params;
 
-Trackbar<int> detect_every_frames_trackbar("table tracking",
-		"detect every",
-		&table_tracking_params.detect_every_frames, 0, 1000, 1);
-
-Trackbar<int> coarse_reference_features_trackbar("table tracking",
-		"coarse reference features per level",
-		&table_tracking_params.detection.reference_features_per_level, 0, 1000, 1);
-
-Trackbar<int> coarse_reference_features_levels_trackbar("table tracking",
-		"coarse reference features levels",
-		&table_tracking_params.detection.reference_features_levels, 0, 10, 1);
-
-Trackbar<int> coarse_features_trackbar("table tracking",
-		"coarse frame features per level",
-		&table_tracking_params.detection.frame_features_per_level, 0, 1000, 1);
-
-Trackbar<int> coarse_features_levels_trackbar("table tracking",
-		"coarse frame features levels",
-		&table_tracking_params.detection.frame_features_levels, 0, 10, 1);
-
-Trackbar<int> coarse_features_knn_trackbar("table tracking",
-		"coarse features knn",
-		&table_tracking_params.detection.features_knn, 0, 10, 1);
-
-Trackbar<float> coarse_ransac_threshold_trackbar("table tracking",
-		"coarse ransac threshold",
-		&table_tracking_params.detection.coarse_ransac_threshold, 0.0f, 100.f, 0.1f);
-
-Trackbar<float> coarse_ransac_outliers_ratio_trackbar("table tracking",
-		"coarse ransac outliers ratio",
-		&table_tracking_params.detection.coarse_ransac_outliers_ratio, 0.0f, 1.f, 0.01f);
-
-Trackbar<int> optical_flow_features_trackbar("table tracking",
-		"optical flow features",
-		&table_tracking_params.detection.optical_flow_features_per_level, 0, 1000, 1);
-
-Trackbar<int> optical_flow_features_levels_trackbar("table tracking",
-		"optical flow features levels",
-		&table_tracking_params.detection.optical_flow_features_levels, 0, 10, 1);
-
-Trackbar<float> optical_flow_ransac_threshold_trackbar("table tracking",
-		"optical flow ransac threshold",
-		&table_tracking_params.detection.optical_flow_ransac_threshold, 0.0f, 10.f, 0.1f);
-
 Trackbar<float> reference_width_trackbar("reference", "width", &reference.metrics.frameSize.width, 0.f, 5.f, 0.01f);
 Trackbar<float> reference_height_trackbar("reference", "height", &reference.metrics.frameSize.height, 0.f, 5.f, 0.01f);
 
@@ -586,12 +542,14 @@ void doIt(FrameReader& frameReader, control_panel_t& panel) {
 				break;
 			case 's':
 				set_log_level(panel, "table detect", VERBOSE);
+				toggle(panel, "table detect", TRACKBAR, true);
 				break;
 			case 'd':
 				debug = !debug;
 				break;
 			case ' ':
 				set_log_level(panel, "table detect", WARNING);
+				toggle(panel, "table detect", TRACKBAR, false);
 				toggle(panel, "frame", SHOW, false);
 				toggle(panel, "cycle", TIME, false);
 				break;
