@@ -78,6 +78,7 @@ struct trackbar_status_t {
 	std::string name;
 	std::shared_ptr<trackbar_base_status_t> type;
 
+	int value_int;
 	int count;
 	cv::TrackbarCallback callback;
 
@@ -138,10 +139,10 @@ static void on_trackbar_change(int value_int, void *status_p) {
 	std::string window_name = window_name_buf.str();
 
 	T value = params.start + value_int * params.step;
-	type.variable = value_int;
-
-	logger(status.panel, "control panel", INFO) <<
-			"changing trackbar " << category << " " << name << " value to: " << value_int << std::endl;
+	type.variable = value;
+//
+//	logger(status.panel, "control panel", INFO) <<
+//			"changing trackbar " << category << " " << name << " value to: " << value_int << std::endl;
 }
 
 static void update_trackbar(control_panel_t& panel, std::string category, std::string name) {
@@ -160,6 +161,7 @@ static void update_trackbar(control_panel_t& panel, std::string category, std::s
 	if(is_toggled(panel, category, TRACKBAR)) {
 		cv::namedWindow(window_name, CV_WINDOW_NORMAL);
 		cv::createTrackbar(trackbar_name, window_name, &zero, status.count, status.callback, &status);
+		cv::setTrackbarPos(trackbar_name, window_name, status.value_int);
 	} else {
 		cv::destroyWindow(window_name);
 	}
@@ -169,10 +171,9 @@ template<typename T>
 void trackbar(control_panel_t& panel, std::string category, std::string name, T& variable, trackbar_params_t<T> params) {
 	panel.trackbar_status[category].emplace(name, trackbar_status_t{panel, category, name, params, variable});
 
-	// Perche' l'STL usa pairs di pairs ?!?
-
 	trackbar_status_t& status = panel.trackbar_status[category].at(name);
 
+	status.value_int = int((variable - params.start) / params.step);
 	status.count = int((params.end - params.start) / params.step);
 	status.callback = on_trackbar_change<T>;
 
