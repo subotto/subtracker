@@ -121,14 +121,20 @@ public:
 				logger(panel, "capture", INFO) << "queue size: " << queue.size() << endl;
 				logger(panel, "capture", INFO) <<
 						"received " << frame_times.size() << " frames " <<
-						"in " << seconds(frame_count_interval).count() << " seconds" << endl;
+						"in " << seconds(frame_count_interval).count() << " seconds (" <<
+						frame_times.size() / seconds(frame_count_interval).count() <<
+						" frames per second)" << endl;
 				logger(panel, "capture", INFO) <<
 						"processed " << enqueued_frames - queue.size() << " frames " <<
-						"in " << duration_cast<duration<float>>(now - video_start_time).count() << " seconds" << endl;
+						"in " << duration_cast<duration<float>>(now - video_start_time).count() << " seconds (" <<
+						(enqueued_frames - queue.size()) / duration_cast<duration<float>>(now - video_start_time).count() <<
+						" frames per second)." << endl;
 				if(frame_dropped.size())
 					logger(panel, "capture", WARNING) << "dropped " <<
 						frame_dropped.size() << " in " <<
-						seconds(frame_count_interval).count() << " seconds." << endl;
+						seconds(frame_count_interval).count() << " seconds (" <<
+						frame_dropped.size() / seconds(frame_count_interval).count() <<
+						" frames per second)." << endl;
 				last_stats = now;
 			}
 
