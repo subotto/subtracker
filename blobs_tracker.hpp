@@ -55,6 +55,9 @@ class BlobsTracker {
 			trackbar(panel, "ball tracking", "absent parameter", _absent_parameter, {-100., +100., 0.1});
 			trackbar(panel, "ball tracking", "appearance parameter", _appearance_parameter, {-1000., +1000., 0.1});
 			trackbar(panel, "ball tracking", "disappearance parameter", _disappearance_parameter, {-1000., +1000., 0.1});
+
+			trackbar(panel, "ball tracking", "sigma0", sigma0, {0, 10., 0.01});
+			trackbar(panel, "ball tracking", "sigma per second", sigma_per_second, {0, 10., 0.01});
 		};
 	
 		double _fps; // fotogrammi al secondo
@@ -67,6 +70,10 @@ class BlobsTracker {
 		double _absent_parameter; // costo (in badness) passare da uno stato assente a uno stato assente
 		double _appearance_parameter; // costo (in badness) per passare da uno stato assente a uno stato presente
 		double _disappearance_parameter; // costo (in badness) per passare da uno stato presente a uno stato assente
+
+		// smoothing
+		double sigma0 = 0.03;
+		double sigma_per_second = 1.0;
 	private:
 		std::deque< std::vector<Node> > _timeline;
 		control_panel_t& panel;

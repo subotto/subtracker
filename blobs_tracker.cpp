@@ -161,13 +161,13 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 		Node *node = best_node;
 		if ( node == NULL ) {
 			if(verbose) logger(panel, "ball tracking", VERBOSE) << "Frame " << i <<
-					"no ball found (no path)" << endl;
+					" NO ball found (no path)" << endl;
 			positions.push_back(NISBA);
 			continue;
 		}
 		if ( node->time < i ) {
 			if(verbose) logger(panel, "ball tracking", VERBOSE) << "Frame " << i <<
-					"no ball found (path does not pass through current frame)" << endl;
+					" NO ball found (path does not pass through current frame)" << endl;
 			positions.push_back(NISBA);
 			continue;
 		}
@@ -194,7 +194,7 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 		Point2f smoothed (0.0, 0.0);
 		double total_weight = 0.0;
 		
-		double sigma = 0.02 * _fps;
+		double sigma_per_frame = sigma_per_second / _fps;
 		double sigma0 = 0.02;
 		
 		n = greater;
@@ -203,7 +203,7 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 			if ( n == NULL || n->is_absent ) break;
 			
 			double d = i - n->time;
-			double w = 1. / (sigma * abs(d) + sigma0);
+			double w = 1. / (sigma_per_frame * abs(d) + sigma0);
 			
 			smoothed += n->blob.center * w;
 			total_weight += w;
@@ -217,7 +217,7 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 			if ( n == NULL || n->is_absent ) break;
 			
 			double d = i - n->time;
-			double w = 1. / (sigma * abs(d) + sigma0);
+			double w = 1. / (sigma_per_frame * abs(d) + sigma0);
 			
 			smoothed += n->blob.center * w;
 			total_weight += w;
@@ -230,7 +230,7 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 			// Conto il punto i
 			
 			double d = 0.0;
-			double w = 1. / (sigma * abs(d) + sigma0);
+			double w = 1. / (sigma_per_frame * abs(d) + sigma0);
 			
 			smoothed += n->blob.center * w;
 			total_weight += w;
@@ -242,7 +242,7 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 		
 		if ( lower == NULL || greater == NULL ) {
 			if(verbose) logger(panel, "ball tracking", VERBOSE) << "Frame " << i <<
-					"no ball found (path does not pass through current frame - lower == NULL || greater == NULL)" << endl;
+					" NO ball found (path does not pass through current frame - lower == NULL || greater == NULL)" << endl;
 			positions.push_back(NISBA);
 			continue;
 		}
@@ -256,7 +256,7 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 			if ( greater->is_absent ) {
 				// Nel fotogramma in questione la pallina e' stata valutata assente
 				if(verbose) logger(panel, "ball tracking", VERBOSE) << "Frame " << i <<
-						"no ball found (ball claimed to be absent)" << endl;
+						" NO ball found (ball claimed to be absent)" << endl;
 				positions.push_back(NISBA);
 				continue;
 			}
@@ -265,7 +265,7 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 				// position = greater->blob.center;
 				position = smoothed;	// Metto il valore smoothed
 				if(verbose) logger(panel, "ball tracking", VERBOSE) << "Frame " << i <<
-						"ball found (exact location: " << position << ")" << endl;
+						" ball FOUND (exact location: " << position << ")" << endl;
 				positions.push_back( Point2f(position) );
 				continue;
 			}
@@ -278,7 +278,7 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 		if ( (double)(max( pre_diff, post_diff )) > _max_interpolation_time * _fps ) {
 			// Se è richiesta la posizione in un frame molto lontano da quelli in cui passa il percorso, restituisco NISBA.
 			if(verbose) logger(panel, "ball tracking", VERBOSE) << "Frame " << i <<
-					"no ball found (interpolation not reliable)" << endl;
+					" NO ball found (interpolation not reliable)" << endl;
 			positions.push_back(NISBA);
 			continue;
 		}
@@ -289,138 +289,12 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 		// position = ( greater_center*(i - lower->time) + lower_center*(greater->time - i) ) * ( 1.0/(greater->time - lower->time) );
 		position = smoothed;	// Metto il valore smoothed
 		if(verbose) logger(panel, "ball tracking", VERBOSE) << "Frame " << i <<
-				"ball found (estimated location: " << position << ")" << endl;
+				"ball FOUND (estimated location: " << position << ")" << endl;
 		positions.push_back( Point2f(position) );
 	}
 	
 	return positions;
 }
-
-
-/* OLD VERSION
-
-Point2f BlobsTracker::ProcessFrame(int initial_time, int processed_time) {
-	
-	printf("Processing frame %d\n", processed_time);
-	
-	 // TODO: aggiustare questa min_badness, che serve a evitare falsi positivi quando non c'è la pallina vera
-	double min_badness = (double)(_timeline.size()) / 1.0;
-	printf("Maximum acceptable badness: %.1lf\n", min_badness);
-	Node *best_node = NULL;
-	
-	for (int i=0; i<_timeline.size(); i++) {
-		for (int k=0; k<_timeline[i].size(); k++) {
-			
-			// Passo base (collegamenti con il nodo fittizio iniziale)
-			_timeline[i][k].badness = i;
-			_timeline[i][k].previous = NULL;
-			
-			// _timeline[i][k].subnodes.clear();
-			
-			
-			// Programmazione dinamica
-			for (int j=0; j<i; j++) {
-				for (int h=0; h<_timeline[j].size(); h++) {
-					
-					int interval = i-j;
-					double old_badness = _timeline[j][h].badness;
-					double delta_badness = interval - 1;
-					
-					// Località spaziale --- forse Kalman la renderà obsoleta
-					Point2f new_center = _timeline[i][k].blob.center;
-					Point2f old_center = _timeline[j][h].blob.center;
-					double distance = norm(new_center - old_center);
-					
-					// Controllo di località
-					if ( distance > _max_speed * interval ) continue;
-					// if ( distance > _max_unseen_distance ) continue;
-					
-					// Verosimiglianza gaussiana
-					delta_badness += _distance_constant * distance * distance;
-					
-					
-					// Calcolo la nuova badness, e aggiorno se è minore della minima finora trovata
-					double new_badness = old_badness + delta_badness;
-					
-					if ( new_badness < _timeline[i][k].badness ) {
-						_timeline[i][k].badness = new_badness;
-						// Salvo il percorso ottimo
-						_timeline[i][k].previous = &_timeline[j][h];
-					}
-					
-				}
-			}
-			
-			// Passo finale (collegamenti con il nodo fittizio finale)
-			// TODO: controllare che questa cosa sia effettivamente al posto giusto
-			double candidate_badness = _timeline[i][k].badness + ( _timeline.size() - i - 1 );
-			if ( min_badness > candidate_badness ) {
-				min_badness = candidate_badness;
-				best_node = &_timeline[i][k];
-			}
-			
-		}
-	}
-	
-	
-	Point2f NISBA (-1.0, -1.0);
-	
-	// Cerco la miglior posizione prevista per il frame richiesto
-	Node *node = best_node;
-	if ( node == NULL ) {
-		printf("No ball found (no path).\n");
-		return NISBA;
-	}
-	if ( node->time < processed_time ) {
-		printf("No ball found (path does not pass through current frame).\n");
-		return NISBA;
-	}
-	
-	Node *greater = NULL;
-	Node *lower = NULL;
-	
-	while ( node != NULL ) {
-		int time = node->time;
-		if ( time >= processed_time ) {
-			greater = node;
-		}
-		if ( time <= processed_time ) {
-			lower = node;
-			break;
-		}
-		node = node->previous;
-	}
-	
-	if ( lower == NULL ) {
-		printf("No ball found (path does not pass through current frame).\n");
-		return NISBA;
-	}
-	
-	// Waiting for great Kalman (Hail, Kalman! Hail!)
-	
-	if ( greater->time == lower->time ) {
-		printf("Ball found (exact location). Badness: %.1lf\n", min_badness);
-		return greater->blob.center;
-	}
-	
-	// Se è richiesta la posizione in un frame molto lontano da quelli in cui passa il percorso, restituisco NISBA.
-	int pre_diff = processed_time - lower->time;
-	int post_diff = greater->time - processed_time;
-	
-	if ( max( pre_diff, post_diff ) > _max_interpolation_time ) {
-		printf("No ball found (interpolation is not reliable).\n");
-		return NISBA;
-	}
-	
-	
-	cv::Point2f greater_center = greater->blob.center;
-	cv::Point2f lower_center = lower->blob.center;
-	
-	printf("Ball found (estimated location). Badness: %.1lf\n", min_badness);
-	return ( greater_center*(processed_time - lower->time) + lower_center*(greater->time - processed_time) ) * ( 1.0/(greater->time - lower->time) );
-	
-}
-*/
 
 void BlobsTracker::PopFrameFromTimeline() {
 	_timeline.pop_front();
