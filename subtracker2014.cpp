@@ -125,7 +125,7 @@ Point2f subpixelMinimum(Mat in) {
 
 	Point2f c = Point2f(correction[1], correction[0]);
 
-	return Point2f(m.x, m.y);
+	return Point2f(m.x + c.x, m.y + c.y);
 }
 
 void computeScatterDiag(const Mat& in, Mat& out) {
