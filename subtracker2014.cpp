@@ -673,7 +673,7 @@ void doIt(FrameReader& frameReader) {
 			vector<float> foosmenValuesFrame;
 			for(int side = 1; side >= 0; side--) {
 				for(int bar = 0; bar < BARS; bar++) {
-					foosmenValuesFrame.push_back( barsShift[bar][side] );
+					foosmenValuesFrame.push_back( -barsShift[bar][side] );
 					foosmenValuesFrame.push_back( barsRot[bar][side] );
 				}
 			}
