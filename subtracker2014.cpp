@@ -128,6 +128,19 @@ Trackbar<float> reference_height_trackbar("reference", "height", &reference.metr
 Trackbar<float> reference_offset_x_trackbar("reference", "x", &reference.metrics.offset.x, -0.1f, +0.1f, 0.001f);
 Trackbar<float> reference_offset_y_trackbar("reference", "y", &reference.metrics.offset.y, -0.1f, +0.1f, 0.001f);
 
+BlobsTracker blobs_tracker;
+
+Trackbar<double> _fps("ball tracking", "_fps", &blobs_tracker._fps, 0, 100, 1);
+Trackbar<double> _max_speed("ball tracking", "_max_speed", &blobs_tracker._max_speed, 0., +100., 0.1);
+Trackbar<double> _max_unseen_distance("ball tracking", "_max_unseen_distance", &blobs_tracker._max_unseen_distance, 0., 1., 0.01);
+Trackbar<double> _max_interpolation_time("ball tracking", "_max_interpolation_time", &blobs_tracker._max_interpolation_time, 0., 10., 0.01);
+
+Trackbar<double> _skip_parameter("ball tracking", "_skip_parameter", &blobs_tracker._skip_parameter, -100., +100., 0.1);
+Trackbar<double> _variance_parameter("ball tracking", "_variance_parameter", &blobs_tracker._variance_parameter, 0., 10., 0.01);
+Trackbar<double> _absent_parameter("ball tracking", "_absent_parameter", &blobs_tracker._absent_parameter, -100., +100., 0.1);
+Trackbar<double> _appearance_parameter("ball tracking", "_appearance_parameter", &blobs_tracker._appearance_parameter, -1000., +1000., 0.1);
+Trackbar<double> _disappearance_parameter("ball tracking", "_disappearance_parameter", &blobs_tracker._disappearance_parameter, -1000., +1000., 0.1);
+
 float barx(int side, int bar, Size size, SubottoMetrics subottoMetrics, FoosmenMetrics foosmenMetrics) {
 	float flip = side ? +1 : -1;
 	float x = foosmenMetrics.barx[bar] * flip;
@@ -515,8 +528,6 @@ void doIt(FrameReader& frameReader) {
 	bool play = true;
 	bool debug = false;
 
-	BlobsTracker blobs_tracker;
-
 	int timeline_span = 120;
 	int processed_frames = 60;	// number of frames to be processed for each call to ProcessFrame
 
@@ -760,7 +771,7 @@ void doIt(FrameReader& frameReader) {
 							circle( display, ball, 8, Scalar(0,255,0), 2 );
 							imshow("Display", display);
 
-							this_thread::sleep_until(playback_start + i * duration<double>(1. / 125.));
+							this_thread::sleep_until(playback_start + i * duration<double>(1. / 20.));
 
 							if(stop.exchange(false)) {
 								return;

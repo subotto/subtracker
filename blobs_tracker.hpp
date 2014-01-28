@@ -35,8 +35,6 @@ class BlobsTracker {
 			: _fps(120.0), _max_speed(18.0), _max_unseen_distance(0.3), _max_interpolation_time(1), _skip_parameter(-8), _variance_parameter(0.3), _absent_parameter(-15), _appearance_parameter(400.0), _disappearance_parameter(400.0)
 		{};
 	
-	private:
-		std::deque< std::vector<Node> > _timeline;
 		double _fps; // fotogrammi al secondo
 		double _max_speed; // massima velocita' (in m/s) perché il movimento sia considerato possibile
 		double _max_unseen_distance; // massima distanza (in metri) a cui si può teletrasportare la pallina
@@ -47,6 +45,8 @@ class BlobsTracker {
 		double _absent_parameter; // costo (in badness) passare da uno stato assente a uno stato assente
 		double _appearance_parameter; // costo (in badness) per passare da uno stato assente a uno stato presente
 		double _disappearance_parameter; // costo (in badness) per passare da uno stato presente a uno stato assente
+	private:
+		std::deque< std::vector<Node> > _timeline;
 };
 
 #endif
