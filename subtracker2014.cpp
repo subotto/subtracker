@@ -690,7 +690,7 @@ void doIt(FrameReader& frameReader) {
 		int radiusX = local_maxima_min_distance / metrics.length * tableFrameSize.width;
 		int radiusY = local_maxima_min_distance / metrics.width * tableFrameSize.height;
 
-		logger(panel, "ball tracking", VERBOSE) << "radiusX: " << radiusX << " radiusY: " << radiusY << endl;
+		logger(panel, "ball tracking", DEBUG) << "LM radius x: " << radiusX << "LM radius y: " << radiusY << endl;
 
 		auto localMaxima = findLocalMaxima(density, radiusX, radiusY, local_maxima_limit);
 
