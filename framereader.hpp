@@ -35,6 +35,7 @@ class FrameReader {
 private:
 	deque<frame_info> queue;
 	deque<time_point<video_clock>> frame_times;
+	deque<time_point<video_clock>> frame_dropped;
 	mutex queue_mutex;
 	condition_variable queue_not_empty;
 	condition_variable queue_not_full;
@@ -113,6 +114,9 @@ public:
 				frame_times.pop_front();
 			}
 
+			while(frame_dropped.size()  && timestamp - frame_dropped.front() > frame_count_interval)
+				frame_dropped.pop_front();
+
 			if(now - last_stats > seconds(stats_interval)) {
 				logger(panel, "capture", INFO) << "queue size: " << queue.size() << endl;
 				logger(panel, "capture", INFO) <<
@@ -121,6 +125,10 @@ public:
 				logger(panel, "capture", INFO) <<
 						"processed " << enqueued_frames - queue.size() << " frames " <<
 						"in " << duration_cast<duration<float>>(now - video_start_time).count() << " seconds" << endl;
+				if(frame_dropped.size())
+					logger(panel, "capture", WARNING) << "dropped " <<
+						frame_dropped.size() << " in " <<
+						seconds(frame_count_interval).count() << " seconds." << endl;
 				last_stats = now;
 			}
 
@@ -147,7 +155,8 @@ public:
 				enqueued_frames++;
 			} else {
 				assert(can_drop_frames);
-				logger(panel, "capture", WARNING) << "frame dropped" << endl;
+				frame_dropped.push_back(timestamp);
+				logger(panel, "capture", DEBUG) << "frame dropped" << endl;
 			}
 		}
 	}
