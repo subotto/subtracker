@@ -15,5 +15,5 @@ do
     let i=$i+1
     echo "Avvio numero $i..."
     date
-    ./subtracker2014 $1 subotto/subotto.png subotto/subotto_feature_mask.png | pv -l | (cd web; ./insert.py)
+    ./subtracker2014 $1 subotto/subotto2014.png | pv -l -i 5 | (cd web; ./insert.py)
 done
