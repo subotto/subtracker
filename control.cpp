@@ -67,10 +67,6 @@ void dump_time(control_panel_t& panel, string category, string name) {
 	last_dump = now;
 }
 
-class null_ostream : ostream {
-
-};
-
 static string level_to_string(log_level_t level) {
 	switch(level) {
 	case DEBUG:
