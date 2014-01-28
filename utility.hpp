@@ -105,6 +105,4 @@ private:
 	Trackbar<float> bb, rr, gg, bg, gr, rb;
 };
 
-void dumpTime(std::string category, std::string what);
-
 #endif /* UTILITY_HPP_ */

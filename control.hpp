@@ -6,6 +6,7 @@
 #include <string>
 #include <iostream>
 #include <unordered_map>
+#include <chrono>
 
 struct show_params_t {
 	float contrast = 1.f;
@@ -28,11 +29,16 @@ struct toggle_status_t {
 	bool toggled[TOGGLABLE_END];
 };
 
+struct time_status_t {
+	std::chrono::time_point<std::chrono::high_resolution_clock> last_dump;
+};
+
 struct control_panel_t {
 	typedef std::unordered_map<std::string, show_status_t> show_status_by_name_t;
 
 	std::unordered_map<std::string, show_status_by_name_t> show_status;
 	std::unordered_map<std::string, toggle_status_t> toggle_status;
+	std::unordered_map<std::string, time_status_t> time_status;
 };
 
 void show(control_panel_t& panel, std::string category, std::string name, cv::Mat image, show_params_t params = show_params_t());

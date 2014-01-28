@@ -590,19 +590,23 @@ void doIt(FrameReader& frameReader) {
 			switch(c) {
 			case 'f':
 				toggle(panel, "frame", SHOW);
+				break;
+			case 'c':
+				toggle(panel, "cycle", TIME);
+				break;
 			}
 
-			dumpTime("cycle", "wait key");
+			dump_time(panel, "cycle", "wait key");
 		}
 
-		dumpTime("cycle", "start cycle");
+		dump_time(panel, "cycle", "start cycle");
 
 		auto frame_info = frameReader.get();
 		Mat frame = frame_info.data;
 
 		Mat table_transform = track_table(frame_info.data, table_tracking_status, table_tracking_params, panel);
 
-		dumpTime("cycle", "detect subotto");
+		dump_time(panel, "cycle", "detect subotto");
 
 		show(panel, "frame", "frame", frame);
 
@@ -614,14 +618,14 @@ void doIt(FrameReader& frameReader) {
 		getTableFrame(frame, tableFrame, tableFrameSize, table_transform);
 		Size size = tableFrame.size();
 
-		dumpTime("cycle", "warp table frame");
+		dump_time(panel, "cycle", "warp table frame");
 
 		startTableAnalysis(tableFrame, table, tableAnalysis);
 		computeFilteredDiff(tableAnalysis);
 		computeScatter(tableAnalysis);
 		computeNLL(table, tableAnalysis);
 
-		dumpTime("cycle", "table analysis");
+		dump_time(panel, "cycle", "table analysis");
 
 		startBallAnalysis(tableFrame, ball, ballAnalysis);
 		computeScatter(ballAnalysis);
@@ -629,7 +633,7 @@ void doIt(FrameReader& frameReader) {
 
 		computeDensity(tableAnalysis, ballAnalysis, density);
 
-		dumpTime("cycle", "ball analysis");
+		dump_time(panel, "cycle", "ball analysis");
 
 		updateMean(table, tableFrame);
 		updateVariance(table, tableAnalysis);
@@ -638,7 +642,7 @@ void doIt(FrameReader& frameReader) {
 			computeCorrectedVariance(table);
 		}
 
-		dumpTime("cycle", "update table description");
+		dump_time(panel, "cycle", "update table description");
 
 		setUpFoosmenMetrics();
 
@@ -665,7 +669,7 @@ void doIt(FrameReader& frameReader) {
 			}
 		}
 
-		dumpTime("cycle", "foosmen analysis");
+		dump_time(panel, "cycle", "foosmen analysis");
 
 		// Saving values for later...
 		if ( current_time >= timeline_span ) {
