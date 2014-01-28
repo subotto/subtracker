@@ -34,7 +34,18 @@ class BlobsTracker {
 		
 		BlobsTracker(control_panel_t& panel)
 			: _fps(120.0), _max_speed(18.0), _max_unseen_distance(0.3), _max_interpolation_time(1), _skip_parameter(-8), _variance_parameter(0.3), _absent_parameter(-15), _appearance_parameter(400.0), _disappearance_parameter(400.0), panel(panel)
-		{};
+		{
+			trackbar(panel, "ball tracking", "fps", _fps, {0, 100, 1});
+			trackbar(panel, "ball tracking", "max speed", _max_speed, {0., +100., 0.1});
+			trackbar(panel, "ball tracking", "max_unseen_distance", _max_unseen_distance, {0., 1., 0.01});
+			trackbar(panel, "ball tracking", "max_interpolation_time", _max_interpolation_time, {0., 10., 0.01});
+
+			trackbar(panel, "ball tracking", "skip parameter", _skip_parameter, {-100., +100., 0.1});
+			trackbar(panel, "ball tracking", "variance parameter", _variance_parameter, {0., 10., 0.01});
+			trackbar(panel, "ball tracking", "absent parameter", _absent_parameter, {-100., +100., 0.1});
+			trackbar(panel, "ball tracking", "appearance parameter", _appearance_parameter, {-1000., +1000., 0.1});
+			trackbar(panel, "ball tracking", "disappearance parameter", _disappearance_parameter, {-1000., +1000., 0.1});
+		};
 	
 		double _fps; // fotogrammi al secondo
 		double _max_speed; // massima velocita' (in m/s) perché il movimento sia considerato possibile

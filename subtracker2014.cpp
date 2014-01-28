@@ -88,17 +88,6 @@ control_panel_t panel;
 
 BlobsTracker blobs_tracker(panel);
 
-Trackbar<double> _fps("ball tracking", "_fps", &blobs_tracker._fps, 0, 100, 1);
-Trackbar<double> _max_speed("ball tracking", "_max_speed", &blobs_tracker._max_speed, 0., +100., 0.1);
-Trackbar<double> _max_unseen_distance("ball tracking", "_max_unseen_distance", &blobs_tracker._max_unseen_distance, 0., 1., 0.01);
-Trackbar<double> _max_interpolation_time("ball tracking", "_max_interpolation_time", &blobs_tracker._max_interpolation_time, 0., 10., 0.01);
-
-Trackbar<double> _skip_parameter("ball tracking", "_skip_parameter", &blobs_tracker._skip_parameter, -100., +100., 0.1);
-Trackbar<double> _variance_parameter("ball tracking", "_variance_parameter", &blobs_tracker._variance_parameter, 0., 10., 0.01);
-Trackbar<double> _absent_parameter("ball tracking", "_absent_parameter", &blobs_tracker._absent_parameter, -100., +100., 0.1);
-Trackbar<double> _appearance_parameter("ball tracking", "_appearance_parameter", &blobs_tracker._appearance_parameter, -1000., +1000., 0.1);
-Trackbar<double> _disappearance_parameter("ball tracking", "_disappearance_parameter", &blobs_tracker._disappearance_parameter, -1000., +1000., 0.1);
-
 float barx(int side, int bar, Size size, SubottoMetrics subottoMetrics, FoosmenMetrics foosmenMetrics) {
 	float flip = side ? +1 : -1;
 	float x = foosmenMetrics.barx[bar] * flip;
@@ -546,12 +535,20 @@ void doIt(FrameReader& frameReader) {
 				set_log_level(panel, "table detect", VERBOSE);
 				toggle(panel, "table detect", TRACKBAR, true);
 				break;
+			case 'b':
+				set_log_level(panel, "ball tracking", VERBOSE);
+				toggle(panel, "ball tracking", TRACKBAR, true);
+				break;
 			case 'd':
 				debug = !debug;
 				break;
 			case ' ':
 				set_log_level(panel, "table detect", WARNING);
+				set_log_level(panel, "ball tracking", WARNING);
+
 				toggle(panel, "table detect", TRACKBAR, false);
+				toggle(panel, "ball tracking", TRACKBAR, false);
+
 				toggle(panel, "frame", SHOW, false);
 				toggle(panel, "cycle", TIME, false);
 				break;
@@ -670,7 +667,8 @@ void doIt(FrameReader& frameReader) {
 			blobs.push_back( Blob(localMaxima[i].first, 0.0, 0.0, localMaxima[i].second) );
 		}
 
-		logger(panel, "ball tracking", VERBOSE) << "Inserting frame " << current_time << " in timeline" << endl;
+		if(is_loggable(panel, "ball tracking", DEBUG))
+			logger(panel, "ball tracking", DEBUG) << "Inserting frame " << current_time << " in timeline" << endl;
 
 		blobs_tracker.InsertFrameInTimeline(blobs, current_time);
 		

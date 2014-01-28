@@ -42,6 +42,9 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 	double min_badness = INFTY;
 	Node *best_node = NULL;
 	
+	bool verbose = is_loggable(panel, "ball tracking", VERBOSE);
+	bool debug = is_loggable(panel, "ball tracking", DEBUG);
+
 	for (int i=0; i<_timeline.size(); i++) {
 		for (int k=0; k<_timeline[i].size(); k++) {
 			
@@ -90,7 +93,8 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 						// Transizione da presente a presente
 						
 						delta_badness += - new_node.blob.weight;
-						logger(panel, "ball tracking", DEBUG) << "WEIGHT: " << new_node.blob.weight << endl;
+
+						if(debug) logger(panel, "ball tracking", DEBUG) << "WEIGHT: " << new_node.blob.weight << endl;
 					
 						// Località spaziale
 						Point2f new_center = old_node.blob.center;
@@ -105,7 +109,7 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 						double time_diff = interval / _fps;
 						delta_badness += distance * distance / ( time_diff * _variance_parameter );
 
-						logger(panel, "ball tracking", DEBUG) << "DELTA BADNESS: " << delta_badness << endl;
+						if(debug) logger(panel, "ball tracking", DEBUG) << "DELTA BADNESS: " << delta_badness << endl;
 					}
 					
 					// Calcolo la nuova badness, e aggiorno se è minore della minima finora trovata
@@ -149,20 +153,20 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 	vector<Point2f> positions;
 	Point2f position;
 	
-	logger(panel, "ball tracking", VERBOSE) << "Badness: " << min_badness << endl;
+	if(verbose) logger(panel, "ball tracking", VERBOSE) << "Badness: " << min_badness << endl;
 	
 	for (int i=begin_time; i<end_time; i++) {
 		
 		// Cerco la miglior posizione prevista per il frame i
 		Node *node = best_node;
 		if ( node == NULL ) {
-			logger(panel, "ball tracking", VERBOSE) << "Frame " << i <<
+			if(verbose) logger(panel, "ball tracking", VERBOSE) << "Frame " << i <<
 					"no ball found (no path)" << endl;
 			positions.push_back(NISBA);
 			continue;
 		}
 		if ( node->time < i ) {
-			logger(panel, "ball tracking", VERBOSE) << "Frame " << i <<
+			if(verbose) logger(panel, "ball tracking", VERBOSE) << "Frame " << i <<
 					"no ball found (path does not pass through current frame)" << endl;
 			positions.push_back(NISBA);
 			continue;
@@ -236,7 +240,7 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 		// End smoothing
 		
 		if ( lower == NULL || greater == NULL ) {
-			logger(panel, "ball tracking", VERBOSE) << "Frame " << i <<
+			if(verbose) logger(panel, "ball tracking", VERBOSE) << "Frame " << i <<
 					"no ball found (path does not pass through current frame - lower == NULL || greater == NULL)" << endl;
 			positions.push_back(NISBA);
 			continue;
@@ -250,7 +254,7 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 			
 			if ( greater->is_absent ) {
 				// Nel fotogramma in questione la pallina e' stata valutata assente
-				logger(panel, "ball tracking", VERBOSE) << "Frame " << i <<
+				if(verbose) logger(panel, "ball tracking", VERBOSE) << "Frame " << i <<
 						"no ball found (ball claimed to be absent)" << endl;
 				positions.push_back(NISBA);
 				continue;
@@ -259,7 +263,7 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 				// Nel fotogramma in questione la pallina e' stata valutata presente
 				// position = greater->blob.center;
 				position = smoothed;	// Metto il valore smoothed
-				logger(panel, "ball tracking", VERBOSE) << "Frame " << i <<
+				if(verbose) logger(panel, "ball tracking", VERBOSE) << "Frame " << i <<
 						"ball found (exact location: " << position << ")" << endl;
 				positions.push_back( Point2f(position) );
 				continue;
@@ -272,7 +276,7 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 	
 		if ( (double)(max( pre_diff, post_diff )) > _max_interpolation_time * _fps ) {
 			// Se è richiesta la posizione in un frame molto lontano da quelli in cui passa il percorso, restituisco NISBA.
-			logger(panel, "ball tracking", VERBOSE) << "Frame " << i <<
+			if(verbose) logger(panel, "ball tracking", VERBOSE) << "Frame " << i <<
 					"no ball found (interpolation not reliable)" << endl;
 			positions.push_back(NISBA);
 			continue;
@@ -283,7 +287,7 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 	
 		// position = ( greater_center*(i - lower->time) + lower_center*(greater->time - i) ) * ( 1.0/(greater->time - lower->time) );
 		position = smoothed;	// Metto il valore smoothed
-		logger(panel, "ball tracking", VERBOSE) << "Frame " << i <<
+		if(verbose) logger(panel, "ball tracking", VERBOSE) << "Frame " << i <<
 				"ball found (estimated location: " << position << ")" << endl;
 		positions.push_back( Point2f(position) );
 	}
