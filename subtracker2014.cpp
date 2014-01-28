@@ -518,6 +518,16 @@ void doIt(FrameReader& frameReader) {
 	trackbar(panel, "ball tracking", "local_maxima limit", local_maxima_limit, {0, 1000, 1});
 	trackbar(panel, "ball tracking", "local maxima min distance", local_maxima_min_distance, {0, 200, 0.1f});
 
+	trackbar(panel, "foosmen metrics", "goalkeeper x", foosmenMetrics.barx[GOALKEEPER], {-2.f, 2.f, 0.001f});
+	trackbar(panel, "foosmen metrics", "rod 2 x", foosmenMetrics.barx[BAR2], {-2.f, 2.f, 0.001f});
+	trackbar(panel, "foosmen metrics", "rod 5 x", foosmenMetrics.barx[BAR5], {-2.f, 2.f, 0.001f});
+	trackbar(panel, "foosmen metrics", "rod 3 x", foosmenMetrics.barx[BAR3], {-2.f, 2.f, 0.001f});
+
+	trackbar(panel, "foosmen metrics", "goalkeeper gap", foosmenMetrics.distance[GOALKEEPER], {0.f, 2.f, 0.001f});
+	trackbar(panel, "foosmen metrics", "rod 2 gap", foosmenMetrics.distance[BAR2], {0.f, 2.f, 0.001f});
+	trackbar(panel, "foosmen metrics", "rod 5 gap", foosmenMetrics.distance[BAR5], {0.f, 2.f, 0.001f});
+	trackbar(panel, "foosmen metrics", "rod 3 gap", foosmenMetrics.distance[BAR3], {0.f, 2.f, 0.001f});
+
 	vector<Point2f> previous_positions;
 	int previous_positions_start_time;
 	vector<Mat> previous_frames;
@@ -632,16 +642,6 @@ void doIt(FrameReader& frameReader) {
 		}
 
 		dump_time(panel, "cycle", "update table description");
-
-		trackbar(panel, "foosmen metrics", "goalkeeper x", foosmenMetrics.barx[GOALKEEPER], {-2.f, 2.f, 0.001f});
-		trackbar(panel, "foosmen metrics", "rod 2 x", foosmenMetrics.barx[BAR2], {-2.f, 2.f, 0.001f});
-		trackbar(panel, "foosmen metrics", "rod 5 x", foosmenMetrics.barx[BAR5], {-2.f, 2.f, 0.001f});
-		trackbar(panel, "foosmen metrics", "rod 3 x", foosmenMetrics.barx[BAR3], {-2.f, 2.f, 0.001f});
-
-		trackbar(panel, "foosmen metrics", "goalkeeper gap", foosmenMetrics.distance[GOALKEEPER], {0.f, 2.f, 0.001f});
-		trackbar(panel, "foosmen metrics", "rod 2 gap", foosmenMetrics.distance[BAR2], {0.f, 2.f, 0.001f});
-		trackbar(panel, "foosmen metrics", "rod 5 gap", foosmenMetrics.distance[BAR5], {0.f, 2.f, 0.001f});
-		trackbar(panel, "foosmen metrics", "rod 3 gap", foosmenMetrics.distance[BAR3], {0.f, 2.f, 0.001f});
 
 		for(int side = 0; side < 2; side++) {
 			for(int bar = 0; bar < BARS; bar++) {
