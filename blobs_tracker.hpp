@@ -2,6 +2,7 @@
 #define __BLOBS_TRACKER_H_
 
 #include "blobs_finder.hpp"
+#include "control.hpp"
 
 #include <vector>
 #include <deque>
@@ -28,11 +29,11 @@ class Node {
 class BlobsTracker {
 	public:
 		void InsertFrameInTimeline(std::vector<Blob> blobs, int time);
-		std::vector<cv::Point2f> ProcessFrames(int initial_time, int begin_time, int end_time, bool debug);
+		std::vector<cv::Point2f> ProcessFrames(int initial_time, int begin_time, int end_time);
 		void PopFrameFromTimeline();
 		
-		BlobsTracker()
-			: _fps(120.0), _max_speed(18.0), _max_unseen_distance(0.3), _max_interpolation_time(1), _skip_parameter(-8), _variance_parameter(0.3), _absent_parameter(-15), _appearance_parameter(400.0), _disappearance_parameter(400.0)
+		BlobsTracker(control_panel_t& panel)
+			: _fps(120.0), _max_speed(18.0), _max_unseen_distance(0.3), _max_interpolation_time(1), _skip_parameter(-8), _variance_parameter(0.3), _absent_parameter(-15), _appearance_parameter(400.0), _disappearance_parameter(400.0), panel(panel)
 		{};
 	
 		double _fps; // fotogrammi al secondo
@@ -47,6 +48,8 @@ class BlobsTracker {
 		double _disappearance_parameter; // costo (in badness) per passare da uno stato presente a uno stato assente
 	private:
 		std::deque< std::vector<Node> > _timeline;
+		control_panel_t& panel;
+
 };
 
 #endif

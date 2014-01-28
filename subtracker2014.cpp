@@ -84,7 +84,9 @@ Trackbar<float> reference_height_trackbar("reference", "height", &reference.metr
 Trackbar<float> reference_offset_x_trackbar("reference", "x", &reference.metrics.offset.x, -0.1f, +0.1f, 0.001f);
 Trackbar<float> reference_offset_y_trackbar("reference", "y", &reference.metrics.offset.y, -0.1f, +0.1f, 0.001f);
 
-BlobsTracker blobs_tracker;
+control_panel_t panel;
+
+BlobsTracker blobs_tracker(panel);
 
 Trackbar<double> _fps("ball tracking", "_fps", &blobs_tracker._fps, 0, 100, 1);
 Trackbar<double> _max_speed("ball tracking", "_max_speed", &blobs_tracker._max_speed, 0., +100., 0.1);
@@ -476,7 +478,7 @@ vector<pair<Point2f, float>> findLocalMaxima(Mat density, int radiusX, int radiu
 	return results;
 }
 
-void doIt(FrameReader& frameReader, control_panel_t& panel) {
+void doIt(FrameReader& frameReader) {
 	Mat trajReprAvg;
 
 	bool play = true;
@@ -683,7 +685,7 @@ void doIt(FrameReader& frameReader, control_panel_t& panel) {
 
 			// Il processing vero e proprio avviene solo ogni k fotogrammi (k=processed_frames)
 			if ( initial_time % processed_frames == 0 ) {
-				vector<Point2f> positions = blobs_tracker.ProcessFrames( initial_time, processed_time, processed_time + processed_frames, debug );
+				vector<Point2f> positions = blobs_tracker.ProcessFrames( initial_time, processed_time, processed_time + processed_frames );
 
 				for (int i=0; i<positions.size(); i++) {
 					int frame_id = processed_time + i;
@@ -787,12 +789,11 @@ int main(int argc, char* argv[]) {
 		reference.mask = imread(referenceImageMaskName, CV_LOAD_IMAGE_GRAYSCALE);
 	}
 
-	control_panel_t panel;
 	init_control_panel(panel);
 
 	if(videoName.size() == 1) {
 		FrameReader f(videoName[0] - '0', panel);
-		doIt(f, panel);
+		doIt(f);
 	} else {
 		bool simulate_live = false;
 
@@ -802,7 +803,7 @@ int main(int argc, char* argv[]) {
 		}
 
 		FrameReader f(videoName.c_str(), panel, simulate_live);
-		doIt(f, panel);
+		doIt(f);
 	}
 
 	return 0;
