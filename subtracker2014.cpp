@@ -511,8 +511,8 @@ void doIt(FrameReader& frameReader) {
 	color_qf_picker(panel, "foosmen colors", "red color precision", foosmen_params.color_precision[0]);
 	color_qf_picker(panel, "foosmen colors", "blue color precision", foosmen_params.color_precision[1]);
 
-	trackbar(panel, "reference metrics", "width", reference.metrics.frameSize.width, {0.f, 5.f, 0.01f});
-	trackbar(panel, "reference metrics", "height", reference.metrics.frameSize.height, {0.f, 5.f, 0.01f});
+	trackbar(panel, "reference metrics", "width", reference.metrics.frameSize.width, {-5.f, 5.f, 0.001f});
+	trackbar(panel, "reference metrics", "height", reference.metrics.frameSize.height, {-5.f, 5.f, 0.001f});
 
 	trackbar(panel, "reference metrics", "x", reference.metrics.offset.x, {-0.1f, +0.1f, 0.001f});
 	trackbar(panel, "reference metrics", "y", reference.metrics.offset.y, {-0.1f, +0.1f, 0.001f});
