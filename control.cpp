@@ -18,7 +18,7 @@ void init_control_panel(control_panel_t& panel) {
 }
 
 bool will_show(control_panel_t& panel, string category, string name) {
-	return is_toggled(panel, category, SHOW);
+	return panel.update_display && is_toggled(panel, category, SHOW);
 }
 
 static void update_show(control_panel_t& panel, string category, string name) {

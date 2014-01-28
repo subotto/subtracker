@@ -522,13 +522,21 @@ void doIt(FrameReader& frameReader) {
 	int previous_positions_start_time;
 	vector<Mat> previous_frames;
 
-	namedWindow("control panel", WINDOW_NORMAL);
+	int wait_key_skip = 5;
 
+	trackbar(panel, "control panel", "update display skip frames", wait_key_skip, {0, 20, 1});
 	for (int i = 0; ; i++) {
-		if (true) {
+		namedWindow("control panel", WINDOW_NORMAL);
+
+		panel.update_display = (i % (wait_key_skip + 1) == 0);
+
+		if (panel.update_display) {
 			int c = waitKey(1);
 
 			switch(c) {
+			case 'p':
+				toggle(panel, "control panel", TRACKBAR);
+				break;
 			case 'f':
 				toggle(panel, "frame", SHOW);
 				break;
@@ -573,6 +581,7 @@ void doIt(FrameReader& frameReader) {
 
 				toggle(panel, "frame", SHOW, false);
 				toggle(panel, "cycle", TIME, false);
+				toggle(panel, "control panel", TRACKBAR, false);
 				break;
 			}
 

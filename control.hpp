@@ -97,6 +97,8 @@ struct control_panel_t {
 	std::unordered_map<std::string, toggle_status_t> toggle_status;
 	std::unordered_map<std::string, time_status_t> time_status;
 	std::unordered_map<std::string, log_status_t> log_status;
+
+	bool update_display;
 };
 
 void init_control_panel(control_panel_t& panel);
