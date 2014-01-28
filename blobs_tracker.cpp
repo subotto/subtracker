@@ -289,7 +289,7 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 		// position = ( greater_center*(i - lower->time) + lower_center*(greater->time - i) ) * ( 1.0/(greater->time - lower->time) );
 		position = smoothed;	// Metto il valore smoothed
 		if(verbose) logger(panel, "ball tracking", VERBOSE) << "Frame " << i <<
-				"ball FOUND (estimated location: " << position << ")" << endl;
+				" ball FOUND (estimated location: " << position << ")" << endl;
 		positions.push_back( Point2f(position) );
 	}
 	
