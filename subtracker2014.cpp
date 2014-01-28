@@ -544,6 +544,9 @@ void doIt(FrameReader& frameReader) {
 			int c = waitKey(1);
 
 			switch(c) {
+			case 'r':
+				set_log_level(panel, "capture", VERBOSE);
+				break;
 			case 'p':
 				toggle(panel, "control panel", TRACKBAR);
 				break;
