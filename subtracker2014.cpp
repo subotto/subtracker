@@ -491,7 +491,7 @@ void doIt(FrameReader& frameReader) {
 	foosmen_params_t foosmen_params;
 
 	int local_maxima_limit = 5;
-	float local_maxima_min_distance = 10.f;
+	float local_maxima_min_distance = 0.10f;
 
 	trackbar(panel, "foosmen tracking", "rot factor", foosmen_params.nll_threshold, {0.f, 10.f, 0.1});
 
@@ -526,11 +526,11 @@ void doIt(FrameReader& frameReader) {
 
 	trackbar(panel, "control panel", "update display skip frames", wait_key_skip, {0, 20, 1});
 	for (int i = 0; ; i++) {
-		namedWindow("control panel", WINDOW_NORMAL);
-
 		panel.update_display = (i % (wait_key_skip + 1) == 0);
 
 		if (panel.update_display) {
+			namedWindow("control panel", WINDOW_NORMAL);
+
 			int c = waitKey(1);
 
 			switch(c) {
@@ -690,7 +690,11 @@ void doIt(FrameReader& frameReader) {
 		int radiusX = local_maxima_min_distance / metrics.length * tableFrameSize.width;
 		int radiusY = local_maxima_min_distance / metrics.width * tableFrameSize.height;
 
+		logger(panel, "ball tracking", VERBOSE) << "radiusX: " << radiusX << " radiusY: " << radiusY << endl;
+
 		auto localMaxima = findLocalMaxima(density, radiusX, radiusY, local_maxima_limit);
+
+		dump_time(panel, "cycle", "find local maxima");
 
 		// Cambio le unità di misura secondo le costanti in SubottoMetrics
 		SubottoMetrics metrics;
@@ -766,6 +770,8 @@ void doIt(FrameReader& frameReader) {
 
 		current_time++;
 
+		dump_time(panel, "cycle", "blobs tracking");
+
 		int relative_time = current_time - previous_positions_start_time;
 
 		if (will_show(panel, "ball tracking", "ball") &&
@@ -784,6 +790,8 @@ void doIt(FrameReader& frameReader) {
 			circle( display, ball, 8, Scalar(0,255,0), 2 );
 
 			show(panel, "ball tracking", "ball", display);
+
+			dump_time(panel, "cycle", "display ball");
 		}
 	}
 }
