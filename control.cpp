@@ -7,10 +7,15 @@
 
 #include <iostream>
 #include <iomanip>
+#include <fstream>
 
 using namespace cv;
 using namespace std;
 using namespace chrono;
+
+void init_control_panel(control_panel_t& panel) {
+	set_log_level(panel, "control panel", INFO);
+}
 
 bool will_show(control_panel_t& panel, string category, string name) {
 	return is_toggled(panel, category, SHOW);
@@ -62,12 +67,67 @@ void dump_time(control_panel_t& panel, string category, string name) {
 	last_dump = now;
 }
 
-ostream& logger(control_panel_t& panel, string category, log_level_t level) {
+class null_ostream : ostream {
 
+};
+
+static string level_to_string(log_level_t level) {
+	switch(level) {
+	case DEBUG:
+		return "DEBUG";
+	case VERBOSE:
+		return "VERBOSE";
+	case INFO:
+		return "INFO";
+	case WARNING:
+		return "WARNING";
+	case ERROR:
+		return "ERROR";
+	case CRITICAL:
+		return "CRITICAL";
+	}
+}
+
+ostream& logger(control_panel_t& panel, string category, log_level_t level) {
+	static ofstream cnull("/dev/null"); // FIXME: its ugly
+
+	auto now = system_clock::now();
+	auto now_time = system_clock::to_time_t(now);
+
+	const int max_size = 100;
+	char s[max_size];
+	strftime(s, max_size, "%d %b %Y %T", localtime(&now_time));
+
+	if(is_loggable(panel, category, level)) {
+		return cerr << s << " - " << level_to_string(level) << " - " << category << ": ";
+	} else {
+		return cnull;
+	}
+}
+
+void set_log_level(control_panel_t& panel, std::string category, log_level_t level) {
+	panel.log_status[category].level = level;
+
+	logger(panel, "control panel", INFO) << "log level for " << category << " set to: " << level_to_string(level) << endl;
+}
+
+bool is_loggable(control_panel_t& panel, std::string category, log_level_t level) {
+	return level >= panel.log_status[category].level;
+}
+
+static string togglable_to_string(togglable_t toggable) {
+	switch(toggable) {
+	case SHOW:
+		return "show";
+	case TRACKBAR:
+		return "trackbar";
+	case TIME:
+		return "time";
+	}
 }
 
 void toggle(control_panel_t& panel, string category, togglable_t togglable, int status) {
-	bool& toggled = panel.toggle_status[category].toggled[togglable];
+	auto& toggled = panel.toggle_status[category].toggled[togglable];
 
 	if (status == TOGGLE) {
 		toggled = !toggled;
@@ -75,13 +135,16 @@ void toggle(control_panel_t& panel, string category, togglable_t togglable, int 
 		toggled = status;
 	}
 
+	logger(panel, "control panel", INFO) <<
+			(toggled ? "enabled" : "disabled") << " " << category << " " << togglable_to_string(togglable) << endl;
+
 	for(auto entry : panel.show_status[category]) {
 		update_show(panel, category, entry.first);
 	}
 }
 
 bool is_toggled(control_panel_t& panel, string category, togglable_t togglable) {
-	bool& toggled = panel.toggle_status[category].toggled[togglable];
+	auto& toggled = panel.toggle_status[category].toggled[togglable];
 
 	return toggled;
 }

@@ -520,9 +520,7 @@ vector<pair<Point2f, float>> findLocalMaxima(Mat density, int radiusX, int radiu
 	return results;
 }
 
-void doIt(FrameReader& frameReader) {
-	control_panel_t panel;
-
+void doIt(FrameReader& frameReader, control_panel_t& panel) {
 	Mat trajReprAvg;
 
 	bool play = true;
@@ -577,15 +575,7 @@ void doIt(FrameReader& frameReader) {
 
 	for (int i = 0; ; i++) {
 		if (true) {
-			int c = waitKey(play);
-
-			if (c == ' ') {
-				play = !play;
-			}
-
-			if (c == 'd') {
-				debug = !debug;
-			}
+			int c = waitKey(1);
 
 			switch(c) {
 			case 'f':
@@ -593,6 +583,17 @@ void doIt(FrameReader& frameReader) {
 				break;
 			case 'c':
 				toggle(panel, "cycle", TIME);
+				break;
+			case 's':
+				set_log_level(panel, "table detect", VERBOSE);
+				break;
+			case 'd':
+				debug = !debug;
+				break;
+			case ' ':
+				set_log_level(panel, "table detect", WARNING);
+				toggle(panel, "frame", SHOW, false);
+				toggle(panel, "cycle", TIME, false);
 				break;
 			}
 
@@ -708,7 +709,9 @@ void doIt(FrameReader& frameReader) {
 		for (int i=0; i<localMaxima.size(); i++) {
 			blobs.push_back( Blob(localMaxima[i].first, 0.0, 0.0, localMaxima[i].second) );
 		}
-		if (debug) fprintf(stderr, "Inserting frame %d in timeline.\n", current_time);
+
+		logger(panel, "ball tracking", VERBOSE) << "Inserting frame " << current_time << " in timeline" << endl;
+
 		blobs_tracker.InsertFrameInTimeline(blobs, current_time);
 		
 		// Metto da parte il frame per l'eventuale visualizzazione
@@ -826,9 +829,12 @@ int main(int argc, char* argv[]) {
 		reference.mask = imread(referenceImageMaskName, CV_LOAD_IMAGE_GRAYSCALE);
 	}
 
+	control_panel_t panel;
+	init_control_panel(panel);
+
 	if(videoName.size() == 1) {
-		FrameReader f(videoName[0] - '0');
-		doIt(f);
+		FrameReader f(videoName[0] - '0', panel);
+		doIt(f, panel);
 	} else {
 		bool simulate_live = false;
 
@@ -837,8 +843,8 @@ int main(int argc, char* argv[]) {
 			simulate_live = true;
 		}
 
-		FrameReader f(videoName.c_str(), simulate_live);
-		doIt(f);
+		FrameReader f(videoName.c_str(), panel, simulate_live);
+		doIt(f, panel);
 	}
 
 	return 0;

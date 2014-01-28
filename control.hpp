@@ -7,6 +7,7 @@
 #include <iostream>
 #include <unordered_map>
 #include <chrono>
+#include <atomic>
 
 struct show_params_t {
 	float contrast = 1.f;
@@ -26,11 +27,24 @@ enum togglable_t {
 };
 
 struct toggle_status_t {
-	bool toggled[TOGGLABLE_END];
+	std::atomic<bool> toggled[TOGGLABLE_END];
 };
 
 struct time_status_t {
 	std::chrono::time_point<std::chrono::high_resolution_clock> last_dump;
+};
+
+enum log_level_t {
+	DEBUG,
+	VERBOSE,
+	INFO,
+	WARNING,
+	ERROR,
+	CRITICAL
+};
+
+struct log_status_t {
+	std::atomic<log_level_t> level {WARNING};
 };
 
 struct control_panel_t {
@@ -39,7 +53,10 @@ struct control_panel_t {
 	std::unordered_map<std::string, show_status_by_name_t> show_status;
 	std::unordered_map<std::string, toggle_status_t> toggle_status;
 	std::unordered_map<std::string, time_status_t> time_status;
+	std::unordered_map<std::string, log_status_t> log_status;
 };
+
+void init_control_panel(control_panel_t& panel);
 
 void show(control_panel_t& panel, std::string category, std::string name, cv::Mat image, show_params_t params = show_params_t());
 
@@ -57,16 +74,11 @@ void trackbar(control_panel_t& panel, std::string category, std::string name, T&
 
 void dump_time(control_panel_t& panel, std::string category, std::string name);
 
-enum log_level_t {
-	DEBUG,
-	VERBOSE,
-	INFO,
-	WARNING,
-	ERROR,
-	CRITICAL
-};
-
 std::ostream& logger(control_panel_t& panel, std::string category, log_level_t level = INFO);
+
+bool is_loggable(control_panel_t& panel, std::string category, log_level_t level = INFO);
+
+void set_log_level(control_panel_t& panel, std::string category, log_level_t level);
 
 enum {
 	TOGGLE = -1

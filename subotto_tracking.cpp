@@ -59,7 +59,7 @@ Mat detect_table(Mat frame, table_detection_params_t params, control_panel_t& pa
 	BFMatcher dm;
 	dm.knnMatch(reference_features_descriptions, frame_features_descriptions, matches_groups, params.features_knn, Mat());
 
-	{
+	if(will_show(panel, "table detect", "matches")) {
 		Mat matches;
 		drawMatches(reference_image, reference_features, frame, frame_features, matches_groups, matches);
 		show(panel, "table detect", "matches", matches);
@@ -77,12 +77,26 @@ Mat detect_table(Mat frame, table_detection_params_t params, control_panel_t& pa
 		}
 	}
 
-	RansacParams ransac_params(6, params.coarse_ransac_threshold, params.coarse_ransac_outliers_ratio, 0.99f);
-	float rmse;
-	int ninliers;
-	Mat coarse_transform = estimateGlobalMotionRobust(coarse_from, coarse_to, LINEAR_SIMILARITY, ransac_params, &rmse, &ninliers);
+	logger(panel, "table detect", INFO) <<
+			"reference features: " << reference_features.size() <<
+			" frame features: " << frame_features.size() <<
+			" matches: " << coarse_from.size() << endl;
 
-	cerr << "subotto detect - rmse: " << rmse << " inliers: " << ninliers << "/" << coarse_from.size() << endl;
+	Mat coarse_transform;
+	if(coarse_from.size() < 6) {
+		coarse_transform = Mat::eye(3, 3, CV_32F);
+		logger(panel, "table detect", WARNING) << "phase 1 motion estimation - not enough features!" << endl;
+	} else {
+		RansacParams ransac_params(6, params.coarse_ransac_threshold, params.coarse_ransac_outliers_ratio, 0.99f);
+		float rmse;
+		int ninliers;
+		coarse_transform = estimateGlobalMotionRobust(coarse_from, coarse_to, LINEAR_SIMILARITY, ransac_params, &rmse, &ninliers);
+
+		logger(panel, "table detect", INFO) <<
+				"phase 1 motion estimation - rmse: " << rmse <<
+				" inliers: " << ninliers << "/" << coarse_from.size() << endl;
+
+	}
 
 	Mat warped;
 	warpPerspective(frame, warped, coarse_transform, reference_image.size(), WARP_INVERSE_MAP | INTER_LINEAR);
@@ -104,24 +118,30 @@ Mat detect_table(Mat frame, table_detection_params_t params, control_panel_t& pa
 		optical_flow_from.push_back(kp.pt);
 	}
 
-	if (!optical_flow_features.empty()) {
-		ofe.run(reference_image, warped, optical_flow_from, optical_flow_to, status, noArray());
-	}
-
 	vector<Point2f> good_optical_flow_from, good_optical_flow_to;
 
-	for (int i = 0; i < optical_flow_from.size(); i++) {
-		if (!status[i]) {
-			continue;
+	if (!optical_flow_features.empty()) {
+		ofe.run(reference_image, warped, optical_flow_from, optical_flow_to, status, noArray());
+
+		for (int i = 0; i < optical_flow_from.size(); i++) {
+			if (!status[i]) {
+				continue;
+			}
+
+			good_optical_flow_from.push_back(optical_flow_from[i]);
+			good_optical_flow_to.push_back(optical_flow_to[i]);
 		}
 
-		good_optical_flow_from.push_back(optical_flow_from[i]);
-		good_optical_flow_to.push_back(optical_flow_to[i]);
+		logger(panel, "table detect", INFO) <<
+				"detection optical flow features: " << good_optical_flow_from.size() << "/" << optical_flow_from.size() << endl;
+	} else {
+		logger(panel, "table detect", WARNING) << "detection optical flow - no features!" << endl;
 	}
 
 	Mat flow_correction;
 	if (good_optical_flow_from.size() < 6) {
 		flow_correction = Mat::eye(3, 3, CV_32F);
+		logger(panel, "table detect", WARNING) << "detection optical flow - not enough features for flow correction!" << endl;
 	} else {
 		findHomography(good_optical_flow_from, good_optical_flow_to, RANSAC, params.optical_flow_ransac_threshold).convertTo(
 				flow_correction, CV_32F);

@@ -9,6 +9,7 @@
 #include <condition_variable>
 #include <chrono>
 #include "v4l2cap.hpp"
+#include "control.hpp"
 
 using namespace std;
 using namespace chrono;
@@ -48,8 +49,11 @@ private:
 	bool rate_limited = false;
 	bool can_drop_frames = false;
 
+	control_panel_t& panel;
+
 public:
-	FrameReader(int device) {
+	FrameReader(int device, control_panel_t& panel)
+	: panel(panel) {
 		running = true;
 		count = 0;
 		last_stats = high_resolution_clock::now();
@@ -58,7 +62,8 @@ public:
 		video_start_time = system_clock::now();
 	}
 
-	FrameReader(const char* file, bool simulate_live = false) {
+	FrameReader(const char* file, control_panel_t& panel, bool simulate_live = false)
+	: panel(panel) {
 		running = true;
 		count = 0;
 		last_stats = high_resolution_clock::now();
@@ -85,10 +90,10 @@ public:
 			Mat frame;
 			if(!cap.read(frame)) {
 				if(fromFile) {
-					fprintf(stderr, "Video ended.\n");
+					logger(panel, "capture", INFO) << "Video ended." << endl;
 					exit(0);
 				} else {
-					fprintf(stderr, "Error reading frame!\n");
+					logger(panel, "capture", ERROR) << "Error reading frame!" << endl;
 					continue;
 				}
 			}
@@ -109,14 +114,13 @@ public:
 			}
 
 			if(now - last_stats > seconds(stats_interval)) {
-				fprintf(stderr, "Queue size: %lu\n",
-					(long unsigned)queue.size());
-				fprintf(stderr, "Received %lu frames in the last %lu seconds.\n",
-					(long unsigned) frame_times.size(),
-					(long unsigned) seconds(frame_count_interval).count());
-				fprintf(stderr, "Processed %lu frames in %.3f seconds\n",
-					(long unsigned) (enqueued_frames - queue.size()),
-					float(duration_cast<duration<float>>(now - video_start_time).count()));
+				logger(panel, "capture", INFO) << "queue size: " << queue.size() << endl;
+				logger(panel, "capture", INFO) <<
+						"received " << frame_times.size() << " frames " <<
+						"in " << seconds(frame_count_interval).count() << " seconds" << endl;
+				logger(panel, "capture", INFO) <<
+						"processed " << enqueued_frames - queue.size() << " frames " <<
+						"in " << duration_cast<duration<float>>(now - video_start_time).count() << " seconds" << endl;
 				last_stats = now;
 			}
 
@@ -124,6 +128,7 @@ public:
 			if (!can_drop_frames) {
 				while (queue.size() >= buffer_size) {
 					queue_not_full.wait(lock);
+					logger(panel, "capture", INFO) << "queue is full, waiting" << endl;
 				}
 			}
 
@@ -142,7 +147,7 @@ public:
 				enqueued_frames++;
 			} else {
 				assert(can_drop_frames);
-				fprintf(stderr, "Frame dropped!\n");
+				logger(panel, "capture", WARNING) << "frame dropped" << endl;
 			}
 		}
 	}
