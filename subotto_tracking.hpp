@@ -56,6 +56,9 @@ struct table_tracking_params_t {
 struct table_tracking_status_t {
 	cv::Mat near_transform;
 	int frames_to_next_detection;
+
+	cv::Mat scaled_reference;
+	std::vector<cv::KeyPoint> reference_features;
 };
 
 struct table_tracking_t {
@@ -65,7 +68,7 @@ struct table_tracking_t {
 };
 
 Mat detect_table(Mat frame, table_detection_params_t& params, control_panel_t& panel);
-Mat follow_table(Mat frame, Mat previous_transform, table_following_params_t& params, control_panel_t& panel);
+Mat follow_table(Mat frame, Mat previous_transform, table_following_params_t& params, table_tracking_status_t& status, control_panel_t& panel);
 
 void init_table_tracking(table_tracking_status_t& status, table_tracking_params_t& params, control_panel_t& panel);
 Mat track_table(Mat frame, table_tracking_status_t& status, table_tracking_params_t& params, control_panel_t& panel);
