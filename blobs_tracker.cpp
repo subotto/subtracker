@@ -195,6 +195,7 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 		double total_weight = 0.0;
 		
 		double sigma = 0.02 * _fps;
+		double sigma0 = 0.02;
 		
 		n = greater;
 		if ( lower == greater ) n = n->next;
@@ -202,7 +203,7 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 			if ( n == NULL || n->is_absent ) break;
 			
 			double d = i - n->time;
-			double w = exp( - abs(d) / (2*sigma*sigma) );
+			double w = 1. / (sigma * abs(d) + sigma0);
 			
 			smoothed += n->blob.center * w;
 			total_weight += w;
@@ -216,7 +217,7 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 			if ( n == NULL || n->is_absent ) break;
 			
 			double d = i - n->time;
-			double w = exp( - abs(d) / (2*sigma*sigma) );
+			double w = 1. / (sigma * abs(d) + sigma0);
 			
 			smoothed += n->blob.center * w;
 			total_weight += w;
@@ -229,7 +230,7 @@ vector<Point2f> BlobsTracker::ProcessFrames(int initial_time, int begin_time, in
 			// Conto il punto i
 			
 			double d = 0.0;
-			double w = exp( - abs(d) / (2*sigma*sigma) );
+			double w = 1. / (sigma * abs(d) + sigma0);
 			
 			smoothed += n->blob.center * w;
 			total_weight += w;

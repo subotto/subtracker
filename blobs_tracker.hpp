@@ -33,7 +33,17 @@ class BlobsTracker {
 		void PopFrameFromTimeline();
 		
 		BlobsTracker(control_panel_t& panel)
-			: _fps(120.0), _max_speed(18.0), _max_unseen_distance(0.3), _max_interpolation_time(1), _skip_parameter(-8), _variance_parameter(0.3), _absent_parameter(-15), _appearance_parameter(400.0), _disappearance_parameter(400.0), panel(panel)
+			:
+				_fps(120.0),
+				_max_speed(18.0),
+				_max_unseen_distance(0.3),
+				_max_interpolation_time(0.5),
+				_skip_parameter(-8),
+				_variance_parameter(0.3),
+				_absent_parameter(-10),
+				_appearance_parameter(400.0),
+				_disappearance_parameter(400.0),
+				panel(panel)
 		{
 			trackbar(panel, "ball tracking", "fps", _fps, {0, 100, 1});
 			trackbar(panel, "ball tracking", "max speed", _max_speed, {0., +100., 0.1});

@@ -441,7 +441,6 @@ void doIt(FrameReader& frameReader) {
 	Mat trajReprAvg;
 
 	bool play = true;
-	bool debug = false;
 
 	int timeline_span = 120;
 	int processed_frames = 60;	// number of frames to be processed for each call to ProcessFrame
@@ -520,6 +519,12 @@ void doIt(FrameReader& frameReader) {
 	trackbar(panel, "ball tracking", "local_maxima limit", local_maxima_limit, {0, 1000, 1});
 	trackbar(panel, "ball tracking", "local maxima min distance", local_maxima_min_distance, {0, 200, 0.1f});
 
+	vector<Point2f> previous_positions;
+	int previous_positions_start_time;
+	vector<Mat> previous_frames;
+
+	namedWindow("control panel", WINDOW_NORMAL);
+
 	for (int i = 0; ; i++) {
 		if (true) {
 			int c = waitKey(1);
@@ -538,6 +543,7 @@ void doIt(FrameReader& frameReader) {
 			case 'b':
 				set_log_level(panel, "ball tracking", VERBOSE);
 				toggle(panel, "ball tracking", TRACKBAR, true);
+				toggle(panel, "ball tracking", SHOW, true);
 				break;
 			case 'm':
 				toggle(panel, "foosmen tracking", TRACKBAR);
@@ -550,15 +556,13 @@ void doIt(FrameReader& frameReader) {
 			case 'n':
 				toggle(panel, "foosmen colors", TRACKBAR);
 				break;
-			case 'd':
-				debug = !debug;
-				break;
 			case ' ':
 				set_log_level(panel, "table detect", WARNING);
 				set_log_level(panel, "ball tracking", WARNING);
 
 				toggle(panel, "table detect", TRACKBAR, false);
 				toggle(panel, "ball tracking", TRACKBAR, false);
+				toggle(panel, "ball tracking", SHOW, false);
 
 				toggle(panel, "foosmen tracking", TRACKBAR, false);
 				toggle(panel, "foosmen tracking", SHOW, false);
@@ -737,43 +741,12 @@ void doIt(FrameReader& frameReader) {
 					fflush(stdout);
 				}
 
-				if (debug) {
-					// Mostro il primo fotogramma tra quelli processati
+				previous_positions = positions;
+				previous_positions_start_time = current_time;
 
-					static atomic<bool> stop(false);
-
-					if(playback_thread.joinable()) {
-						stop = true;
-						playback_thread.join();
-					}
-
-					stop = false;
-					playback_thread = thread([=] {
-						assert(!frames.empty());
-						Mat display;
-						time_point<system_clock> playback_start = system_clock::now();
-
-						for(int i = 0; i < processed_frames; i++) {
-							frames[i].copyTo(display);
-							Point2f ball = positions[i];
-							fprintf(stderr,"Ball found: (%lf,%lf)\n", ball.x, ball.y);
-
-							ball.x = (ball.x / metrics.length + 0.5f) * density.cols;
-							ball.y = (ball.y / metrics.width + 0.5f) * density.rows;
-
-							circle( display, ball, 8, Scalar(0,255,0), 2 );
-							imshow("Display", display);
-
-							this_thread::sleep_until(playback_start + i * duration<double>(1. / 20.));
-
-							if(stop.exchange(false)) {
-								return;
-							}
-						}
-
-						stop.exchange(false);
-					});
-				}
+				previous_frames.clear();
+				previous_frames.resize(frames.size());
+				copy(frames.begin(), frames.end(), previous_frames.begin());
 
 				for (int i=0; i<processed_frames; i++) {
 					frames.pop_front();
@@ -784,6 +757,26 @@ void doIt(FrameReader& frameReader) {
 		}
 
 		current_time++;
+
+		int relative_time = current_time - previous_positions_start_time;
+
+		if (will_show(panel, "ball tracking", "ball") &&
+			!previous_positions.empty() &&
+			relative_time < previous_positions.size() &&
+			relative_time >= 0) {
+			Mat display;
+
+			previous_frames[relative_time].copyTo(display);
+
+			Point2f ball = previous_positions[relative_time];
+
+			ball.x = (ball.x / metrics.length + 0.5f) * density.cols;
+			ball.y = (ball.y / metrics.width + 0.5f) * density.rows;
+
+			circle( display, ball, 8, Scalar(0,255,0), 2 );
+
+			show(panel, "ball tracking", "ball", display);
+		}
 	}
 }
 
