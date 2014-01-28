@@ -169,20 +169,22 @@ Mat follow_table(Mat frame, Mat previous_transform, table_following_params_t& pa
 	trackbar(panel, "table detect", "follow optical flow features", params.optical_flow_features, {0, 1000, 1});
 	trackbar(panel, "table detect", "follow optical flow ransac threshold", params.optical_flow_ransac_threshold, {0.0f, 100.f, 0.1f});
 
+	Mat scaled_reference_image;
+
+	Size size(128, 64);
+
 	const SubottoReference& reference = *params.reference;
 
-	const Mat& reference_image = reference.image;
-	const Mat& reference_mask = reference.mask;
-	auto& reference_metrics = reference.metrics;
+	resize(reference.image, scaled_reference_image, size);
 
-	Size size = reference_image.size();
+	auto& reference_metrics = reference.metrics;
 
 	Mat warped;
 
 	warpPerspective(frame, warped,
 			previous_transform
 					* sizeToReference(reference_metrics, size),
-			reference_image.size(), WARP_INVERSE_MAP | INTER_LINEAR);
+					size, WARP_INVERSE_MAP | INTER_LINEAR);
 
 	show(panel, "table detect", "follow table before", warped);
 
@@ -200,7 +202,7 @@ Mat follow_table(Mat frame, Mat previous_transform, table_following_params_t& pa
 	}
 
 	if(!optical_flow_from.empty()) {
-		ofe.run(reference_image, warped, optical_flow_from, optical_flow_to, status, noArray());
+		ofe.run(scaled_reference_image, warped, optical_flow_from, optical_flow_to, status, noArray());
 	}
 
 	vector<Point2f> good_optical_flow_from, good_optical_flow_to;

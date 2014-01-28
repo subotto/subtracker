@@ -448,7 +448,6 @@ void doIt(FrameReader& frameReader) {
 	int current_time = 0;
 	int initial_time = 0;
 
-	namedWindow( "Display", WINDOW_NORMAL );
 	deque<Mat> frames;	// used for display only
 
 	Size tableFrameSize(128, 64);
