@@ -57,8 +57,6 @@ struct trackbar_params_t {
 };
 
 struct trackbar_base_status_t {
-	virtual ~trackbar_base_status_t() {
-	};
 };
 
 template<typename T>
@@ -69,10 +67,6 @@ struct trackbar_type_status_t : public trackbar_base_status_t {
 	trackbar_type_status_t(trackbar_params_t<T> params, T& variable)
 	: params(params), variable(variable)
 	{}
-
-	virtual ~trackbar_type_status_t() {
-
-	}
 };
 
 struct control_panel_t;
@@ -82,7 +76,7 @@ struct trackbar_status_t {
 
 	std::string category;
 	std::string name;
-	std::unique_ptr<trackbar_base_status_t> type;
+	std::shared_ptr<trackbar_base_status_t> type;
 
 	int count;
 	cv::TrackbarCallback callback;
@@ -91,9 +85,6 @@ struct trackbar_status_t {
 	trackbar_status_t(control_panel_t& panel, std::string category, std::string name, trackbar_params_t<T> params, T& variable)
 	: panel(panel), category(category), name(name), type(new trackbar_type_status_t<T>(params, variable))
 	{}
-
-	~trackbar_status_t() {
-	}
 };
 
 struct control_panel_t {
@@ -176,7 +167,7 @@ static void update_trackbar(control_panel_t& panel, std::string category, std::s
 
 template<typename T>
 void trackbar(control_panel_t& panel, std::string category, std::string name, T& variable, trackbar_params_t<T> params) {
-	panel.trackbar_status[category].emplace(name, panel, category, name, params, variable);
+	panel.trackbar_status[category].emplace(name, trackbar_status_t{panel, category, name, params, variable});
 
 	// Perche' l'STL usa pairs di pairs ?!?
 
