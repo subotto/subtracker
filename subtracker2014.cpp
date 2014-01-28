@@ -701,8 +701,8 @@ void doIt(FrameReader& frameReader) {
 		for (int i=0; i<localMaxima.size(); i++) {
 			Point2f &p = localMaxima[i].first;
 
-			p.x = (p.x / density.cols - 0.5f) * metrics.length;
-			p.y = (p.y / density.rows - 0.5f) * metrics.width;
+			p.x =  (p.x / density.cols - 0.5f) * metrics.length;
+			p.y = -(p.y / density.rows - 0.5f) * metrics.width;
 		}
 		
 		// Inserisco i punti migliori come nuovo frame nella timeline
