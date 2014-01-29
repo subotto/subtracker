@@ -11,7 +11,7 @@ sys.path.append(os.path.dirname(__file__))
 
 from data import Session, Log
 
-BUFFER_LEN = 1000
+BUFFER_LEN = 2500
 SLEEP_TIME = 0.5
 
 class LogJSONEncoder(json.JSONEncoder):
