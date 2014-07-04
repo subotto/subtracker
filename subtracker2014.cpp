@@ -542,6 +542,10 @@ void doIt(FrameReader& frameReader) {
 			namedWindow("control panel", WINDOW_NORMAL);
 
 			int c = waitKey(1);
+      if (c > 0) c &= 0xff;
+      if (c != -1) {
+        logger(panel, "gio", DEBUG) << "key: " << c << endl;
+      }
 
 			switch(c) {
 			case 'r':
@@ -828,6 +832,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	init_control_panel(panel);
+  set_log_level(panel, "gio", VERBOSE);
 
 	if(videoName.size() == 1) {
 		FrameReader f(videoName[0] - '0', panel);
