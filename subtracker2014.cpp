@@ -563,6 +563,7 @@ void doIt(FrameReader& frameReader) {
 			case 's':
 				set_log_level(panel, "table detect", VERBOSE);
 				toggle(panel, "table detect", TRACKBAR, true);
+        toggle(panel, "table detect", SHOW, true);
 				break;
 			case 'b':
 				set_log_level(panel, "ball tracking", VERBOSE);
