@@ -1,4 +1,3 @@
-UNAME := $(shell uname -s)
 CPP = g++
 CFLAGS = $(shell pkg-config --cflags opencv) -g -O2
 PWD := $(shell pwd)
@@ -11,7 +10,6 @@ blobs_tracker.hpp \
 control.hpp \
 framereader.hpp \
 jobrunner.hpp \
-median.hpp \
 subotto_metrics.hpp \
 subotto_tracking.hpp \
 utility.hpp \
