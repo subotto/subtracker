@@ -583,6 +583,7 @@ void doIt(FrameReader& frameReader) {
 			case ' ':
 				set_log_level(panel, "table detect", WARNING);
 				set_log_level(panel, "ball tracking", WARNING);
+        set_log_level(panel, "capture", WARNING);
 
 				toggle(panel, "table detect", TRACKBAR, false);
 				toggle(panel, "ball tracking", TRACKBAR, false);
