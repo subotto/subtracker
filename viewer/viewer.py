@@ -18,7 +18,8 @@ from OpenGL.GLU import *
 
 from metrics import *
 
-REQUEST_URL = 'http://uz.sns.it/24ore/tracking.json?last_timestamp=%(last_timestamp)f&convert_units=0'
+#REQUEST_URL = 'http://uz.sns.it/24ore/tracking.json?last_timestamp=%(last_timestamp)f&convert_units=0'
+REQUEST_URL = 'http://localhost:8000/?last_timestamp=%(last_timestamp)f&convert_units=0'
 REQUEST_TIMEOUT = 2.0
 REQUEST_SLEEP = 0.5
 
