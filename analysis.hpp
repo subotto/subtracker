@@ -1,8 +1,11 @@
 #ifndef ANALYSIS_HPP_
 #define ANALYSIS_HPP_
 
+#include <deque>
+
 #include "opencv2/imgproc/imgproc.hpp"
 
+using namespace std;
 using namespace cv;
 
 struct TableDescription {
@@ -144,6 +147,9 @@ void do_foosmen_analysis(control_panel_t &panel,
                          const Mat &tableFrame,
                          const TableAnalysis& tableAnalysis,
                          float barsShift[BARS][2],
-                         float barsRot[BARS][2]);
+                         float barsRot[BARS][2],
+                         const int current_time,
+                         const int timeline_span,
+                         deque< vector<float> > &foosmenValues);
 
 #endif /* ANALYSIS_HPP_ */

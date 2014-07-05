@@ -30,34 +30,6 @@ control_panel_t panel;
 
 BlobsTracker blobs_tracker(panel);
 
-void drawFoosmen(Mat out, SubottoMetrics subottoMetrics, FoosmenMetrics foosmenMetrics, float shift[][2] = nullptr, float rot[][2] = nullptr) {
-	static float zeros[BARS][2];
-
-	if(!shift) {
-		shift = zeros;
-	}
-
-	for(int side = 0; side < 2; side++) {
-		for(int bar = 0; bar < BARS; bar++) {
-			float xx = barx(side, bar, out.size(), subottoMetrics, foosmenMetrics);
-			line(out, Point(xx, 0), Point(xx, out.rows), Scalar(1.f, 1.f, 1.f));
-
-			for(int i = 0; i < foosmenMetrics.count[bar]; i++) {
-				float y = (0.5f + i - foosmenMetrics.count[bar] * 0.5f) * foosmenMetrics.distance[bar];
-				float yy = (0.5f + (y + shift[bar][side]) / subottoMetrics.width) * out.rows;
-
-				line(out, Point(xx - 5, yy), Point(xx + 5, yy), Scalar(0.f, 1.f, 0.f));
-
-				if(rot) {
-					float len = 20;
-					float r = rot[bar][side];
-					line(out, Point(xx, yy), Point(xx + sin(r) * len, yy + cos(r) * len), Scalar(1.f, 1.f, 0.f), 1, 16);
-				}
-			}
-		}
-	}
-}
-
 void getTableFrame(Mat frame, Mat& tableFrame, Size size, Mat transform) {
 	Mat frame32f;
 	frame.convertTo(frame32f, CV_32F, 1 / 255.f);
@@ -340,26 +312,10 @@ void doIt(FrameReader& frameReader) {
                         tableFrame,
                         tableAnalysis,
                         barsShift,
-                        barsRot);
-
-		// Saving values for later...
-		if ( current_time >= timeline_span ) {
-			vector<float> foosmenValuesFrame;
-			for(int side = 1; side >= 0; side--) {
-				for(int bar = 0; bar < BARS; bar++) {
-					foosmenValuesFrame.push_back( -barsShift[bar][side] );
-					foosmenValuesFrame.push_back( barsRot[bar][side] );
-				}
-			}
-			foosmenValues.push_back( foosmenValuesFrame );
-		}
-
-		if(will_show(panel, "foosmen tracking", "foosmen")) {
-			Mat tableFoosmen;
-			tableFrame.copyTo(tableFoosmen);
-			drawFoosmen(tableFoosmen, metrics, foosmenMetrics, barsShift, barsRot);
-			show(panel, "foosmen tracking", "foosmen", tableFoosmen);
-		}
+                        barsRot,
+                        current_time,
+                        timeline_span,
+                        foosmenValues);
 
 		int radiusX = local_maxima_min_distance / metrics.length * tableFrameSize.width;
 		int radiusY = local_maxima_min_distance / metrics.width * tableFrameSize.height;
@@ -370,7 +326,6 @@ void doIt(FrameReader& frameReader) {
 
 		dump_time(panel, "cycle", "find local maxima");
 
-		SubottoMetrics metrics;
 		vector<Blob> blobs;
 
 		// Cambio le unità di misura secondo le costanti in SubottoMetrics
