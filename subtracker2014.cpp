@@ -740,27 +740,14 @@ void doIt(FrameReader& frameReader) {
                    blobs,
                    tableFrame);
 
-		int relative_time = current_time - previous_positions_start_time;
+    display_ball(panel,
+                 current_time,
+                 previous_positions,
+                 previous_positions_start_time,
+                 previous_frames,
+                 metrics,
+                 density);
 
-		if (will_show(panel, "ball tracking", "ball") &&
-			!previous_positions.empty() &&
-			relative_time < previous_positions.size() &&
-			relative_time >= 0) {
-			Mat display;
-
-			previous_frames[relative_time].copyTo(display);
-
-			Point2f ball = previous_positions[relative_time];
-
-			ball.x = (ball.x / metrics.length + 0.5f) * density.cols;
-			ball.y = (ball.y / metrics.width + 0.5f) * density.rows;
-
-			circle( display, ball, 8, Scalar(0,255,0), 2 );
-
-			show(panel, "ball tracking", "ball", display);
-
-			dump_time(panel, "cycle", "display ball");
-		}
 	}
 }
 

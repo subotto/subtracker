@@ -9,7 +9,7 @@
 //#include "utility.hpp"
 //#include "blobs_finder.hpp"
 #include "blobs_tracker.hpp"
-//#include "subotto_metrics.hpp"
+#include "subotto_metrics.hpp"
 //#include "subotto_tracking.hpp"
 //#include "control.hpp"
 #include "staging.hpp"
@@ -93,3 +93,36 @@ void blobs_tracking(control_panel_t &panel,
 		dump_time(panel, "cycle", "blobs tracking");
 
 }
+
+void display_ball(control_panel_t &panel,
+                  int &current_time,
+                  vector<Point2f> &previous_positions,
+                  int &previous_positions_start_time,
+                  vector<Mat> &previous_frames,
+                  SubottoMetrics &metrics,
+                  Mat &density) {
+
+		int relative_time = current_time - previous_positions_start_time;
+
+		if (will_show(panel, "ball tracking", "ball") &&
+			!previous_positions.empty() &&
+			relative_time < previous_positions.size() &&
+			relative_time >= 0) {
+			Mat display;
+
+			previous_frames[relative_time].copyTo(display);
+
+			Point2f ball = previous_positions[relative_time];
+
+			ball.x = (ball.x / metrics.length + 0.5f) * density.cols;
+			ball.y = (ball.y / metrics.width + 0.5f) * density.rows;
+
+			circle( display, ball, 8, Scalar(0,255,0), 2 );
+
+			show(panel, "ball tracking", "ball", display);
+
+			dump_time(panel, "cycle", "display ball");
+		}
+
+}
+

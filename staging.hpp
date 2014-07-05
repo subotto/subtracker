@@ -22,4 +22,12 @@ void blobs_tracking(control_panel_t &panel,
                     const vector<Blob> &blobs,
                     const Mat &tableFrame);
 
+void display_ball(control_panel_t &panel,
+                  int &current_time,
+                  vector<Point2f> &previous_positions,
+                  int &previous_positions_start_time,
+                  vector<Mat> &previous_frames,
+                  SubottoMetrics &metrics,
+                  Mat &density);
+
 #endif /* STAGING_HPP_ */
