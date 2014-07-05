@@ -1,7 +1,6 @@
 #ifndef STAGING_HPP_
 #define STAGING_HPP_
 
-#include <vector>
 #include <deque>
 
 using namespace std;

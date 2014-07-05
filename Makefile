@@ -25,7 +25,8 @@ subotto_tracking.o \
 utility.o \
 v4l2cap.o \
 subtracker2014.o \
-staging.o
+staging.o \
+analysis.o
 
 OBJECTS_tester = \
 blobs_tracker.o \
@@ -60,9 +61,11 @@ clean:
 %.o: %.cpp $(HEADERS) Makefile
 	$(CPP) $(CPPFLAGS) -c $<
 
-subtracker2014.o: staging.hpp
+subtracker2014.o: staging.hpp analysis.hpp
 
 staging.o: staging.hpp
+
+analysis.o: analysis.hpp
 
 subtracker2014: $(OBJECTS_subtracker2014) Makefile
 	$(CPP) $(CPPFLAGS) $(LIBS) -o $@ $(OBJECTS_subtracker2014)
