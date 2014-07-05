@@ -621,7 +621,7 @@ void doIt(FrameReader& frameReader) {
 		if ( current_time >= timeline_span ) {
 			timestamps.push_back(duration_cast<duration<double>>(frame_info.playback_time.time_since_epoch()).count());
 		}
-		
+
 		Mat tableFrame;
 		getTableFrame(frame, tableFrame, tableFrameSize, table_transform);
 		Size size = tableFrame.size();

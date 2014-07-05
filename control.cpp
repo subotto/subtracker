@@ -13,6 +13,8 @@ using namespace cv;
 using namespace std;
 using namespace chrono;
 
+std::unordered_map<std::string, bool> windows_visibility;
+
 void init_control_panel(control_panel_t& panel) {
 	set_log_level(panel, "control panel", INFO);
 }
@@ -27,12 +29,25 @@ static void update_show(control_panel_t& panel, string category, string name) {
 	stringstream window_name_buf;
 	window_name_buf << "Display: " << category << " - " << name;
 	string window_name = window_name_buf.str();
+  bool visible = windows_visibility[window_name];
+
+  logger(panel, "gio", DEBUG) << "in update_show(" << name << "): " << endl;
 
 	if(will_show(panel, category, name)) {
-		namedWindow(window_name, WINDOW_NORMAL);
+    logger(panel, "gio", DEBUG) << "  showing (window_name: " << window_name << ")" << endl;
+    if (!visible) {
+      namedWindow(window_name, WINDOW_NORMAL);
+      windows_visibility[window_name] = true;
+      logger(panel, "gio", DEBUG) << "  creating window" << endl;
+    }
 		imshow(window_name, status.image);
 	} else {
-		destroyWindow(window_name);
+    logger(panel, "gio", DEBUG) << "  not showing" << endl;
+    if (visible) {
+      destroyWindow(window_name);
+      windows_visibility[window_name] = false;
+      logger(panel, "gio", DEBUG) << "  destroying window" << endl;
+    }
 	}
 }
 
@@ -42,7 +57,9 @@ void show(control_panel_t& panel, string category, string name, cv::Mat image, s
 	status.image = image;
 	status.params = params;
 
-	update_show(panel, category, name);
+  if (panel.update_display) {
+    update_show(panel, category, name);
+  }
 }
 
 void dump_time(control_panel_t& panel, string category, string name) {
