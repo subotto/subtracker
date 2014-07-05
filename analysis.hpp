@@ -146,8 +146,6 @@ void do_foosmen_analysis(control_panel_t &panel,
                          const foosmen_params_t& foosmen_params,
                          const Mat &tableFrame,
                          const TableAnalysis& tableAnalysis,
-                         float barsShift[BARS][2],
-                         float barsRot[BARS][2],
                          const int current_time,
                          const int timeline_span,
                          deque< vector<float> > &foosmenValues);

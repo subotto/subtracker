@@ -121,16 +121,6 @@ void doIt(FrameReader& frameReader) {
 
 	Mat density;
 
-	float barsShift[BARS][2];
-	float barsRot[BARS][2];
-
-	for(int side = 0; side < 2; side++) {
-		for(int bar = 0; bar < BARS; bar++) {
-			barsShift[bar][side] = 0.f;
-			barsRot[bar][side] = 0.f;
-		}
-	}
-	
 	deque< vector<float> > foosmenValues;	// Values to be printed for each frame
 	deque<double> timestamps;				// Timestamp of each frame
 
@@ -311,8 +301,6 @@ void doIt(FrameReader& frameReader) {
                         foosmen_params,
                         tableFrame,
                         tableAnalysis,
-                        barsShift,
-                        barsRot,
                         current_time,
                         timeline_span,
                         foosmenValues);
