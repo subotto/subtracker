@@ -24,7 +24,8 @@ subotto_metrics.o \
 subotto_tracking.o \
 utility.o \
 v4l2cap.o \
-subtracker2014.o
+subtracker2014.o \
+staging.o
 
 OBJECTS_tester = \
 blobs_tracker.o \
@@ -38,8 +39,8 @@ v4l2cap.o \
 tester.o
 
 BINARIES = \
-subtracker2014 \
-tester
+subtracker2014
+#tester
 
 TEST_BINARIES = \
 tests/framereader_test \
@@ -58,6 +59,10 @@ clean:
 
 %.o: %.cpp $(HEADERS) Makefile
 	$(CPP) $(CPPFLAGS) -c $<
+
+subtracker2014.o: staging.hpp
+
+staging.o: staging.hpp
 
 subtracker2014: $(OBJECTS_subtracker2014) Makefile
 	$(CPP) $(CPPFLAGS) $(LIBS) -o $@ $(OBJECTS_subtracker2014)
