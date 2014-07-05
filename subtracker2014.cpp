@@ -612,6 +612,7 @@ void doIt(FrameReader& frameReader) {
 		auto frame_info = frameReader.get();
 		Mat frame = frame_info.data;
 
+    // Match the position of the table against the stored reference
 		Mat table_transform = track_table(frame_info.data, table_tracking_status, table_tracking_params, panel);
 
 		dump_time(panel, "cycle", "detect subotto");
