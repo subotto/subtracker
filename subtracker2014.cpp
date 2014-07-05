@@ -707,8 +707,10 @@ void doIt(FrameReader& frameReader) {
 
 		dump_time(panel, "cycle", "find local maxima");
 
-		// Cambio le unità di misura secondo le costanti in SubottoMetrics
 		SubottoMetrics metrics;
+		vector<Blob> blobs;
+
+		// Cambio le unità di misura secondo le costanti in SubottoMetrics
 		for (int i=0; i<localMaxima.size(); i++) {
 			Point2f &p = localMaxima[i].first;
 
@@ -717,7 +719,6 @@ void doIt(FrameReader& frameReader) {
 		}
 		
 		// Inserisco i punti migliori come nuovo frame nella timeline
-		vector<Blob> blobs;
 		for (int i=0; i<localMaxima.size(); i++) {
 			blobs.push_back( Blob(localMaxima[i].first, 0.0, 0.0, localMaxima[i].second) );
 		}
