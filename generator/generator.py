@@ -35,6 +35,15 @@ def draw_square(ctx):
     ctx.close_path()
     ctx.stroke()
 
+def fill_square(ctx):
+    ctx.new_path()
+    ctx.move_to(-1.0, -1.0)
+    ctx.line_to(1.0, -1.0)
+    ctx.line_to(1.0, 1.0)
+    ctx.line_to(-1.0, 1.0)
+    ctx.close_path()
+    ctx.fill()
+
 def draw_circle(ctx):
     ctx.new_path()
     ctx.arc(0.0, 0.0, 1.0, 0.0, 2*math.pi)
@@ -79,13 +88,18 @@ def draw_frame(ctx, size, time):
 
     # Draw tracking features
     ctx.save()
-    ctx.set_source_rgb(0.0, 0.0, 0.0)
     ctx.set_line_width(FIELD_HEIGHT/10)
 
-    for i, j, mark in [(1, 1, draw_oplus), (1, -1, draw_cross), (-1, 1, draw_circle), (-1, -1, draw_square)]:
+    for i, j, mark, bg_color in [(1, 1, draw_oplus, (1.0, 0.0, 0.0)),
+                                 (1, -1, draw_cross, (0.0, 1.0, 0.0)),
+                                 (-1, 1, draw_circle, (0.0, 0.0, 1.0)),
+                                 (-1, -1, draw_square, (1.0, 1.0, 0.0))]:
         ctx.save()
         ctx.translate(i * (FIELD_WIDTH/2 + FIELD_HEIGHT/6 + SEP), j * (FIELD_HEIGHT * (0.5 - 1.0/6)))
         ctx.scale(FIELD_HEIGHT/6, FIELD_HEIGHT/6)
+        ctx.set_source_rgb(*bg_color)
+        fill_square(ctx)
+        ctx.set_source_rgb(0.0, 0.0, 0.0)
         mark(ctx)
         ctx.restore()
 
