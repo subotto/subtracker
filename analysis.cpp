@@ -24,7 +24,8 @@ void startTableAnalysis(Mat tableFrame, const TableDescription& table, TableAnal
 	subtract(tableFrame, table.mean, analysis.diff);
 }
 
-void fastLargeGaussianBlur(Mat in, Mat& out, float stdDev) {
+// Well, this is not Gaussian...
+static void fastLargeGaussianBlur(Mat in, Mat& out, float stdDev) {
 	Mat temp;
 	in.copyTo(temp);
 	int boxSize = stdDev * 3 * sqrt(2 * CV_PI) / 4 + 0.5;
@@ -34,21 +35,22 @@ void fastLargeGaussianBlur(Mat in, Mat& out, float stdDev) {
 	}
 }
 
-void computeFilteredDiff(TableAnalysis& analysis) {
+static void computeFilteredDiff(TableAnalysis& analysis) {
 	Mat low;
 	fastLargeGaussianBlur(analysis.diff, low, tableDiffLowFilterStdDev);
 	subtract(analysis.diff, low, analysis.filteredDiff);
 }
 
-void computeScatterDiag(const Mat& in, Mat& out) {
+// Perform scalar-wise square
+static void computeScatterDiag(const Mat& in, Mat& out) {
 	multiply(in, in, out);
 }
 
-void computeScatter(TableAnalysis& analysis) {
+static void computeScatter(TableAnalysis& analysis) {
 	computeScatterDiag(analysis.filteredDiff, analysis.filteredScatter);
 }
 
-void computeNLL(const TableDescription& table, TableAnalysis& analysis) {
+static void computeNLL(const TableDescription& table, TableAnalysis& analysis) {
 	Mat tableDiffNorm = analysis.filteredScatter / table.correctedVariance;
 
 	Mat logVariance;
@@ -78,22 +80,22 @@ void do_table_analysis(control_panel_t &panel,
 }
 
 
-void startBallAnalysis(Mat tableFrame, const BallDescription& ball, BallAnalysis& analysis) {
+static void startBallAnalysis(Mat tableFrame, const BallDescription& ball, BallAnalysis& analysis) {
 	analysis.diff = tableFrame - ball.meanColor;
 }
 
-void computeScatter(BallAnalysis& analysis) {
+static void computeScatter(BallAnalysis& analysis) {
 	computeScatterDiag(analysis.diff, analysis.scatter);
 }
 
-void computeLL(const BallDescription& ball, BallAnalysis& analysis) {
+static void computeLL(const BallDescription& ball, BallAnalysis& analysis) {
 	Mat ballDiffNorm = analysis.scatter / ball.valueVariance;
 
 	transform(ballDiffNorm, analysis.ll, -Matx<float, 1, 3>(1, 1, 1));
 	analysis.ll -= 3 * log(ball.valueVariance);
 }
 
-void computeDensity(const TableAnalysis& tableAnalysis, const BallAnalysis& ballAnalysis, Mat& density) {
+static void computeDensity(const TableAnalysis& tableAnalysis, const BallAnalysis& ballAnalysis, Mat& density) {
 	Mat pixelProb = ballAnalysis.ll + tableAnalysis.nll;
 	blur(pixelProb, density, Size(3, 3));
 }
@@ -118,17 +120,17 @@ void do_ball_analysis(control_panel_t &panel,
 
 
 
-void updateMean(TableDescription& table, Mat tableFrame) {
+static void updateMean(TableDescription& table, Mat tableFrame) {
 	accumulateWeighted(tableFrame, table.mean, 0.005f);
 }
 
-void updateVariance(TableDescription& table, const TableAnalysis& analysis) {
+static void updateVariance(TableDescription& table, const TableAnalysis& analysis) {
 	Mat scatter;
 	computeScatterDiag(analysis.diff, scatter);
 	accumulateWeighted(scatter, table.variance, 0.005f);
 }
 
-void computeCorrectedVariance(TableDescription& table) {
+static void computeCorrectedVariance(TableDescription& table) {
 	Mat tableMeanLaplacian;
 	Laplacian(table.mean, tableMeanLaplacian, -1, 3);
 	Mat tableMeanBorders = tableMeanLaplacian.mul(tableMeanLaplacian);
@@ -162,7 +164,7 @@ float barx(int side, int bar, Size size, SubottoMetrics subottoMetrics, FoosmenM
 	return xx;
 }
 
-void computeFoosmenBarMetrics(SubottoMetrics subottoMetrics, FoosmenMetrics foosmenMetrics, int side, int bar, Size size, FoosmenBarMetrics& barMetrics, const foosmen_params_t& params) {
+static void computeFoosmenBarMetrics(SubottoMetrics subottoMetrics, FoosmenMetrics foosmenMetrics, int side, int bar, Size size, FoosmenBarMetrics& barMetrics, const foosmen_params_t& params) {
 	barMetrics.side = side;
 	barMetrics.bar = bar;
 
@@ -187,13 +189,13 @@ void computeFoosmenBarMetrics(SubottoMetrics subottoMetrics, FoosmenMetrics foos
 	barMetrics.colRange = Range(barMetrics.xPixels + min(l,r), barMetrics.xPixels + max(l,r));
 }
 
-void startFoosmenBarAnalysis(FoosmenBarMetrics barMetrics, FoosmenBarAnalysis &analysis, Mat tableFrame, const TableAnalysis& tableAnalysis) {
+static void startFoosmenBarAnalysis(FoosmenBarMetrics barMetrics, FoosmenBarAnalysis &analysis, Mat tableFrame, const TableAnalysis& tableAnalysis) {
 	Size size = tableFrame.size();
 	analysis.tableSlice = tableFrame(Range::all(), barMetrics.colRange);
 	analysis.tableNLLSlice = tableAnalysis.nll(Range::all(), barMetrics.colRange);
 }
 
-void computeScatter(const Mat& in, Mat& out) {
+static void computeScatter(const Mat& in, Mat& out) {
 	vector<Mat> inBGR;
 	split(in, inBGR);
 
@@ -210,7 +212,7 @@ void computeScatter(const Mat& in, Mat& out) {
 	merge(outSplit, out);
 }
 
-void computeLL(FoosmenBarMetrics barMetrics, FoosmenBarAnalysis &analysis, const foosmen_params_t& params) {
+static void computeLL(FoosmenBarMetrics barMetrics, FoosmenBarAnalysis &analysis, const foosmen_params_t& params) {
 	analysis.diff = analysis.tableSlice - params.mean_color[barMetrics.side];
 	computeScatter(analysis.diff, analysis.scatter);
 
@@ -224,7 +226,7 @@ void computeLL(FoosmenBarMetrics barMetrics, FoosmenBarAnalysis &analysis, const
 	blur(distanceTresh, analysis.nll, Size(barMetrics.m2height * params.convolution_length, barMetrics.m2width * params.convolution_width));
 }
 
-void computeOverlapped(FoosmenBarMetrics barMetrics, FoosmenBarAnalysis &analysis) {
+static void computeOverlapped(FoosmenBarMetrics barMetrics, FoosmenBarAnalysis &analysis) {
 	analysis.overlapped.create(barMetrics.marginPixels, barMetrics.colRange.size(), CV_32F);
 	analysis.overlapped.setTo(0.f);
 
@@ -274,7 +276,7 @@ Point2f subpixelMinimum(Mat in) {
 	return Point2f(m.x + c.x, m.y + c.y);
 }
 
-void findFoosmen(FoosmenBarMetrics barMetrics, FoosmenBarAnalysis &analysis, const foosmen_params_t& params) {
+static void findFoosmen(FoosmenBarMetrics barMetrics, FoosmenBarAnalysis &analysis, const foosmen_params_t& params) {
 	Point2f m;
 	m = subpixelMinimum(analysis.overlapped);
 
@@ -289,7 +291,7 @@ void findFoosmen(FoosmenBarMetrics barMetrics, FoosmenBarAnalysis &analysis, con
 //	show(ss.str(), analysis.overlapped, 200);
 }
 
-void drawFoosmen(Mat out, SubottoMetrics subottoMetrics, FoosmenMetrics foosmenMetrics, float shift[][2] = nullptr, float rot[][2] = nullptr) {
+static void drawFoosmen(Mat out, SubottoMetrics subottoMetrics, FoosmenMetrics foosmenMetrics, float shift[][2] = nullptr, float rot[][2] = nullptr) {
 	static float zeros[BARS][2];
 
 	if(!shift) {
