@@ -145,6 +145,7 @@ void do_update_table_description(control_panel_t &panel,
                                  TableDescription& table) {
 
 		updateMean(table, tableFrame);
+    show(panel, "frame", "mean", table.mean);
 		updateVariance(table, tableAnalysis);
 
 		if((i%5) == 0) {
