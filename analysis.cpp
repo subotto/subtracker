@@ -20,8 +20,8 @@ using namespace std;
 
 int tableDiffLowFilterStdDev = 40;
 
-void computeScatterDiag(const Mat& in, Mat& out) {
-	multiply(in, in, out);
+void startTableAnalysis(Mat tableFrame, const TableDescription& table, TableAnalysis& analysis) {
+	subtract(tableFrame, table.mean, analysis.diff);
 }
 
 void fastLargeGaussianBlur(Mat in, Mat& out, float stdDev) {
@@ -34,14 +34,14 @@ void fastLargeGaussianBlur(Mat in, Mat& out, float stdDev) {
 	}
 }
 
-void startTableAnalysis(Mat tableFrame, const TableDescription& table, TableAnalysis& analysis) {
-	subtract(tableFrame, table.mean, analysis.diff);
-}
-
 void computeFilteredDiff(TableAnalysis& analysis) {
 	Mat low;
 	fastLargeGaussianBlur(analysis.diff, low, tableDiffLowFilterStdDev);
 	subtract(analysis.diff, low, analysis.filteredDiff);
+}
+
+void computeScatterDiag(const Mat& in, Mat& out) {
+	multiply(in, in, out);
 }
 
 void computeScatter(TableAnalysis& analysis) {
