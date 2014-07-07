@@ -27,7 +27,7 @@ void startTableAnalysis(Mat tableFrame, const TableDescription& table, TableAnal
 void fastLargeGaussianBlur(Mat in, Mat& out, float stdDev) {
 	Mat temp;
 	in.copyTo(temp);
-	int boxSize = tableDiffLowFilterStdDev * 3 * sqrt(2 * CV_PI) / 4 + 0.5;
+	int boxSize = stdDev * 3 * sqrt(2 * CV_PI) / 4 + 0.5;
 	for(int i = 0; i < 3; i++) {
 		blur(temp, out, Size(boxSize, boxSize));
 		out.copyTo(temp);
