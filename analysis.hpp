@@ -28,15 +28,15 @@ void do_table_analysis(control_panel_t &panel,
                        TableAnalysis &tableAnalysis);
 
 
+struct BallDescription {
+	Scalar meanColor = Scalar(0.85f, 0.85f, 0.85f);
+	float valueVariance = 0.019f;
+};
+
 struct BallAnalysis {
 	Mat diff;
 	Mat scatter;
 	Mat ll; // log-likelihood
-};
-
-struct BallDescription {
-	Scalar meanColor = Scalar(0.85f, 0.85f, 0.85f);
-	float valueVariance = 0.019f;
 };
 
 
