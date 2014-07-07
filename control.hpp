@@ -148,8 +148,6 @@ static void on_trackbar_change(int value_int, void *status_p) {
 }
 
 static void update_trackbar(control_panel_t& panel, std::string category, std::string name) {
-	static int zero;
-
 	trackbar_status_t& status = panel.trackbar_status[category].at(name);
 
 	std::stringstream trackbar_name_buf;
@@ -162,7 +160,7 @@ static void update_trackbar(control_panel_t& panel, std::string category, std::s
 
 	if(is_toggled(panel, category, TRACKBAR)) {
 		cv::namedWindow(window_name, CV_WINDOW_NORMAL);
-		cv::createTrackbar(trackbar_name, window_name, &zero, status.count, status.callback, &status);
+		cv::createTrackbar(trackbar_name, window_name, NULL, status.count, status.callback, &status);
 		cv::setTrackbarPos(trackbar_name, window_name, status.value_int);
 	} else {
 		cv::destroyWindow(window_name);
