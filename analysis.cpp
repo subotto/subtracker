@@ -320,7 +320,6 @@ static void drawFoosmen(Mat out, SubottoMetrics subottoMetrics, FoosmenMetrics f
 }
 
 
-// TODO - Check types: why can't barsMetrics and barsAnalysis have the "&"?
 void do_foosmen_analysis(control_panel_t &panel,
                          FoosmenBarMetrics barsMetrics[BARS][2],
                          FoosmenBarAnalysis barsAnalysis[BARS][2],
