@@ -272,6 +272,8 @@ void doIt(FrameReader& frameReader) {
 		getTableFrame(frame, tableFrame, tableFrameSize, table_transform);
 		Size size = tableFrame.size();
 
+    show(panel, "frame", "tableFrame", tableFrame);
+
 		dump_time(panel, "cycle", "warp table frame");
 
     do_table_analysis(panel,
