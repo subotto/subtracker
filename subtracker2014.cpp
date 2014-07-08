@@ -7,7 +7,6 @@
 #include <chrono>
 
 #include "utility.hpp"
-#include "blobs_finder.hpp"
 #include "blobs_tracker.hpp"
 #include "subotto_metrics.hpp"
 #include "subotto_tracking.hpp"

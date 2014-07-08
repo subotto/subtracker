@@ -5,7 +5,6 @@ CPPFLAGS = $(shell pkg-config --cflags opencv) -I$(PWD) -g -std=c++11 -O2
 LIBS = $(shell pkg-config --libs opencv)
 
 HEADERS = \
-blobs_finder.hpp \
 blobs_tracker.hpp \
 control.hpp \
 framereader.hpp \
