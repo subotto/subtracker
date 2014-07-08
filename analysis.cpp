@@ -157,6 +157,7 @@ void do_update_table_description(control_panel_t &panel,
 }
 
 
+// x coordinate of a certain bar in the tableFrame reference
 float barx(int side, int bar, Size size, SubottoMetrics subottoMetrics, FoosmenMetrics foosmenMetrics) {
 	float flip = side ? +1 : -1;
 	float x = foosmenMetrics.barx[bar] * flip;
@@ -181,17 +182,14 @@ static void computeFoosmenBarMetrics(SubottoMetrics subottoMetrics, FoosmenMetri
 
 	int l = bar == GOALKEEPER ? -barMetrics.m2width * params.goalkeeper_window_length : -barMetrics.m2width * params.window_length;
 	int r = barMetrics.m2width * params.window_length;
-
 	if(!side) {
 		l = -l;
 		r = -r;
 	}
-
 	barMetrics.colRange = Range(barMetrics.xPixels + min(l,r), barMetrics.xPixels + max(l,r));
 }
 
 static void startFoosmenBarAnalysis(FoosmenBarMetrics barMetrics, FoosmenBarAnalysis &analysis, Mat tableFrame, const TableAnalysis& tableAnalysis) {
-	Size size = tableFrame.size();
 	analysis.tableSlice = tableFrame(Range::all(), barMetrics.colRange);
 	analysis.tableNLLSlice = tableAnalysis.nll(Range::all(), barMetrics.colRange);
 }
@@ -227,26 +225,29 @@ static void computeLL(FoosmenBarMetrics barMetrics, FoosmenBarAnalysis &analysis
 	blur(distanceTresh, analysis.nll, Size(barMetrics.m2height * params.convolution_length, barMetrics.m2width * params.convolution_width));
 }
 
+// Select the marginPixels-sized boxes centered at the foosmen's base
+// position and sum them up in the same matrix
 static void computeOverlapped(FoosmenBarMetrics barMetrics, FoosmenBarAnalysis &analysis) {
 	analysis.overlapped.create(barMetrics.marginPixels, barMetrics.colRange.size(), CV_32F);
 	analysis.overlapped.setTo(0.f);
 
 	for(int i = 0; i < barMetrics.count; i++) {
-		float shift = 0.5f + i - barMetrics.count * 0.5f;
-
+    float shift = -0.5f * (barMetrics.count - 1) + i;
 		float y = shift * barMetrics.distancePixels;
 		int yy = barMetrics.yPixels + y - barMetrics.marginPixels / 2;
-
 		Mat slice = analysis.nll(Range(yy, int(yy + barMetrics.marginPixels)), Range::all());
 		analysis.overlapped += slice;
 	}
 }
 
-Point2f subpixelMinimum(Mat in) {
+Point2f subpixelMinimum(control_panel_t &panel, Mat in) {
 	Point m;
 	minMaxLoc(in, nullptr, nullptr, &m, nullptr);
 
+  // This is a one-pixel matrix; how can it extract any derivative
+  // from it?
 	Mat p = in(Range(m.y, m.y+1), Range(m.x, m.x+1));
+  logger(panel, "gio", DEBUG) << "p: " << p << endl;
 
 	Mat der[2];
 	Mat der2[2];
@@ -255,6 +256,7 @@ Point2f subpixelMinimum(Mat in) {
 	Sobel(p, der[1], -1, 1, 0, 1);
 	Sobel(p, der2[0], -1, 0, 2, 1);
 	Sobel(p, der2[1], -1, 2, 0, 1);
+  logger(panel, "gio", DEBUG) << "derivatives: " << der[0] << der[1] << der2[0] << der2[1] << endl;
 
 	float correction[2] {0.f, 0.f};
 	for(int k = 0; k < 2; k++) {
@@ -273,13 +275,14 @@ Point2f subpixelMinimum(Mat in) {
 	}
 
 	Point2f c = Point2f(correction[1], correction[0]);
+  logger(panel, "gio", DEBUG) << "correction: " << c << endl;
 
 	return Point2f(m.x + c.x, m.y + c.y);
 }
 
-static void findFoosmen(FoosmenBarMetrics barMetrics, FoosmenBarAnalysis &analysis, const foosmen_params_t& params) {
+static void findFoosmen(control_panel_t &panel, FoosmenBarMetrics barMetrics, FoosmenBarAnalysis &analysis, const foosmen_params_t& params) {
 	Point2f m;
-	m = subpixelMinimum(analysis.overlapped);
+	m = subpixelMinimum(panel, analysis.overlapped);
 
 	analysis.shift = (m.y - barMetrics.marginPixels / 2.f) / barMetrics.m2height;
 
@@ -347,7 +350,7 @@ void do_foosmen_analysis(control_panel_t &panel,
 				startFoosmenBarAnalysis(barMetrics, analysis, tableFrame, tableAnalysis);
 				computeLL(barMetrics, analysis, foosmen_params);
 				computeOverlapped(barMetrics, analysis);
-				findFoosmen(barMetrics, analysis, foosmen_params);
+				findFoosmen(panel, barMetrics, analysis, foosmen_params);
 
 				float& shift = barsShift[bar][side];
 				float& rot = barsRot[bar][side];

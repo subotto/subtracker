@@ -86,17 +86,24 @@ struct FoosmenMetrics {
 
 
 struct FoosmenBarMetrics {
+  // Scaling ration from subotto coordinates to tableFrame coordinates
 	float m2height;
 	float m2width;
 
+  // Number of foosmen in the bar
 	int count;
 
+  // Base point of the bar (halfway through its length), in tableFrame coordinates
 	float xPixels;
-
 	float yPixels;
+
+  // Distance between foosmen in tableFrame coordinates
 	float distancePixels;
+
+  // Totale distance aside of the foosmen in tableFrame coordinates
 	float marginPixels;
 
+  // Range of x-columns pertaining to the bar, in tableFrame coordinates
 	Range colRange;
 
 	int side;
@@ -135,7 +142,7 @@ struct foosmen_params_t {
 	float nll_threshold = 2.f;
 };
 
-Point2f subpixelMinimum(Mat in);
+Point2f subpixelMinimum(control_panel_t &panel, Mat in);
 float barx(int side, int bar, Size size, SubottoMetrics subottoMetrics, FoosmenMetrics foosmenMetrics);
 void do_foosmen_analysis(control_panel_t &panel,
                          FoosmenBarMetrics barsMetrics[BARS][2],

@@ -83,7 +83,7 @@ vector<pair<Point2f, float>> findLocalMaxima(Mat density, int radiusX, int radiu
 		Point p = lm.first;
 
 		// trova la posizione in modo più preciso
-		Point2f correction = subpixelMinimum(-density(Range(p.y, p.y+1), Range(p.x, p.x+1)));
+		Point2f correction = subpixelMinimum(panel, -density(Range(p.y, p.y+1), Range(p.x, p.x+1)));
 
 		results.push_back(make_pair(Point2f(p.x, p.y) + correction, lm.second));
 	}
