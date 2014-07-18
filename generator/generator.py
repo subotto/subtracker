@@ -11,8 +11,8 @@ import cv2
 import numpy
 import numpy.lib
 
-FIELD_WIDTH = 1.135
-FIELD_HEIGHT = 0.7
+from metrics import *
+
 SEP = 0.05
 
 fps = 120
@@ -119,7 +119,7 @@ def draw_frame(ctx, frame_ctx, size, time):
     freq = 0.3
     angle = time * freq * 2 * math.pi
     if time > 0.0:
-        ctx.arc(radius * math.cos(angle), radius * math.sin(angle), 0.035/2, 0.0, 2*math.pi)
+        ctx.arc(radius * math.cos(angle), radius * math.sin(angle), BALL_DIAMETER/2, 0.0, 2*math.pi)
         ctx.set_source_rgb(1.0, 1.0, 1.0)
         ctx.fill()
 
