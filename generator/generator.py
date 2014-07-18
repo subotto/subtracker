@@ -61,6 +61,11 @@ def draw_oplus(ctx):
     ctx.line_to(0.0, 1.0)
     ctx.stroke()
 
+def perturb(val, sigma, max_):
+    val += random.gauss(0.0, sigma)
+    val = min(max_, max(-max_, val))
+    return val
+
 class FrameContext:
     trans_x = 0.0
     trans_y = 0.0
@@ -78,15 +83,10 @@ class FrameContext:
     trans_y_max = 0.1
     angle_max = 0.3
 
-    def perturb(self, val, sigma, max_):
-        val += random.gauss(0.0, sigma)
-        val = min(max_, max(-max_, val))
-        return val
-
     def perturb_all(self):
-        self.trans_x = self.perturb(self.trans_x, self.trans_x_sigma, self.trans_x_max)
-        self.trans_y = self.perturb(self.trans_y, self.trans_y_sigma, self.trans_y_max)
-        self.angle = self.perturb(self.angle, self.angle_sigma, self.angle_max)
+        self.trans_x = perturb(self.trans_x, self.trans_x_sigma, self.trans_x_max)
+        self.trans_y = perturb(self.trans_y, self.trans_y_sigma, self.trans_y_max)
+        self.angle = perturb(self.angle, self.angle_sigma, self.angle_max)
 
     def apply_to_cairo(self, ctx):
         ctx.rotate(self.angle)
@@ -95,15 +95,30 @@ class FrameContext:
 class SubottoStatus:
     ball_pos = (0.0, 0.0)  # (x, y)
     rods_pos = [(0.0, 0.0) for _ in xrange(ROD_NUMBER)]  # (shift, angle)
+    free_space = [FIELD_HEIGHT - (num - 1) * sep - FOOSMAN_WIDTH
+                  for num, sep, _ in ROD_CONFIGURATION]
+    rods_shift_sigma = 0.005
+    rods_angle_sigma = 0.05
 
     def update(self, time):
         radius = 0.25
         freq = 0.3
         angle = time * freq * 2 * math.pi
-        if time > 0.0:
-            self.ball_pos = (radius * math.cos(angle), radius * math.sin(angle))
-        else:
+
+        # First frame is skipped so we can easily take the reference frame
+        if time == 0.0:
             self.ball_pos = None
+            return
+
+        # The balls move on a circle
+        self.ball_pos = (radius * math.cos(angle), radius * math.sin(angle))
+
+        # Perturbe randomly rods position
+        for i in xrange(ROD_NUMBER):
+            shift, angle = self.rods_pos[i]
+            shift = perturb(shift, self.rods_shift_sigma, self.free_space[i]/2)
+            angle = perturb(angle, self.rods_angle_sigma, math.pi/2)
+            self.rods_pos[i] = shift, angle
 
     def draw_to_cairo(self, ctx):
         # Fill the field
@@ -116,6 +131,32 @@ class SubottoStatus:
             ctx.arc(self.ball_pos[0], self.ball_pos[1], BALL_DIAMETER/2, 0.0, 2*math.pi)
             ctx.set_source_rgb(1.0, 1.0, 1.0)
             ctx.fill()
+
+        # Fill the rods
+        if self.rods_pos is not None:
+            for i, (num, sep, col) in enumerate(ROD_CONFIGURATION):
+                shift, angle = self.rods_pos[i]
+                ctx.save()
+                ctx.translate(ROD_DISTANCE * (i - (ROD_NUMBER - 1) / 2.0), 0.0)
+                ctx.set_source_rgb(*ROD_COLOR)
+                ctx.rectangle(-ROD_DIAMETER/2, -FIELD_HEIGHT/2, ROD_DIAMETER, FIELD_HEIGHT)
+                ctx.fill()
+                ctx.set_source_rgb(*FOOSMEN_COLORS[col])
+                ctx.translate(0.0, shift)
+                # Hack: if angle is zero, set it to a small value
+                # to make matrix invertible
+                if angle == 0.0:
+                    angle = 0.00001
+                for j in xrange(num):
+                    ctx.save()
+                    ctx.translate(0.0, sep * (j - (num - 1) / 2.0))
+                    ctx.rectangle(-ROD_DIAMETER/2, -FOOSMAN_WIDTH/2, ROD_DIAMETER, FOOSMAN_WIDTH)
+                    ctx.fill()
+                    ctx.scale(math.sin(angle), 1.0)
+                    ctx.rectangle(-FOOSMAN_HEAD_HEIGHT, -FOOSMAN_WIDTH/2, FOOSMAN_HEAD_HEIGHT + FOOSMAN_FEET_HEIGHT, FOOSMAN_WIDTH)
+                    ctx.fill()
+                    ctx.restore()
+                ctx.restore()
 
         # Stroke the field
         ctx.rectangle(-FIELD_WIDTH/2, -FIELD_HEIGHT/2, FIELD_WIDTH, FIELD_HEIGHT)
