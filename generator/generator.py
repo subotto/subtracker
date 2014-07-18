@@ -92,7 +92,37 @@ class FrameContext:
         ctx.rotate(self.angle)
         ctx.translate(self.trans_x, self.trans_y)
 
-def draw_frame(ctx, frame_ctx, size, time):
+class SubottoStatus:
+    ball_pos = (0.0, 0.0)  # (x, y)
+    rods_pos = [(0.0, 0.0) for _ in xrange(ROD_NUMBER)]  # (shift, angle)
+
+    def update(self, time):
+        radius = 0.25
+        freq = 0.3
+        angle = time * freq * 2 * math.pi
+        if time > 0.0:
+            self.ball_pos = (radius * math.cos(angle), radius * math.sin(angle))
+        else:
+            self.ball_pos = None
+
+    def draw_to_cairo(self, ctx):
+        # Fill the field
+        ctx.rectangle(-FIELD_WIDTH/2, -FIELD_HEIGHT/2, FIELD_WIDTH, FIELD_HEIGHT)
+        ctx.set_source_rgb(*FIELD_COLOR)
+        ctx.fill()
+
+        # Fill the ball
+        if self.ball_pos is not None:
+            ctx.arc(self.ball_pos[0], self.ball_pos[1], BALL_DIAMETER/2, 0.0, 2*math.pi)
+            ctx.set_source_rgb(1.0, 1.0, 1.0)
+            ctx.fill()
+
+        # Stroke the field
+        ctx.rectangle(-FIELD_WIDTH/2, -FIELD_HEIGHT/2, FIELD_WIDTH, FIELD_HEIGHT)
+        ctx.set_source_rgb(0.0, 0.0, 0.0)
+        ctx.stroke()
+
+def draw_frame(ctx, frame_ctx, status, size, time):
     # Everything white
     ctx.save()
     ctx.identity_matrix()
@@ -106,27 +136,15 @@ def draw_frame(ctx, frame_ctx, size, time):
     frame_ctx.perturb_all()
     frame_ctx.apply_to_cairo(ctx)
 
-    # Fill and stroke the field
-    ctx.rectangle(-FIELD_WIDTH/2, -FIELD_HEIGHT/2, FIELD_WIDTH, FIELD_HEIGHT)
-    ctx.set_source_rgb(0.2, 0.7, 0.2)
-    ctx.fill()
-    ctx.rectangle(-FIELD_WIDTH/2, -FIELD_HEIGHT/2, FIELD_WIDTH, FIELD_HEIGHT)
-    ctx.set_source_rgb(0.0, 0.0, 0.0)
-    ctx.stroke()
+    # Evolve model
+    status.update(time)
 
-    # Fill the ball
-    radius = 0.25
-    freq = 0.3
-    angle = time * freq * 2 * math.pi
-    if time > 0.0:
-        ctx.arc(radius * math.cos(angle), radius * math.sin(angle), BALL_DIAMETER/2, 0.0, 2*math.pi)
-        ctx.set_source_rgb(1.0, 1.0, 1.0)
-        ctx.fill()
+    # Draw field from model
+    status.draw_to_cairo(ctx)
 
     # Draw tracking features
     ctx.save()
     ctx.set_line_width(FIELD_HEIGHT/10)
-
     for i, j, mark, bg_color in [(1, 1, draw_oplus, (1.0, 0.0, 0.0)),
                                  (1, -1, draw_cross, (0.0, 1.0, 0.0)),
                                  (-1, 1, draw_circle, (0.0, 0.0, 1.0)),
@@ -139,9 +157,9 @@ def draw_frame(ctx, frame_ctx, size, time):
         ctx.set_source_rgb(0.0, 0.0, 0.0)
         mark(ctx)
         ctx.restore()
-
-    # Restore saved contexts
     ctx.restore()
+
+    # Restore from randomized position
     ctx.restore()
 
 def setup_pygame():
@@ -188,12 +206,13 @@ def save_frames(surf, ctx):
 
     frame = 0
     frame_ctx = FrameContext()
+    status = SubottoStatus()
     while frames is None or frame < frames:
         print "Writing frame %d..." % (frame),
 
         # Draw the frame
         time = float(frame) / fps
-        draw_frame(ctx, frame_ctx, size, time)
+        draw_frame(ctx, frame_ctx, status, size, time)
         surf.flush()
 
         # Write it to a file
@@ -223,6 +242,7 @@ def show_pygame(surf, ctx):
 
     frame = 0
     frame_ctx = FrameContext()
+    status = SubottoStatus()
     fpsClock = pygame.time.Clock()
     while frames is None or frame < frames:
         # Process events
@@ -239,7 +259,7 @@ def show_pygame(surf, ctx):
 
         # Draw the frame
         time = float(frame) / fps
-        draw_frame(ctx, frame_ctx, size, time)
+        draw_frame(ctx, frame_ctx, status, size, time)
         surf.flush()
 
         print "done!"

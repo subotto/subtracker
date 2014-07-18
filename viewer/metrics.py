@@ -23,6 +23,7 @@ ROD_NUMBER = len(ROD_CONFIGURATION)
 
 # Colors
 BALL_COLOR = (0.85, 0.85, 0.85)
+FIELD_COLOR = (0.2, 0.7, 0.2)
 FOOSMEN_COLORS = [(0.65, 0.10, 0.05),
                   (0.05, 0.25, 0.50)]
 
