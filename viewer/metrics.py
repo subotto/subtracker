@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+# Distance values are in meters
 FIELD_WIDTH = 1.135
 FIELD_HEIGHT = 0.7
 
@@ -20,4 +21,10 @@ ROD_CONFIGURATION = [(1, 0.0, 0),
                      (1, 0.0, 1)]
 ROD_NUMBER = len(ROD_CONFIGURATION)
 
+# Colors
+BALL_COLOR = (0.85, 0.85, 0.85)
+FOOSMEN_COLORS = [(0.65, 0.10, 0.05),
+                  (0.05, 0.25, 0.50)]
+
+# Private for viewer
 CYLINDER_FACTOR = 10.0
