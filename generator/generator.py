@@ -3,6 +3,7 @@
 
 import sys
 import math
+import random
 
 import cairo
 import cv
@@ -60,7 +61,38 @@ def draw_oplus(ctx):
     ctx.line_to(0.0, 1.0)
     ctx.stroke()
 
-def draw_frame(ctx, size, time):
+class FrameContext:
+    trans_x = 0.0
+    trans_y = 0.0
+    angle = 0.0
+
+    # At each step data are perturbed adding a Gaussian term with zero
+    # mean and specified standard deviation
+    trans_x_sigma = 0.005
+    trans_y_sigma = 0.005
+    angle_sigma = 0.005
+
+    # At each step data are clamped in order to not to deviate from
+    # zero for more than specified values
+    trans_x_max = 0.1
+    trans_y_max = 0.1
+    angle_max = 0.3
+
+    def perturb(self, val, sigma, max_):
+        val += random.gauss(0.0, sigma)
+        val = min(max_, max(-max_, val))
+        return val
+
+    def perturb_all(self):
+        self.trans_x = self.perturb(self.trans_x, self.trans_x_sigma, self.trans_x_max)
+        self.trans_y = self.perturb(self.trans_y, self.trans_y_sigma, self.trans_y_max)
+        self.angle = self.perturb(self.angle, self.angle_sigma, self.angle_max)
+
+    def apply_to_cairo(self, ctx):
+        ctx.rotate(self.angle)
+        ctx.translate(self.trans_x, self.trans_y)
+
+def draw_frame(ctx, frame_ctx, size, time):
     # Everything white
     ctx.save()
     ctx.identity_matrix()
@@ -68,6 +100,11 @@ def draw_frame(ctx, size, time):
     ctx.set_source_rgb(255, 255, 255)
     ctx.fill()
     ctx.restore()
+
+    # Randomize field position
+    ctx.save()
+    frame_ctx.perturb_all()
+    frame_ctx.apply_to_cairo(ctx)
 
     # Fill and stroke the field
     ctx.rectangle(-FIELD_WIDTH/2, -FIELD_HEIGHT/2, FIELD_WIDTH, FIELD_HEIGHT)
@@ -103,6 +140,8 @@ def draw_frame(ctx, size, time):
         mark(ctx)
         ctx.restore()
 
+    # Restore saved contexts
+    ctx.restore()
     ctx.restore()
 
 def setup_pygame():
@@ -148,12 +187,13 @@ def save_frames(surf, ctx):
     #vw = cv2.VideoWriter('test.avi', cv.FOURCC('M', 'J', 'P', 'G'), fps, size)
 
     frame = 0
+    frame_ctx = FrameContext()
     while frames is None or frame < frames:
         print "Writing frame %d..." % (frame),
 
         # Draw the frame
         time = float(frame) / fps
-        draw_frame(ctx, size, time)
+        draw_frame(ctx, frame_ctx, size, time)
         surf.flush()
 
         # Write it to a file
@@ -182,6 +222,7 @@ def show_pygame(surf, ctx):
         frames = None
 
     frame = 0
+    frame_ctx = FrameContext()
     fpsClock = pygame.time.Clock()
     while frames is None or frame < frames:
         # Process events
@@ -198,7 +239,7 @@ def show_pygame(surf, ctx):
 
         # Draw the frame
         time = float(frame) / fps
-        draw_frame(ctx, size, time)
+        draw_frame(ctx, frame_ctx, size, time)
         surf.flush()
 
         print "done!"
