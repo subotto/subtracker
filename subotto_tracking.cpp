@@ -31,7 +31,7 @@ static Point_<float> applyTransform(Point_<float> p, Mat m) {
 	return Point_<float>(tpm.at<float>(0, 0) / w, tpm.at<float>(1, 0) / w);
 }
 
-Mat detect_table(Mat frame, table_detection_params_t& params, control_panel_t& panel) {
+static Mat detect_table(Mat frame, table_detection_params_t& params, control_panel_t& panel) {
 	const SubottoReference& reference = *params.reference;
 
 	const Mat& reference_image = reference.image;
@@ -154,7 +154,7 @@ Mat detect_table(Mat frame, table_detection_params_t& params, control_panel_t& p
 	return transform;
 }
 
-Mat follow_table(Mat frame, Mat previous_transform, table_following_params_t& params, table_tracking_status_t& status, control_panel_t& panel) {
+static Mat follow_table(Mat frame, Mat previous_transform, table_following_params_t& params, table_tracking_status_t& status, control_panel_t& panel) {
 	Mat scaled_reference_image = status.scaled_reference;
 
 	Size size = scaled_reference_image.size();

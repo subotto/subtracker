@@ -37,20 +37,6 @@ void getTableFrame(Mat frame, Mat& tableFrame, Size size, Mat transform) {
 	warpPerspective(frame32f, tableFrame, warpTransform, size, CV_WARP_INVERSE_MAP | CV_INTER_LINEAR);
 }
 
-struct FoosmenRunningAverage {
-	float shift[BARS][2];
-	float rot[BARS][2];
-
-	FoosmenRunningAverage() {
-		for(int side = 0; side < 2; side++) {
-			for(int bar = 0; bar < BARS; bar++) {
-				shift[bar][side] = 0.f;
-				rot[bar][side] = 0.f;
-			}
-		}
-	}
-};
-
 vector<pair<Point2f, float>> findLocalMaxima(Mat density, int radiusX, int radiusY, int limit) {
 	typedef pair<Point, float> pi; // point, integer
 	typedef pair<Point2f, float> pf; // point, floating point
@@ -122,8 +108,6 @@ void doIt(FrameReader& frameReader) {
 
 	deque< vector<float> > foosmenValues;	// Values to be printed for each frame
 	deque<double> timestamps;				// Timestamp of each frame
-
-	thread playback_thread;
 
 	table_tracking_status_t table_tracking_status;
 

@@ -67,12 +67,7 @@ struct table_tracking_t {
 	cv::Mat transform;
 };
 
-Mat detect_table(Mat frame, table_detection_params_t& params, control_panel_t& panel);
-Mat follow_table(Mat frame, Mat previous_transform, table_following_params_t& params, table_tracking_status_t& status, control_panel_t& panel);
-
 void init_table_tracking(table_tracking_status_t& status, table_tracking_params_t& params, control_panel_t& panel);
 Mat track_table(Mat frame, table_tracking_status_t& status, table_tracking_params_t& params, control_panel_t& panel);
-
-void drawSubottoBorders(cv::Mat& outImage, const cv::Mat& transform, cv::Scalar color);
 
 #endif /* SUBOTTODETECTOR_H_ */
