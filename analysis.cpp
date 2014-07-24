@@ -113,6 +113,7 @@ void do_ball_analysis(control_panel_t &panel,
 		computeLL(ball, ballAnalysis);
 
 		computeDensity(tableAnalysis, ballAnalysis, density);
+    show(panel, "ball tracking", "density", density);
 
 		dump_time(panel, "cycle", "ball analysis");
 
