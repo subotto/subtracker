@@ -27,6 +27,9 @@ subtracker2014.o \
 staging.o \
 analysis.o
 
+OBJECTS_subtracker2015 = \
+subtracker2015.o \
+
 OBJECTS_tester = \
 blobs_tracker.o \
 control.o \
@@ -39,7 +42,8 @@ v4l2cap.o \
 tester.o
 
 BINARIES = \
-subtracker2014
+subtracker2014 \
+subtracker2015
 #tester
 
 TEST_BINARIES = \
@@ -56,18 +60,22 @@ clean:
 	rm -f $(OBJECTS_tester)
 	rm -f $(BINARIES)
 	rm -f $(TEST_BINARIES)
+	rm -f *.d
 
 %.o: %.cpp $(HEADERS) Makefile
-	$(CPP) $(CPPFLAGS) -c $<
+	$(CPP) $(CPPFLAGS) -c -o $@ $<
 
-subtracker2014.o: staging.hpp analysis.hpp
+%.d: %.cpp Makefile
+	$(CPP) $(CPPFLAGS) -M -o $@ $<
 
-staging.o: staging.hpp
-
-analysis.o: analysis.hpp
+-include $(OBJECTS_subtracker2014:.o=.d)
+-include $(OBJECTS_subtracker2015:.o=.d)
 
 subtracker2014: $(OBJECTS_subtracker2014) Makefile
 	$(CPP) $(CPPFLAGS) $(LIBS) -o $@ $(OBJECTS_subtracker2014)
+
+subtracker2015: $(OBJECTS_subtracker2015) Makefile
+	$(CPP) $(CPPFLAGS) $(LIBS) -o $@ $(OBJECTS_subtracker2015)
 
 tester: $(OBJECTS_tester) Makefile
 	$(CPP) $(CPPFLAGS) $(LIBS) -o $@ $(OBJECTS_tester)
