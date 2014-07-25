@@ -7,6 +7,7 @@
 #include <opencv2/videostab/videostab.hpp>
 
 #include <iostream>
+#include <tuple>
 
 #include "control.hpp"
 
@@ -31,13 +32,19 @@ static Point_<float> applyTransform(Point_<float> p, Mat m) {
 	return Point_<float>(tpm.at<float>(0, 0) / w, tpm.at<float>(1, 0) / w);
 }
 
-vector< KeyPoint > get_features(Mat frame, Mat mask, int features_per_level, int features_levels) {
+static tuple< vector< KeyPoint >, Mat > get_features(Mat frame, Mat mask, int features_per_level, int features_levels) {
 
   Ptr< GoodFeaturesToTrackDetector > gftd(new GoodFeaturesToTrackDetector(features_per_level));
   PyramidAdaptedFeatureDetector fd(gftd, features_levels);
   vector< KeyPoint > features;
   fd.detect(frame, features, mask);
-  return features;
+
+  Ptr< BriefDescriptorExtractor > bde(new BriefDescriptorExtractor(64));
+	OpponentColorDescriptorExtractor de(bde);
+  Mat features_descriptions;
+  de.compute(frame, features, features_descriptions);
+
+  return make_tuple(features, features_descriptions);
 
 }
 
@@ -48,17 +55,10 @@ static Mat detect_table(Mat frame, table_detection_params_t& params, control_pan
 	const Mat& reference_mask = reference.mask;
 	auto& reference_metrics = reference.metrics;
 
-  Ptr< BriefDescriptorExtractor > bde(new BriefDescriptorExtractor(64));
-	OpponentColorDescriptorExtractor de(bde);
-
-	auto frame_features = get_features(frame, Mat(), params.frame_features_per_level, params.frame_features_levels);
-  auto reference_features = get_features(reference_image, reference_mask, params.reference_features_per_level, params.reference_features_levels);
-
-	Mat frame_features_descriptions;
-	de.compute(frame, frame_features, frame_features_descriptions);
-
-	Mat reference_features_descriptions;
-	de.compute(reference_image, reference_features, reference_features_descriptions);
+  vector< KeyPoint > frame_features, reference_features;
+	Mat frame_features_descriptions, reference_features_descriptions;
+	tie(frame_features, frame_features_descriptions) = get_features(frame, Mat(), params.frame_features_per_level, params.frame_features_levels);
+  tie(reference_features, reference_features_descriptions) = get_features(reference_image, reference_mask, params.reference_features_per_level, params.reference_features_levels);
 
 	vector<vector<DMatch>> matches_groups;
 
