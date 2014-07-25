@@ -238,6 +238,7 @@ void doIt(FrameReader& frameReader) {
 		dump_time(panel, "cycle", "start cycle");
 
 		auto frame_info = frameReader.get();
+    if (!frame_info.valid) break;
 		Mat frame = frame_info.data;
 
     // Match the position of the table against the stored reference
@@ -308,7 +309,7 @@ void doIt(FrameReader& frameReader) {
 			p.x =  (p.x / density.cols - 0.5f) * metrics.length;
 			p.y = -(p.y / density.rows - 0.5f) * metrics.width;
 		}
-		
+
 		// Inserisco i punti migliori come nuovo frame nella timeline
 		for (int i=0; i<localMaxima.size(); i++) {
 			blobs.push_back( Blob(localMaxima[i].first, 0.0, 0.0, localMaxima[i].second) );

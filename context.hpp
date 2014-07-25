@@ -5,11 +5,11 @@
 
 using namespace cv;
 
-typedef struct {
+struct SubtrackerContext {
 
   Mat ref_image;
   Mat ref_mask;
 
-} SubtrackerContext;
+};
 
 #endif

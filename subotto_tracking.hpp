@@ -62,7 +62,7 @@ struct table_tracking_status_t {
 };
 
 struct table_tracking_t {
-	frame_info frameInfo;
+	FrameInfo frameInfo;
 	cv::Mat frame;
 	cv::Mat transform;
 };

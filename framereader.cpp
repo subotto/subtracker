@@ -42,13 +42,16 @@ void FrameReader::read() {
   while(running) {
     Mat frame;
     if(!cap.read(frame)) {
-      if(fromFile) {
+      //if(fromFile) {
         logger(panel, "capture", INFO) << "Video ended." << endl;
-        exit(0);
-      } else {
-        logger(panel, "capture", ERROR) << "Error reading frame!" << endl;
-        continue;
-      }
+        queue.push_back( { time_point< video_clock >(), time_point< system_clock >(), frame, false });
+        queue_not_empty.notify_all();
+        enqueued_frames++;
+        return;
+      //} else {
+      //  logger(panel, "capture", ERROR) << "Error reading frame!" << endl;
+      //  continue;
+      //}
     }
     count++;
     auto now = system_clock::now();
@@ -110,7 +113,7 @@ void FrameReader::read() {
     // frame su 2 se queue.size() < 2*buffer_size, uno su 3 se
     // queue.size() < 3*buffer_size, etc
     if (count % (queue.size() / buffer_size + 1) == 0) {
-      queue.push_back( { timestamp, playback_time, frame });
+      queue.push_back( { timestamp, playback_time, frame, true });
       queue_not_empty.notify_all();
       enqueued_frames++;
     } else {
@@ -121,7 +124,7 @@ void FrameReader::read() {
   }
 }
 
-frame_info FrameReader::get() {
+FrameInfo FrameReader::get() {
   unique_lock<mutex> lock(queue_mutex);
   while(queue.empty()) {
     queue_not_empty.wait(lock);

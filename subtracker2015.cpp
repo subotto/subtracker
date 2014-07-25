@@ -7,7 +7,14 @@
 using namespace cv;
 using namespace std;
 
-void feed_frames(FrameReader &f, control_panel_t &panel) {
+static void feed_frames(FrameReader &frame_reader, SubtrackerContext &ctx, control_panel_t &panel) {
+
+  for (int frame_num = 0; ; frame_num++) {
+
+    auto frame_info = frame_reader.get();
+    if (!frame_info.valid) break;
+
+  }
 
 }
 
@@ -62,7 +69,7 @@ int main(int argc, char* argv[]) {
     f = new FrameReader(videoName.c_str(), panel, simulate_live);
   }
 
-  feed_frames(*f, panel);
+  feed_frames(*f, ctx, panel);
 
   // Graciously wait for the reader thread to stop
   delete f;

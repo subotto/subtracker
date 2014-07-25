@@ -18,16 +18,17 @@ struct video_clock {
 	typedef nanoseconds duration;
 };
 
-struct frame_info {
+struct FrameInfo {
 	time_point<video_clock> timestamp;
 	time_point<system_clock> playback_time;
 	Mat data;
+  bool valid;
 };
 
 class FrameReader {
 
 private:
-	deque<frame_info> queue;
+	deque<FrameInfo> queue;
 	deque<time_point<video_clock>> frame_times;
 	deque<time_point<video_clock>> frame_dropped;
 	mutex queue_mutex;
@@ -50,7 +51,7 @@ public:
 	FrameReader(int device, control_panel_t& panel);
 	FrameReader(const char* file, control_panel_t& panel, bool simulate_live = false);
 	void read();
-	frame_info get();
+	FrameInfo get();
 	~FrameReader();
 };
 
