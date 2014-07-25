@@ -1,2 +1,6 @@
 *~
 *.o
+*.d
+*.pyc
+*.blend1
+*.blend2

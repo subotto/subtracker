@@ -29,6 +29,9 @@ analysis.o
 
 OBJECTS_subtracker2015 = \
 subtracker2015.o \
+framereader.o \
+control.o \
+v4l2cap.o \
 
 OBJECTS_tester = \
 blobs_tracker.o \
