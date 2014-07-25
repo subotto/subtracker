@@ -31,6 +31,16 @@ static Point_<float> applyTransform(Point_<float> p, Mat m) {
 	return Point_<float>(tpm.at<float>(0, 0) / w, tpm.at<float>(1, 0) / w);
 }
 
+vector< KeyPoint > get_features(Mat frame, Mat mask, int features_per_level, int features_levels) {
+
+  Ptr< GoodFeaturesToTrackDetector > gftd(new GoodFeaturesToTrackDetector(features_per_level));
+  PyramidAdaptedFeatureDetector fd(gftd, features_levels);
+  vector< KeyPoint > features;
+  fd.detect(frame, features, mask);
+  return features;
+
+}
+
 static Mat detect_table(Mat frame, table_detection_params_t& params, control_panel_t& panel) {
 	const SubottoReference& reference = *params.reference;
 
@@ -38,15 +48,11 @@ static Mat detect_table(Mat frame, table_detection_params_t& params, control_pan
 	const Mat& reference_mask = reference.mask;
 	auto& reference_metrics = reference.metrics;
 
-	OpponentColorDescriptorExtractor de(new BriefDescriptorExtractor(64));
+  Ptr< BriefDescriptorExtractor > bde(new BriefDescriptorExtractor(64));
+	OpponentColorDescriptorExtractor de(bde);
 
-	PyramidAdaptedFeatureDetector frame_fd(new GoodFeaturesToTrackDetector(params.frame_features_per_level), params.frame_features_levels);
-	vector<KeyPoint> frame_features;
-	frame_fd.detect(frame, frame_features, Mat());
-
-	PyramidAdaptedFeatureDetector reference_fd(new GoodFeaturesToTrackDetector(params.reference_features_per_level), params.reference_features_levels);
-	vector<KeyPoint> reference_features;
-	reference_fd.detect(reference_image, reference_features, reference_mask);
+	auto frame_features = get_features(frame, Mat(), params.frame_features_per_level, params.frame_features_levels);
+  auto reference_features = get_features(reference_image, reference_mask, params.reference_features_per_level, params.reference_features_levels);
 
 	Mat frame_features_descriptions;
 	de.compute(frame, frame_features, frame_features_descriptions);

@@ -11,6 +11,7 @@ static void feed_frames(FrameReader &frame_reader, SubtrackerContext &ctx, contr
 
   for (int frame_num = 0; ; frame_num++) {
 
+    // Read a new frame and perhaps terminate program
     auto frame_info = frame_reader.get();
     if (!frame_info.valid) break;
 
@@ -42,14 +43,16 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  SubtrackerContext ctx;
   control_panel_t panel;
 
   // Read reference image and mask
-  ctx.ref_image = imread(referenceImageName);
+  Mat ref_frame = imread(referenceImageName);
+  Mat ref_mask;
   if(!referenceImageMaskName.empty()) {
-    ctx.ref_mask = imread(referenceImageMaskName, CV_LOAD_IMAGE_GRAYSCALE);
+    ref_mask = imread(referenceImageMaskName, CV_LOAD_IMAGE_GRAYSCALE);
   }
+
+  SubtrackerContext ctx(ref_frame, ref_mask);
 
   // Initialize panel (GUI)
   init_control_panel(panel);

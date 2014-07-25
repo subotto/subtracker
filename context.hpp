@@ -5,10 +5,18 @@
 
 using namespace cv;
 
+struct FrameAnalysis {
+
+  Mat frame;
+
+};
+
 struct SubtrackerContext {
 
-  Mat ref_image;
+  Mat ref_frame;
   Mat ref_mask;
+
+  SubtrackerContext(Mat ref_frame, Mat ref_mask);
 
 };
 

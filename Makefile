@@ -32,6 +32,7 @@ subtracker2015.o \
 framereader.o \
 control.o \
 v4l2cap.o \
+context.o \
 
 OBJECTS_tester = \
 blobs_tracker.o \
