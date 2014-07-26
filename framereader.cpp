@@ -1,5 +1,6 @@
 
 #include "framereader.hpp"
+#include "v4l2cap.hpp"
 
 static const seconds frame_count_interval(5);
 static const int stats_interval = 1;
@@ -44,7 +45,7 @@ void FrameReader::read() {
     if(!cap.read(frame)) {
       //if(fromFile) {
         logger(panel, "capture", INFO) << "Video ended." << endl;
-        queue.push_back( { time_point< video_clock >(), time_point< system_clock >(), frame, false });
+        queue.push_back( { time_point< video_clock >(), time_point< system_clock >(), Mat(), false });
         queue_not_empty.notify_all();
         enqueued_frames++;
         return;

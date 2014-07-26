@@ -1,29 +1,19 @@
 #ifndef _FRAMEREADER_HPP
 #define _FRAMEREADER_HPP
+
 #include <deque>
 #include <thread>
 #include <mutex>
 #include <atomic>
 #include <condition_variable>
 #include <chrono>
-#include "v4l2cap.hpp"
+
 #include "control.hpp"
+#include "framereader_structs.hpp"
 
 using namespace std;
 using namespace chrono;
 using namespace cv;
-
-// video clock - starting at first frame
-struct video_clock {
-	typedef nanoseconds duration;
-};
-
-struct FrameInfo {
-	time_point<video_clock> timestamp;
-	time_point<system_clock> playback_time;
-	Mat data;
-  bool valid;
-};
 
 class FrameReader {
 

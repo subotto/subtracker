@@ -15,6 +15,8 @@ static void feed_frames(FrameReader &frame_reader, SubtrackerContext &ctx, contr
     auto frame_info = frame_reader.get();
     if (!frame_info.valid) break;
 
+    ctx.feed(frame_info.data, frame_info.timestamp);
+
   }
 
 }
