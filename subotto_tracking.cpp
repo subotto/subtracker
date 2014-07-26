@@ -48,8 +48,7 @@ static tuple< vector< KeyPoint >, Mat > get_features(Mat frame, Mat mask, int fe
 
 }
 
-static Mat detect_table(Mat frame, table_detection_params_t& params, control_panel_t& panel) {
-	const SubottoReference& reference = *params.reference;
+static Mat detect_table(Mat frame, table_detection_params_t& params, control_panel_t& panel, const SubottoReference& reference) {
 
 	const Mat& reference_image = reference.image;
 	const Mat& reference_mask = reference.mask;
@@ -160,12 +159,10 @@ static Mat detect_table(Mat frame, table_detection_params_t& params, control_pan
 	return transform;
 }
 
-static Mat follow_table(Mat frame, Mat previous_transform, table_following_params_t& params, table_tracking_status_t& status, control_panel_t& panel) {
+static Mat follow_table(Mat frame, Mat previous_transform, table_following_params_t& params, table_tracking_status_t& status, control_panel_t& panel, const SubottoReference& reference) {
 	Mat scaled_reference_image = status.scaled_reference;
 
 	Size size = scaled_reference_image.size();
-
-	const SubottoReference& reference = *params.reference;
 
 	auto& reference_metrics = reference.metrics;
 
@@ -228,7 +225,7 @@ static Mat follow_table(Mat frame, Mat previous_transform, table_following_param
 	return previous_transform * sizeToReference(reference_metrics, size) * correction * referenceToSize(reference_metrics, size);
 }
 
-void init_table_tracking(table_tracking_status_t& status, table_tracking_params_t& params, control_panel_t& panel) {
+void init_table_tracking_panel(table_tracking_params_t& params, control_panel_t& panel) {
 	trackbar(panel, "table detect", "detect every", params.detect_every_frames, {0, 1000, 1});
 
 	trackbar(panel, "table detect", "coarse reference features per level", params.detection.reference_features_per_level, {0, 1000, 1});
@@ -244,29 +241,28 @@ void init_table_tracking(table_tracking_status_t& status, table_tracking_params_
 
 	trackbar(panel, "table detect", "follow optical flow features", params.following_params.optical_flow_features, {0, 1000, 1});
 	trackbar(panel, "table detect", "follow optical flow ransac threshold", params.following_params.optical_flow_ransac_threshold, {0.0f, 100.f, 0.1f});
-
-	status.frames_to_next_detection = 0;
-
-	Size size(128, 64);
-
-	const SubottoReference& reference = *params.following_params.reference;
-
-	resize(reference.image, status.scaled_reference, size);
-
-	GoodFeaturesToTrackDetector(params.following_params.optical_flow_features).detect(status.scaled_reference, status.reference_features);
 }
 
-Mat track_table(Mat frame, table_tracking_status_t& status, table_tracking_params_t& params, control_panel_t& panel) {
+table_tracking_status_t::table_tracking_status_t(const table_tracking_params_t& params, const SubottoReference& reference)
+  : frames_to_next_detection(0) {
+
+	Size size(128, 64);
+  resize(reference.image, this->scaled_reference, size);
+	GoodFeaturesToTrackDetector(params.following_params.optical_flow_features).detect(this->scaled_reference, this->reference_features);
+
+}
+
+Mat track_table(Mat frame, table_tracking_status_t& status, table_tracking_params_t& params, control_panel_t& panel, const SubottoReference& reference) {
 	Mat undistorted = correctDistortion(frame);
 
 	Mat transform;
 
 	if (status.near_transform.empty() || status.frames_to_next_detection <= 0) {
-		transform = detect_table(undistorted, params.detection, panel);
+		transform = detect_table(undistorted, params.detection, panel, reference);
 		status.frames_to_next_detection = params.detect_every_frames;
 		status.near_transform = transform;
 	} else {
-		transform = follow_table(undistorted, status.near_transform, params.following_params, status, panel);
+		transform = follow_table(undistorted, status.near_transform, params.following_params, status, panel, reference);
 		status.frames_to_next_detection--;
 		// smooth the previous transform
 		accumulateWeighted(transform, status.near_transform, params.near_transform_alpha);

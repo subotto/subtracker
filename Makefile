@@ -33,6 +33,8 @@ framereader.o \
 control.o \
 v4l2cap.o \
 context.o \
+subotto_tracking.o \
+subotto_metrics.o \
 
 OBJECTS_tester = \
 blobs_tracker.o \

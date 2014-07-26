@@ -23,8 +23,6 @@ SubottoMetrics metrics;
 
 FoosmenMetrics foosmenMetrics;
 
-table_tracking_params_t table_tracking_params;
-
 control_panel_t panel;
 
 BlobsTracker blobs_tracker(panel);
@@ -92,11 +90,8 @@ void doIt(FrameReader& frameReader) {
 
 	Size tableFrameSize(128, 64);
 
-	TableDescription table;
+	TableDescription table(tableFrameSize);
 	BallDescription ball;
-
-	table.mean = Mat(tableFrameSize, CV_32FC3, 0.f);
-	table.variance = Mat(tableFrameSize, CV_32FC3, 0.f);
 
 	TableAnalysis tableAnalysis;
 	BallAnalysis ballAnalysis;
@@ -109,12 +104,9 @@ void doIt(FrameReader& frameReader) {
 	deque< vector<float> > foosmenValues;	// Values to be printed for each frame
 	deque<double> timestamps;				// Timestamp of each frame
 
-	table_tracking_status_t table_tracking_status;
-
-	table_tracking_params.detection.reference = &reference;
-	table_tracking_params.following_params.reference = &reference;
-
-	init_table_tracking(table_tracking_status, table_tracking_params, panel);
+  table_tracking_params_t table_tracking_params;
+	init_table_tracking_panel(table_tracking_params, panel);
+	table_tracking_status_t table_tracking_status(table_tracking_params, reference);
 
 	foosmen_params_t foosmen_params;
 
@@ -242,7 +234,7 @@ void doIt(FrameReader& frameReader) {
 		Mat frame = frame_info.data;
 
     // Match the position of the table against the stored reference
-		Mat table_transform = track_table(frame_info.data, table_tracking_status, table_tracking_params, panel);
+		Mat table_transform = track_table(frame_info.data, table_tracking_status, table_tracking_params, panel, reference);
 
 		dump_time(panel, "cycle", "detect subotto");
 

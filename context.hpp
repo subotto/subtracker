@@ -5,53 +5,59 @@
 
 #include <opencv2/core/core.hpp>
 
+#include "control.hpp"
 #include "framereader_structs.hpp"
+#include "subotto_tracking.hpp"
 
 using namespace std;
 using namespace cv;
 
 class FrameSettings {
 
+public:
+
+  table_tracking_params_t table_tracking_params;
+  SubottoReference reference;
+
+  FrameSettings(Mat ref_frame, Mat ref_mask);
+
 };
 
 class FrameAnalysis {
 
-private:
+public:
 
   // Global frame data
   Mat frame;
   time_point< video_clock > timestamp;
   FrameSettings frame_settings;
+  control_panel_t &panel;
 
-  // Reference frame data
-  Mat ref_frame;
-  Mat ref_mask;
+  // Table tracking
+  table_tracking_status_t table_tracking_status;
 
-  void copy_from_prev(const FrameAnalysis &prev_frame_analysis);
+  FrameAnalysis(Mat frame, time_point< video_clock > timestamp, FrameSettings frame_settings, control_panel_t &panel);
 
-public:
-
-  FrameAnalysis(Mat frame, time_point< video_clock > timestamp, FrameSettings frame_settings, Mat ref_frame, Mat ref_mask);
-  FrameAnalysis(Mat frame, time_point< video_clock > timestamp, FrameSettings frame_settings, Mat ref_frame, Mat ref_mask, const FrameAnalysis &prev_frame_analysis);
+  void setup_from_prev_table_tracking(const FrameAnalysis &prev_frame_analysis);
+  void track_table();
 
 };
 
 class SubtrackerContext {
 
-private:
-
-  Mat ref_frame;
-  Mat ref_mask;
-
-  FrameSettings frame_settings;
-
-  deque< FrameAnalysis > frames;
-
 public:
 
-  SubtrackerContext(Mat ref_frame, Mat ref_mask);
+  control_panel_t &panel;
+  FrameSettings frame_settings;
+
+  FrameAnalysis *frame_analysis;
+  FrameAnalysis *prev_frame_analysis;
+
+  SubtrackerContext(Mat ref_frame, Mat ref_mask, control_panel_t &panel);
+  ~SubtrackerContext();
 
   void feed(Mat frame, time_point< video_clock > timestamp);
+  void do_table_tracking();
 
 };
 

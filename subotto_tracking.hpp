@@ -32,8 +32,6 @@ struct table_detection_params_t {
 	int optical_flow_features_levels = 3;
 
 	float optical_flow_ransac_threshold = 1.0f;
-
-	const SubottoReference* reference;
 };
 
 struct table_following_params_t {
@@ -41,8 +39,6 @@ struct table_following_params_t {
 	float optical_flow_ransac_threshold = 1.0f;
 
 	cv::Size optical_flow_size {128, 64};
-
-	const SubottoReference* reference;
 };
 
 struct table_tracking_params_t {
@@ -59,6 +55,8 @@ struct table_tracking_status_t {
 
 	cv::Mat scaled_reference;
 	std::vector<cv::KeyPoint> reference_features;
+
+  table_tracking_status_t(const table_tracking_params_t& params, const SubottoReference& reference);
 };
 
 struct table_tracking_t {
@@ -67,7 +65,7 @@ struct table_tracking_t {
 	cv::Mat transform;
 };
 
-void init_table_tracking(table_tracking_status_t& status, table_tracking_params_t& params, control_panel_t& panel);
-Mat track_table(Mat frame, table_tracking_status_t& status, table_tracking_params_t& params, control_panel_t& panel);
+void init_table_tracking_panel(table_tracking_params_t& params, control_panel_t& panel);
+Mat track_table(Mat frame, table_tracking_status_t& status, table_tracking_params_t& params, control_panel_t& panel, const SubottoReference& reference);
 
 #endif /* SUBOTTODETECTOR_H_ */

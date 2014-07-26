@@ -12,6 +12,8 @@ struct TableDescription {
 	Mat mean;
 	Mat variance;
 	Mat correctedVariance;
+
+  TableDescription(Size tableFrameSize);
 };
 
 struct TableAnalysis {

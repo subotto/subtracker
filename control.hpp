@@ -161,6 +161,8 @@ static void update_trackbar(control_panel_t& panel, std::string category, std::s
 	if(is_toggled(panel, category, TRACKBAR)) {
 		cv::namedWindow(window_name, CV_WINDOW_NORMAL);
 		cv::createTrackbar(trackbar_name, window_name, NULL, status.count, status.callback, &status);
+    // TODO: incorrect, it always restore the first default value, not
+    // the current one
 		cv::setTrackbarPos(trackbar_name, window_name, status.value_int);
 	} else {
 		cv::destroyWindow(window_name);

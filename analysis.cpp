@@ -20,6 +20,13 @@ using namespace std;
 
 int tableDiffLowFilterStdDev = 40;
 
+TableDescription::TableDescription(Size tableFrameSize) {
+
+  this->mean = Mat(tableFrameSize, CV_32FC3, 0.f);
+  this->variance = Mat(tableFrameSize, CV_32FC3, 0.f);
+
+}
+
 void startTableAnalysis(Mat tableFrame, const TableDescription& table, TableAnalysis& analysis) {
 	subtract(tableFrame, table.mean, analysis.diff);
 }
