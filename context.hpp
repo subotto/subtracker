@@ -18,6 +18,8 @@ public:
 
   table_tracking_params_t table_tracking_params;
   SubottoReference reference;
+  Size table_frame_size;
+  SubottoMetrics table_metrics;
 
   FrameSettings(Mat ref_frame, Mat ref_mask);
 
@@ -35,11 +37,14 @@ public:
 
   // Table tracking
   table_tracking_status_t table_tracking_status;
+  Mat table_transform;
+  Mat table_frame;
 
   FrameAnalysis(Mat frame, time_point< video_clock > timestamp, FrameSettings frame_settings, control_panel_t &panel);
 
   void setup_from_prev_table_tracking(const FrameAnalysis &prev_frame_analysis);
   void track_table();
+  void warp_table_frame();
 
 };
 

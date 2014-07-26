@@ -246,7 +246,6 @@ void doIt(FrameReader& frameReader) {
 
 		Mat tableFrame;
 		getTableFrame(frame, tableFrame, tableFrameSize, table_transform);
-		Size size = tableFrame.size();
 
     show(panel, "frame", "tableFrame", tableFrame);
 
@@ -275,7 +274,7 @@ void doIt(FrameReader& frameReader) {
                         barsAnalysis,
                         metrics,
                         foosmenMetrics,
-                        size,
+                        tableFrameSize,
                         foosmen_params,
                         tableFrame,
                         tableAnalysis,
