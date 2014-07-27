@@ -266,8 +266,12 @@ void doIt(FrameReader& frameReader) {
     do_update_table_description(panel,
                                 tableFrame,
                                 tableAnalysis,
-                                i,
                                 table);
+
+    if (i % 5 == 0) {
+      do_update_corrected_variance(panel,
+                                   table);
+    }
 
     do_foosmen_analysis(panel,
                         barsMetrics,

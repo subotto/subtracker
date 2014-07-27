@@ -53,8 +53,10 @@ void do_ball_analysis(control_panel_t &panel,
 void do_update_table_description(control_panel_t &panel,
                                  const Mat &tableFrame,
                                  const TableAnalysis& tableAnalysis,
-                                 const int &i,
                                  TableDescription& table);
+
+void do_update_corrected_variance(control_panel_t &panel,
+                                  TableDescription &table);
 
 
 enum {

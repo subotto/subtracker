@@ -35,6 +35,7 @@ v4l2cap.o \
 context.o \
 subotto_tracking.o \
 subotto_metrics.o \
+analysis.o \
 
 OBJECTS_tester = \
 blobs_tracker.o \

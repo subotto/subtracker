@@ -149,18 +149,22 @@ static void computeCorrectedVariance(TableDescription& table) {
 void do_update_table_description(control_panel_t &panel,
                                  const Mat &tableFrame,
                                  const TableAnalysis& tableAnalysis,
-                                 const int &i,
                                  TableDescription& table) {
 
 		updateMean(table, tableFrame);
     show(panel, "frame", "mean", table.mean);
 		updateVariance(table, tableAnalysis);
 
-		if((i%5) == 0) {
-			computeCorrectedVariance(table);
-		}
-
 		dump_time(panel, "cycle", "update table description");
+
+}
+
+void do_update_corrected_variance(control_panel_t &panel,
+                                  TableDescription &table) {
+
+  computeCorrectedVariance(table);
+
+  dump_time(panel, "cycle", "update corrected variance");
 
 }
 

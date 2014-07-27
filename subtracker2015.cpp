@@ -90,16 +90,21 @@ static void feed_frames(FrameReader &frame_reader, SubtrackerContext &ctx) {
 
   for (int frame_num = 0; ; frame_num++) {
 
+    dump_time(panel, "cycle", "feed new frame");
+
     // Every now and then, do GUI computation
     panel.update_display = (frame_num % (update_gui_skip + 1) == 0);
     if (panel.update_display) {
 
 			namedWindow("control panel", WINDOW_NORMAL);
 
-      // Check of key pressions
+      // Check of key pressions (FIXME: this process just one key
+      // pression every cycle)
 			int c = waitKey(1);
       if (c > 0) c &= 0xff;
       key_pressed(ctx, c);
+
+      dump_time(panel, "cycle", "wait key");
 
     }
 
@@ -107,8 +112,12 @@ static void feed_frames(FrameReader &frame_reader, SubtrackerContext &ctx) {
     auto frame_info = frame_reader.get();
     if (!frame_info.valid) break;
 
+    dump_time(panel, "cycle", "got a frame");
+
     // Feed the frame to the subtracker
     ctx.feed(frame_info.data, frame_info.timestamp);
+
+    dump_time(panel, "cycle", "finished frame feed");
 
   }
 
