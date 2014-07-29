@@ -164,11 +164,11 @@ class SubottoStatus:
         ctx.stroke()
 
 def draw_frame(ctx, frame_ctx, status, size, time):
-    # Everything white
+    # Paint background
     ctx.save()
     ctx.identity_matrix()
     ctx.rectangle(0, 0, size[0], size[1])
-    ctx.set_source_rgb(255, 255, 255)
+    ctx.set_source_rgb(0.3, 0.1, 0.1)
     ctx.fill()
     ctx.restore()
 
