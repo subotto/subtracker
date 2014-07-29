@@ -40,14 +40,14 @@ void doIt(FrameReader& frameReader) {
 
 	bool play = true;
 
-	int timeline_span = 120;
-	int processed_frames = 60;	// number of frames to be processed for each call to ProcessFrame
+	const int timeline_span = 120;
+	const int processed_frames = 60;	// number of frames to be processed for each call to ProcessFrame
 
 	int initial_time = 0;
 
 	deque<Mat> frames;	// used for display only
 
-	Size tableFrameSize(128, 64);
+	const Size tableFrameSize(128, 64);
 
 	TableDescription table(tableFrameSize);
 	BallDescription ball;
