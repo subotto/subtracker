@@ -165,6 +165,4 @@ void push_foosmen_result(const int current_time,
                          const float barsShift[BARS][2],
                          const float barsRot[BARS][2]);
 
-vector<pair<Point2f, float>> findLocalMaxima(control_panel_t &panel, Mat density, int radiusX, int radiusY, int limit);
-
 #endif /* ANALYSIS_HPP_ */

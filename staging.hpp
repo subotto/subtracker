@@ -29,4 +29,6 @@ void display_ball(control_panel_t &panel,
                   SubottoMetrics &metrics,
                   Mat &density);
 
+vector<pair<Point2f, float>> findLocalMaxima(control_panel_t &panel, Mat density, int radiusX, int radiusY, int limit);
+
 #endif /* STAGING_HPP_ */
