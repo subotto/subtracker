@@ -9,6 +9,7 @@
 #include "framereader_structs.hpp"
 #include "subotto_tracking.hpp"
 #include "analysis.hpp"
+#include "blobs_tracker.hpp"
 
 using namespace std;
 using namespace cv;
@@ -23,6 +24,8 @@ public:
   SubottoMetrics table_metrics;
   foosmen_params_t foosmen_params;
   FoosmenMetrics foosmen_metrics;
+	int local_maxima_limit = 5;
+	float local_maxima_min_distance = 0.10f;
 
   FrameSettings(Mat ref_frame, Mat ref_mask);
 
@@ -59,6 +62,9 @@ public:
   float bars_shift[BARS][2];
   float bars_rot[BARS][2];
 
+  // Search blobs
+  vector< Blob > blobs;
+
   FrameAnalysis(Mat frame, int frame_num, time_point< video_clock > timestamp, FrameSettings frame_settings, control_panel_t &panel, Size table_frame_size);
 
   void setup_from_prev_table_tracking(const FrameAnalysis &prev_frame_analysis);
@@ -71,6 +77,8 @@ public:
   void analyze_foosmen();
   void update_table_description();
   void update_corrected_variance();
+
+  void search_blobs();
 
 };
 
@@ -91,6 +99,7 @@ public:
   void feed(Mat frame, time_point< video_clock > timestamp);
   void do_table_tracking();
   void do_analysis();
+  void do_blob_search();
 
 };
 

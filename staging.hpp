@@ -22,13 +22,26 @@ void blobs_tracking(control_panel_t &panel,
                     const Mat &tableFrame);
 
 void display_ball(control_panel_t &panel,
-                  int &current_time,
-                  vector<Point2f> &previous_positions,
-                  int &previous_positions_start_time,
-                  vector<Mat> &previous_frames,
-                  SubottoMetrics &metrics,
-                  Mat &density);
+                  int current_time,
+                  const vector<Point2f> &previous_positions,
+                  const int &previous_positions_start_time,
+                  const vector<Mat> &previous_frames,
+                  const SubottoMetrics &metrics,
+                  const Mat &density);
 
-vector<pair<Point2f, float>> findLocalMaxima(control_panel_t &panel, Mat density, int radiusX, int radiusY, int limit);
+vector<pair<Point2f, float>> findLocalMaxima(control_panel_t &panel,
+                                             Mat density,
+                                             int radiusX,
+                                             int radiusY,
+                                             int limit);
+
+void search_blobs(control_panel_t &panel,
+                  const Mat &density,
+                  int local_maxima_limit,
+                  float local_maxima_min_distance,
+                  vector< Blob > &blobs,
+                  const SubottoMetrics &metrics,
+                  const Size &tableFrameSize,
+                  int current_time);
 
 #endif /* STAGING_HPP_ */

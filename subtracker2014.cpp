@@ -116,6 +116,7 @@ void doIt(FrameReader& frameReader) {
 
 	trackbar(panel, "control panel", "update display skip frames", wait_key_skip, {0, 20, 1});
 	for (int i = 0; ; i++) {
+    assert(i == current_time);
 		panel.update_display = (i % (wait_key_skip + 1) == 0);
 
 		if (panel.update_display) {
@@ -252,32 +253,15 @@ void doIt(FrameReader& frameReader) {
                                    table);
     }
 
-		int radiusX = local_maxima_min_distance / metrics.length * tableFrameSize.width;
-		int radiusY = local_maxima_min_distance / metrics.width * tableFrameSize.height;
-
-		logger(panel, "ball tracking", DEBUG) << "LM radius x: " << radiusX << "LM radius y: " << radiusY << endl;
-
-		auto localMaxima = findLocalMaxima(panel, density, radiusX, radiusY, local_maxima_limit);
-
-		dump_time(panel, "cycle", "find local maxima");
-
 		vector<Blob> blobs;
-
-		// Cambio le unità di misura secondo le costanti in SubottoMetrics
-		for (int i=0; i<localMaxima.size(); i++) {
-			Point2f &p = localMaxima[i].first;
-
-			p.x =  (p.x / density.cols - 0.5f) * metrics.length;
-			p.y = -(p.y / density.rows - 0.5f) * metrics.width;
-		}
-
-		// Inserisco i punti migliori come nuovo frame nella timeline
-		for (int i=0; i<localMaxima.size(); i++) {
-			blobs.push_back( Blob(localMaxima[i].first, 0.0, 0.0, localMaxima[i].second) );
-		}
-
-		if(is_loggable(panel, "ball tracking", DEBUG))
-			logger(panel, "ball tracking", DEBUG) << "Inserting frame " << current_time << " in timeline" << endl;
+    search_blobs(panel,
+                 density,
+                 local_maxima_limit,
+                 local_maxima_min_distance,
+                 blobs,
+                 metrics,
+                 tableFrameSize,
+                 current_time);
 
     blobs_tracking(panel,
                    current_time,
@@ -294,6 +278,9 @@ void doIt(FrameReader& frameReader) {
                    blobs,
                    tableFrame);
 
+    //assert(i == current_time);
+    assert(i == current_time-1);
+
     display_ball(panel,
                  current_time,
                  previous_positions,
@@ -301,6 +288,8 @@ void doIt(FrameReader& frameReader) {
                  previous_frames,
                  metrics,
                  density);
+
+    assert(i == current_time-1);
 
 	}
 }

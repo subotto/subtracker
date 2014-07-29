@@ -1,6 +1,7 @@
 
 #include "context.hpp"
 #include "analysis.hpp"
+#include "staging.hpp"
 
 FrameSettings::FrameSettings(Mat ref_frame, Mat ref_mask)
   : table_frame_size(128, 64) {
@@ -84,6 +85,19 @@ void FrameAnalysis::update_corrected_variance() {
 
 }
 
+void FrameAnalysis::search_blobs() {
+
+  ::search_blobs(this->panel,
+                 this->ball_density,
+                 this->frame_settings.local_maxima_limit,
+                 this->frame_settings.local_maxima_min_distance,
+                 this->blobs,
+                 this->frame_settings.table_metrics,
+                 this->frame_settings.table_frame_size,
+                 this->frame_num);
+
+}
+
 
 SubtrackerContext::SubtrackerContext(Mat ref_frame, Mat ref_mask, control_panel_t &panel)
   : last_frame_num(0), frame_settings(ref_frame, ref_mask), prev_frame_analysis(NULL), panel(panel) {
@@ -101,6 +115,7 @@ void SubtrackerContext::feed(Mat frame, time_point< video_clock> timestamp) {
   show(this->panel, "frame", "frame", this->frame_analysis->frame);
   show(this->panel, "frame", "table_frame", this->frame_analysis->table_frame);
   this->do_analysis();
+  this->do_blob_search();
 
   // Store FrameAnalysis for next round
   if (this->prev_frame_analysis != NULL) {
@@ -132,15 +147,26 @@ void SubtrackerContext::do_table_tracking() {
 
 void SubtrackerContext::do_analysis() {
 
+  // Update running state from previous frame
   if (this->prev_frame_analysis != NULL) {
     this->frame_analysis->setup_from_prev_table_analysis(*this->prev_frame_analysis);
   }
+
+  // Do the actual analysis
   this->frame_analysis->analyze_table();
   this->frame_analysis->analyze_ball();
   this->frame_analysis->analyze_foosmen();
+
+  // Update the running state
   this->frame_analysis->update_table_description();
   if (this->frame_analysis->frame_num % 5 == 0) {
     this->frame_analysis->update_corrected_variance();
   }
+
+}
+
+void SubtrackerContext::do_blob_search() {
+
+  this->frame_analysis->search_blobs();
 
 }

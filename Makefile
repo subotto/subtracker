@@ -36,6 +36,8 @@ context.o \
 subotto_tracking.o \
 subotto_metrics.o \
 analysis.o \
+staging.o \
+blobs_tracker.o \
 
 OBJECTS_tester = \
 blobs_tracker.o \
