@@ -7,7 +7,7 @@ using namespace std;
 using namespace cv;
 
 void blobs_tracking(control_panel_t &panel,
-                    int &current_time,
+                    const int current_time,
                     int &initial_time,
                     const int &timeline_span,
                     const int &processed_frames,

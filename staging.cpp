@@ -12,7 +12,7 @@ using namespace std;
 
 
 void blobs_tracking(control_panel_t &panel,
-                    int &current_time,
+                    const int current_time,
                     int &initial_time,
                     const int &timeline_span,
                     const int &processed_frames,
@@ -80,8 +80,6 @@ void blobs_tracking(control_panel_t &panel,
 			initial_time++;
 		}
 
-		current_time++;
-
 		dump_time(panel, "cycle", "blobs tracking");
 
 }
@@ -94,6 +92,7 @@ void display_ball(control_panel_t &panel,
                   const SubottoMetrics &metrics,
                   const Mat &density) {
 
+  current_time++;
 		int relative_time = current_time - previous_positions_start_time;
 
 		if (will_show(panel, "ball tracking", "ball") &&
@@ -107,7 +106,7 @@ void display_ball(control_panel_t &panel,
 			Point2f ball = previous_positions[relative_time];
 
 			ball.x = (ball.x / metrics.length + 0.5f) * density.cols;
-			ball.y = -(ball.y / metrics.width + 0.5f) * density.rows;
+			ball.y = -(ball.y / metrics.width - 0.5f) * density.rows;
 
 			circle( display, ball, 8, Scalar(0,255,0), 2 );
 

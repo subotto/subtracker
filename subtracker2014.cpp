@@ -43,7 +43,6 @@ void doIt(FrameReader& frameReader) {
 	int timeline_span = 120;
 	int processed_frames = 60;	// number of frames to be processed for each call to ProcessFrame
 
-	int current_time = 0;
 	int initial_time = 0;
 
 	deque<Mat> frames;	// used for display only
@@ -116,7 +115,6 @@ void doIt(FrameReader& frameReader) {
 
 	trackbar(panel, "control panel", "update display skip frames", wait_key_skip, {0, 20, 1});
 	for (int i = 0; ; i++) {
-    assert(i == current_time);
 		panel.update_display = (i % (wait_key_skip + 1) == 0);
 
 		if (panel.update_display) {
@@ -201,7 +199,7 @@ void doIt(FrameReader& frameReader) {
 
 		show(panel, "frame", "frame", frame);
 
-		if ( current_time >= timeline_span ) {
+		if ( i >= timeline_span ) {
 			timestamps.push_back(duration_cast<duration<double>>(frame_info.playback_time.time_since_epoch()).count());
 		}
 
@@ -237,7 +235,7 @@ void doIt(FrameReader& frameReader) {
                         tableAnalysis,
                         barsShift,
                         barsRot);
-    push_foosmen_result(current_time,
+    push_foosmen_result(i,
                         timeline_span,
                         foosmenValues,
                         barsShift,
@@ -261,10 +259,10 @@ void doIt(FrameReader& frameReader) {
                  blobs,
                  metrics,
                  tableFrameSize,
-                 current_time);
+                 i);
 
     blobs_tracking(panel,
-                   current_time,
+                   i,
                    initial_time,
                    timeline_span,
                    processed_frames,
@@ -278,18 +276,13 @@ void doIt(FrameReader& frameReader) {
                    blobs,
                    tableFrame);
 
-    //assert(i == current_time);
-    assert(i == current_time-1);
-
     display_ball(panel,
-                 current_time,
+                 i,
                  previous_positions,
                  previous_positions_start_time,
                  previous_frames,
                  metrics,
                  density);
-
-    assert(i == current_time-1);
 
 	}
 }
