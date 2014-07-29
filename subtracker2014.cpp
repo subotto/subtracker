@@ -27,7 +27,7 @@ control_panel_t panel;
 
 BlobsTracker blobs_tracker(panel);
 
-void getTableFrame(Mat frame, Mat& tableFrame, Size size, Mat transform) {
+static void getTableFrame(Mat frame, Mat& tableFrame, Size size, Mat transform) {
 	Mat frame32f;
 	frame.convertTo(frame32f, CV_32F, 1 / 255.f);
 
@@ -35,7 +35,7 @@ void getTableFrame(Mat frame, Mat& tableFrame, Size size, Mat transform) {
 	warpPerspective(frame32f, tableFrame, warpTransform, size, CV_WARP_INVERSE_MAP | CV_INTER_LINEAR);
 }
 
-vector<pair<Point2f, float>> findLocalMaxima(Mat density, int radiusX, int radiusY, int limit) {
+static vector<pair<Point2f, float>> findLocalMaxima(Mat density, int radiusX, int radiusY, int limit) {
 	typedef pair<Point, float> pi; // point, integer
 	typedef pair<Point2f, float> pf; // point, floating point
 
