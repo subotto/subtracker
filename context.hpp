@@ -39,6 +39,7 @@ public:
   Mat frame;
   int frame_num;
   time_point< video_clock > timestamp;
+  time_point< system_clock > playback_time;
   FrameSettings frame_settings;
   control_panel_t &panel;
 
@@ -65,7 +66,11 @@ public:
   // Search blobs
   vector< Blob > blobs;
 
-  FrameAnalysis(Mat frame, int frame_num, time_point< video_clock > timestamp, FrameSettings frame_settings, control_panel_t &panel, Size table_frame_size);
+  // Final position
+  float ball_pos_x, ball_pos_y;
+  bool ball_is_present;
+
+  FrameAnalysis(Mat frame, int frame_num, time_point< video_clock > timestamp, time_point< system_clock > playback_time, FrameSettings frame_settings, control_panel_t &panel);
 
   void setup_from_prev_table_tracking(const FrameAnalysis &prev_frame_analysis);
   void track_table();
@@ -80,6 +85,8 @@ public:
 
   void search_blobs();
 
+  string get_csv_line();
+
 };
 
 class SubtrackerContext {
@@ -92,14 +99,21 @@ public:
 
   FrameAnalysis *frame_analysis;
   FrameAnalysis *prev_frame_analysis;
+  deque< FrameAnalysis > past_frames;
+  BlobsTracker blobs_tracker;
+
+  // Blobs tracking
+  int blobs_timeline_span = 120;
+	int blobs_frames_to_process = 60;
 
   SubtrackerContext(Mat ref_frame, Mat ref_mask, control_panel_t &panel);
   ~SubtrackerContext();
 
-  void feed(Mat frame, time_point< video_clock > timestamp);
+  void feed(Mat frame, time_point< video_clock > timestamp, time_point< system_clock > playback_time);
   void do_table_tracking();
   void do_analysis();
   void do_blob_search();
+  void do_blobs_tracking();
 
 };
 

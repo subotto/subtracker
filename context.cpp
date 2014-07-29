@@ -12,8 +12,8 @@ FrameSettings::FrameSettings(Mat ref_frame, Mat ref_mask)
 }
 
 
-FrameAnalysis::FrameAnalysis(Mat frame, int frame_num, time_point< video_clock > timestamp, FrameSettings frame_settings, control_panel_t &panel, Size table_frame_size)
-  : frame(frame), frame_num(frame_num), timestamp(timestamp), frame_settings(frame_settings), panel(panel), table_tracking_status(frame_settings.table_tracking_params, frame_settings.reference), table_description(table_frame_size) {
+FrameAnalysis::FrameAnalysis(Mat frame, int frame_num, time_point< video_clock > timestamp, time_point< system_clock > playback_time, FrameSettings frame_settings, control_panel_t &panel)
+  : frame(frame), frame_num(frame_num), timestamp(timestamp), playback_time(playback_time), frame_settings(frame_settings), panel(panel), table_tracking_status(frame_settings.table_tracking_params, frame_settings.reference), table_description(frame_settings.table_frame_size) {
 
 }
 
@@ -98,17 +98,37 @@ void FrameAnalysis::search_blobs() {
 
 }
 
+string FrameAnalysis::get_csv_line() {
+
+  stringstream buf;
+  buf << duration_cast<duration<double>>(this->playback_time.time_since_epoch()).count();
+
+  if (this->ball_is_present) {
+    buf << "," << this->ball_pos_x << "," << this->ball_pos_y;
+  } else {
+    buf << ",,";
+  }
+
+  for(int side = 1; side >= 0; side--) {
+    for(int bar = 0; bar < BARS; bar++) {
+      buf << "," << -this->bars_shift[bar][side] << "," << this->bars_rot[bar][side];
+    }
+  }
+
+  return buf.str();
+
+}
+
 
 SubtrackerContext::SubtrackerContext(Mat ref_frame, Mat ref_mask, control_panel_t &panel)
   : last_frame_num(0), frame_settings(ref_frame, ref_mask), prev_frame_analysis(NULL), panel(panel) {
 
 }
 
-void SubtrackerContext::feed(Mat frame, time_point< video_clock> timestamp) {
+void SubtrackerContext::feed(Mat frame, time_point< video_clock> timestamp, time_point< system_clock > playback_time) {
 
   // Create new FrameAnalysis
-  Size table_frame_size(128, 64);
-  this->frame_analysis = new FrameAnalysis(frame, last_frame_num++, timestamp, this->frame_settings, this->panel, table_frame_size);
+  this->frame_analysis = new FrameAnalysis(frame, last_frame_num++, timestamp, playback_time, this->frame_settings, this->panel);
 
   // Do the actual analysis
   this->do_table_tracking();
@@ -116,6 +136,9 @@ void SubtrackerContext::feed(Mat frame, time_point< video_clock> timestamp) {
   show(this->panel, "frame", "table_frame", this->frame_analysis->table_frame);
   this->do_analysis();
   this->do_blob_search();
+
+  // Pass the results through the blob tracker
+  this->do_blobs_tracking();
 
   // Store FrameAnalysis for next round
   if (this->prev_frame_analysis != NULL) {
@@ -168,5 +191,19 @@ void SubtrackerContext::do_analysis() {
 void SubtrackerContext::do_blob_search() {
 
   this->frame_analysis->search_blobs();
+
+}
+
+void SubtrackerContext::do_blobs_tracking() {
+
+  // Store the frame in our deque and in the BlobsTracker
+  int frame_num = this->frame_analysis->frame_num
+  this->past_frames.push_back(*this->frame_analysis);
+  this->blobs_tracker.InsertFrameInTimeline(this->frame_analysis->blobs, frame_num);
+
+  // If we have already filled enough of the past...
+  if (frame_num >= 2*this->timeline_span) {
+    // TODO...
+  }
 
 }

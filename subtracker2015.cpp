@@ -115,7 +115,7 @@ static void feed_frames(FrameReader &frame_reader, SubtrackerContext &ctx) {
     dump_time(panel, "cycle", "got a frame");
 
     // Feed the frame to the subtracker
-    ctx.feed(frame_info.data, frame_info.timestamp);
+    ctx.feed(frame_info.data, frame_info.timestamp, frame_info.playback_time);
 
     dump_time(panel, "cycle", "finished frame feed");
 
