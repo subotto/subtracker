@@ -257,8 +257,9 @@ def save_frames(surf, ctx):
         surf.flush()
 
         # Write it to a file
-        #with open('frames/frame_%05d.png' % (frame), 'w') as fout:
-        #    surf.write_to_png(fout)
+        if frame == 0:
+            with open('frames/frame_%05d.png' % (frame), 'w') as fout:
+                surf.write_to_png(fout)
 
         # Write it to the video
         strides = (surf.get_stride(), 4, 1)
