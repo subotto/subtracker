@@ -157,8 +157,14 @@ void do_foosmen_analysis(control_panel_t &panel,
                          const foosmen_params_t& foosmen_params,
                          const Mat &tableFrame,
                          const TableAnalysis& tableAnalysis,
-                         const int current_time,
+                         float barsShift[BARS][2],
+                         float barsRot[BARS][2]);
+void push_foosmen_result(const int current_time,
                          const int timeline_span,
-                         deque< vector<float> > &foosmenValues);
+                         deque< vector<float> > &foosmenValues,
+                         const float barsShift[BARS][2],
+                         const float barsRot[BARS][2]);
+
+vector<pair<Point2f, float>> findLocalMaxima(control_panel_t &panel, Mat density, int radiusX, int radiusY, int limit);
 
 #endif /* ANALYSIS_HPP_ */

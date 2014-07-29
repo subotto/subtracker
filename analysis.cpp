@@ -345,12 +345,8 @@ void do_foosmen_analysis(control_panel_t &panel,
                          const foosmen_params_t& foosmen_params,
                          const Mat &tableFrame,
                          const TableAnalysis& tableAnalysis,
-                         const int current_time,
-                         const int timeline_span,
-                         deque< vector<float> > &foosmenValues) {
-
-  float barsShift[BARS][2];
-  float barsRot[BARS][2];
+                         float barsShift[BARS][2],
+                         float barsRot[BARS][2]) {
 
 		for(int side = 0; side < 2; side++) {
 			for(int bar = 0; bar < BARS; bar++) {
@@ -377,6 +373,21 @@ void do_foosmen_analysis(control_panel_t &panel,
 
 		dump_time(panel, "cycle", "foosmen analysis");
 
+		if(will_show(panel, "foosmen tracking", "foosmen")) {
+			Mat tableFoosmen;
+			tableFrame.copyTo(tableFoosmen);
+			drawFoosmen(tableFoosmen, metrics, foosmenMetrics, barsShift, barsRot);
+			show(panel, "foosmen tracking", "foosmen", tableFoosmen);
+		}
+
+}
+
+void push_foosmen_result(const int current_time,
+                         const int timeline_span,
+                         deque< vector<float> > &foosmenValues,
+                         const float barsShift[BARS][2],
+                         const float barsRot[BARS][2]) {
+
 		// Saving values for later...
 		if ( current_time >= timeline_span ) {
 			vector<float> foosmenValuesFrame;
@@ -389,11 +400,49 @@ void do_foosmen_analysis(control_panel_t &panel,
 			foosmenValues.push_back( foosmenValuesFrame );
 		}
 
-		if(will_show(panel, "foosmen tracking", "foosmen")) {
-			Mat tableFoosmen;
-			tableFrame.copyTo(tableFoosmen);
-			drawFoosmen(tableFoosmen, metrics, foosmenMetrics, barsShift, barsRot);
-			show(panel, "foosmen tracking", "foosmen", tableFoosmen);
-		}
+}
 
+
+
+vector<pair<Point2f, float>> findLocalMaxima(control_panel_t &panel, Mat density, int radiusX, int radiusY, int limit) {
+	typedef pair<Point, float> pi; // point, integer
+	typedef pair<Point2f, float> pf; // point, floating point
+
+	Mat dilatedDensity;
+	dilate(density, dilatedDensity, Mat::ones(2 * radiusY + 1, 2 * radiusX + 1, CV_8U));
+
+  show(panel, "frame", "density", density);
+  show(panel, "frame", "dilatedDensiy", dilatedDensity);
+
+	Mat localMaxMask = (density >= dilatedDensity);
+
+	Mat_<Point> nonZero;
+	findNonZero(localMaxMask, nonZero);
+
+	vector<pi> localMaxima;
+	for(int i = 0; i < nonZero.rows; i++) {
+		Point p = *nonZero[i];
+		float w = density.at<float>(p);
+
+		localMaxima.push_back(make_pair(p, w));
+	}
+
+	int count = min(localMaxima.size(), size_t(limit));
+	nth_element(localMaxima.begin(), localMaxima.begin() + count, localMaxima.end(), [](pi a, pi b) {
+		return a.second > b.second;
+	});
+	localMaxima.resize(count);
+
+	vector<pf> results;
+	results.reserve(count);
+	for(pi lm : localMaxima) {
+		Point p = lm.first;
+
+		// trova la posizione in modo più preciso
+		Point2f correction = subpixelMinimum(panel, -density(Range(p.y, p.y+1), Range(p.x, p.x+1)));
+
+		results.push_back(make_pair(Point2f(p.x, p.y) + correction, lm.second));
+	}
+
+	return results;
 }

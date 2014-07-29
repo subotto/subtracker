@@ -56,6 +56,22 @@ void FrameAnalysis::analyze_ball() {
 
 }
 
+void FrameAnalysis::analyze_foosmen() {
+
+  ::do_foosmen_analysis(this->panel,
+                        this->foosmen_bars_metrics,
+                        this->foosmen_bars_analysis,
+                        this->frame_settings.table_metrics,
+                        this->frame_settings.foosmen_metrics,
+                        this->frame_settings.table_frame_size,
+                        this->frame_settings.foosmen_params,
+                        this->table_frame,
+                        this->table_analysis,
+                        this->bars_shift,
+                        this->bars_rot);
+
+}
+
 void FrameAnalysis::update_table_description() {
 
   ::do_update_table_description(this->panel, this->table_frame, this->table_analysis, this->table_description);
@@ -121,6 +137,7 @@ void SubtrackerContext::do_analysis() {
   }
   this->frame_analysis->analyze_table();
   this->frame_analysis->analyze_ball();
+  this->frame_analysis->analyze_foosmen();
   this->frame_analysis->update_table_description();
   if (this->frame_analysis->frame_num % 5 == 0) {
     this->frame_analysis->update_corrected_variance();

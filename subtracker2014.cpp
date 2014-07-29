@@ -35,46 +35,6 @@ static void getTableFrame(Mat frame, Mat& tableFrame, Size size, Mat transform) 
 	warpPerspective(frame32f, tableFrame, warpTransform, size, CV_WARP_INVERSE_MAP | CV_INTER_LINEAR);
 }
 
-static vector<pair<Point2f, float>> findLocalMaxima(Mat density, int radiusX, int radiusY, int limit) {
-	typedef pair<Point, float> pi; // point, integer
-	typedef pair<Point2f, float> pf; // point, floating point
-
-	Mat dilatedDensity;
-	dilate(density, dilatedDensity, Mat::ones(2 * radiusY + 1, 2 * radiusX + 1, CV_8U));
-
-	Mat localMaxMask = (density >= dilatedDensity);
-
-	Mat_<Point> nonZero;
-	findNonZero(localMaxMask, nonZero);
-
-	vector<pi> localMaxima;
-	for(int i = 0; i < nonZero.rows; i++) {
-		Point p = *nonZero[i];
-		float w = density.at<float>(p);
-
-		localMaxima.push_back(make_pair(p, w));
-	}
-
-	int count = min(localMaxima.size(), size_t(limit));
-	nth_element(localMaxima.begin(), localMaxima.begin() + count, localMaxima.end(), [](pi a, pi b) {
-		return a.second > b.second;
-	});
-	localMaxima.resize(count);
-
-	vector<pf> results;
-	results.reserve(count);
-	for(pi lm : localMaxima) {
-		Point p = lm.first;
-
-		// trova la posizione in modo più preciso
-		Point2f correction = subpixelMinimum(panel, -density(Range(p.y, p.y+1), Range(p.x, p.x+1)));
-
-		results.push_back(make_pair(Point2f(p.x, p.y) + correction, lm.second));
-	}
-
-	return results;
-}
-
 void doIt(FrameReader& frameReader) {
 	Mat trajReprAvg;
 
@@ -263,6 +223,8 @@ void doIt(FrameReader& frameReader) {
                      ballAnalysis,
                      density);
 
+    float barsShift[BARS][2];
+    float barsRot[BARS][2];
     do_foosmen_analysis(panel,
                         barsMetrics,
                         barsAnalysis,
@@ -272,9 +234,13 @@ void doIt(FrameReader& frameReader) {
                         foosmen_params,
                         tableFrame,
                         tableAnalysis,
-                        current_time,
+                        barsShift,
+                        barsRot);
+    push_foosmen_result(current_time,
                         timeline_span,
-                        foosmenValues);
+                        foosmenValues,
+                        barsShift,
+                        barsRot);
 
     do_update_table_description(panel,
                                 tableFrame,
@@ -291,7 +257,7 @@ void doIt(FrameReader& frameReader) {
 
 		logger(panel, "ball tracking", DEBUG) << "LM radius x: " << radiusX << "LM radius y: " << radiusY << endl;
 
-		auto localMaxima = findLocalMaxima(density, radiusX, radiusY, local_maxima_limit);
+		auto localMaxima = findLocalMaxima(panel, density, radiusX, radiusY, local_maxima_limit);
 
 		dump_time(panel, "cycle", "find local maxima");
 
