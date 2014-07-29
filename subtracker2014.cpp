@@ -263,16 +263,6 @@ void doIt(FrameReader& frameReader) {
                      ballAnalysis,
                      density);
 
-    do_update_table_description(panel,
-                                tableFrame,
-                                tableAnalysis,
-                                table);
-
-    if (i % 5 == 0) {
-      do_update_corrected_variance(panel,
-                                   table);
-    }
-
     do_foosmen_analysis(panel,
                         barsMetrics,
                         barsAnalysis,
@@ -285,6 +275,16 @@ void doIt(FrameReader& frameReader) {
                         current_time,
                         timeline_span,
                         foosmenValues);
+
+    do_update_table_description(panel,
+                                tableFrame,
+                                tableAnalysis,
+                                table);
+
+    if (i % 5 == 0) {
+      do_update_corrected_variance(panel,
+                                   table);
+    }
 
 		int radiusX = local_maxima_min_distance / metrics.length * tableFrameSize.width;
 		int radiusY = local_maxima_min_distance / metrics.width * tableFrameSize.height;
