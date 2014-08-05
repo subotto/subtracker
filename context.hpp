@@ -100,9 +100,9 @@ public:
   FrameAnalysis *frame_analysis;
   FrameAnalysis *prev_frame_analysis;
   deque< FrameAnalysis > past_frames;
-  BlobsTracker blobs_tracker;
 
   // Blobs tracking
+  BlobsTracker blobs_tracker;
   int blobs_timeline_span = 120;
 	int blobs_frames_to_process = 60;
 

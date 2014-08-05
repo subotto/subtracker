@@ -160,6 +160,7 @@ int main(int argc, char* argv[]) {
 
   // Initialize panel (GUI)
   init_control_panel(panel);
+  set_log_level(panel, "gio", VERBOSE);
 
   // Open frame reader
   FrameReader *f;

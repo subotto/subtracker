@@ -1,4 +1,6 @@
 
+#include <iomanip>
+
 #include "context.hpp"
 #include "analysis.hpp"
 #include "staging.hpp"
@@ -101,6 +103,7 @@ void FrameAnalysis::search_blobs() {
 string FrameAnalysis::get_csv_line() {
 
   stringstream buf;
+  buf << setiosflags(ios::fixed) << setprecision(5);
   buf << duration_cast<duration<double>>(this->playback_time.time_since_epoch()).count();
 
   if (this->ball_is_present) {
@@ -121,7 +124,7 @@ string FrameAnalysis::get_csv_line() {
 
 
 SubtrackerContext::SubtrackerContext(Mat ref_frame, Mat ref_mask, control_panel_t &panel)
-  : last_frame_num(0), frame_settings(ref_frame, ref_mask), prev_frame_analysis(NULL), panel(panel) {
+  : last_frame_num(0), frame_settings(ref_frame, ref_mask), prev_frame_analysis(NULL), panel(panel), blobs_tracker(panel) {
 
 }
 
@@ -197,13 +200,45 @@ void SubtrackerContext::do_blob_search() {
 void SubtrackerContext::do_blobs_tracking() {
 
   // Store the frame in our deque and in the BlobsTracker
-  int frame_num = this->frame_analysis->frame_num
+  int frame_num = this->frame_analysis->frame_num;
   this->past_frames.push_back(*this->frame_analysis);
   this->blobs_tracker.InsertFrameInTimeline(this->frame_analysis->blobs, frame_num);
 
   // If we have already filled enough of the past...
-  if (frame_num >= 2*this->timeline_span) {
-    // TODO...
+  if (frame_num >= 2*this->blobs_timeline_span) {
+    int initial_time = this->blobs_tracker.GetFrontTime();
+    this->blobs_tracker.PopFrameFromTimeline();
+    int processed_time = initial_time + this->blobs_timeline_span;
+
+    if (initial_time % this->blobs_frames_to_process == 0) {
+      logger(this->panel, "gio", DEBUG) << "Calling ProcessFrames(" << initial_time << ", " << processed_time << ", " << processed_time + this->blobs_frames_to_process << ") after processing frame " << frame_num << endl;
+      vector< Point2f > positions = this->blobs_tracker.ProcessFrames(initial_time, processed_time, processed_time + this->blobs_frames_to_process);
+
+      for (int i=0; i < positions.size(); i++) {
+        FrameAnalysis frame_analysis = this->past_frames.front();
+        this->past_frames.pop_front();
+        logger(this->panel, "gio", DEBUG) << processed_time << " " << i << " " << frame_analysis.frame_num << endl;
+        assert(processed_time + i == frame_analysis.frame_num);
+
+        // Copy the position in the frame analysis if it is acceptable
+        if (positions[i].x < 900.0 && positions[i].y < 900.0) {
+          frame_analysis.ball_pos_x = positions[i].x;
+          frame_analysis.ball_pos_y = positions[i].y;
+          frame_analysis.ball_is_present = true;
+        } else {
+          frame_analysis.ball_is_present = false;
+        }
+
+        // Print the frame
+        cout << frame_analysis.get_csv_line() << endl;
+      }
+    }
+  }
+
+  // Early frames will not be used in output, so we remove them from
+  // the queue
+  if (frame_num < this->blobs_timeline_span) {
+    this->past_frames.pop_front();
   }
 
 }

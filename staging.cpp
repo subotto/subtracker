@@ -39,6 +39,7 @@ void blobs_tracking(control_panel_t &panel,
 
 			// Il processing vero e proprio avviene solo ogni k fotogrammi (k=processed_frames)
 			if ( initial_time % processed_frames == 0 ) {
+        logger(panel, "gio", DEBUG) << "Calling ProcessFrames(" << initial_time << ", " << processed_time << ", " << processed_time + processed_frames << ") after processing frame " << current_time << endl;
 				vector<Point2f> positions = blobs_tracker.ProcessFrames( initial_time, processed_time, processed_time + processed_frames );
 
 				for (int i=0; i<positions.size(); i++) {

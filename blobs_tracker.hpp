@@ -46,6 +46,8 @@ class BlobsTracker {
 		void InsertFrameInTimeline(std::vector<Blob> blobs, int time);
 		std::vector<cv::Point2f> ProcessFrames(int initial_time, int begin_time, int end_time);
 		void PopFrameFromTimeline();
+		int GetFrontTime();
+
 		
 		BlobsTracker(control_panel_t& panel)
 			:

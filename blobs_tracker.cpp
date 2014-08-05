@@ -298,3 +298,6 @@ void BlobsTracker::PopFrameFromTimeline() {
 	_timeline.pop_front();
 }
 
+int BlobsTracker::GetFrontTime() {
+  return _timeline.front()[0].time;
+}
