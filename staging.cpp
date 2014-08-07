@@ -118,7 +118,7 @@ void display_ball(control_panel_t &panel,
 
 }
 
-vector<pair<Point2f, float>> findLocalMaxima(control_panel_t &panel, Mat density, int radiusX, int radiusY, int limit) {
+static vector<pair<Point2f, float>> findLocalMaxima(control_panel_t &panel, Mat density, int radiusX, int radiusY, int limit) {
 	typedef pair<Point, float> pi; // point, integer
 	typedef pair<Point2f, float> pf; // point, floating point
 

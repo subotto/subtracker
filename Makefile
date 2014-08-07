@@ -66,6 +66,7 @@ tests: $(TEST_BINARIES)
 
 clean:
 	rm -f $(OBJECTS_subtracker2014)
+	rm -f $(OBJECTS_subtracker2015)
 	rm -f $(OBJECTS_tester)
 	rm -f $(BINARIES)
 	rm -f $(TEST_BINARIES)

@@ -29,12 +29,6 @@ void display_ball(control_panel_t &panel,
                   const SubottoMetrics &metrics,
                   const Mat &density);
 
-vector<pair<Point2f, float>> findLocalMaxima(control_panel_t &panel,
-                                             Mat density,
-                                             int radiusX,
-                                             int radiusY,
-                                             int limit);
-
 void search_blobs(control_panel_t &panel,
                   const Mat &density,
                   int local_maxima_limit,

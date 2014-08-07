@@ -69,6 +69,7 @@ public:
   // Final position
   float ball_pos_x, ball_pos_y;
   bool ball_is_present;
+  Mat ball_display;
 
   FrameAnalysis(Mat frame, int frame_num, time_point< video_clock > timestamp, time_point< system_clock > playback_time, FrameSettings frame_settings, control_panel_t &panel);
 
@@ -86,6 +87,7 @@ public:
   void search_blobs();
 
   string get_csv_line();
+  void draw_ball_display();
 
 };
 

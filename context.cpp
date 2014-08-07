@@ -122,6 +122,16 @@ string FrameAnalysis::get_csv_line() {
 
 }
 
+void FrameAnalysis::draw_ball_display() {
+
+  this->table_frame.copyTo(this->ball_display);
+  Point2f ball_disp_pos;
+  ball_disp_pos.x = (this->ball_pos_x / this->frame_settings.table_metrics.length + 0.5f) * this->ball_density.cols;
+  ball_disp_pos.y = -(this->ball_pos_y / this->frame_settings.table_metrics.width - 0.5f) * this->ball_density.rows;
+  circle(this->ball_display, ball_disp_pos, 8, Scalar(0,255,0), 2);
+
+}
+
 
 SubtrackerContext::SubtrackerContext(Mat ref_frame, Mat ref_mask, control_panel_t &panel)
   : last_frame_num(0), frame_settings(ref_frame, ref_mask), prev_frame_analysis(NULL), panel(panel), blobs_tracker(panel) {
@@ -231,6 +241,12 @@ void SubtrackerContext::do_blobs_tracking() {
 
         // Print the frame
         cout << frame_analysis.get_csv_line() << endl;
+
+        // Possibly draw ball display
+        if (will_show(panel, "ball tracking", "ball")) {
+          frame_analysis.draw_ball_display();
+          show(panel, "ball tracking", "ball", frame_analysis.ball_display);
+        }
       }
     }
   }
