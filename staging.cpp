@@ -79,6 +79,9 @@ void search_blobs(control_panel_t &panel,
 
 		// Inserisco i punti migliori come nuovo frame nella timeline
 		for (int i=0; i<localMaxima.size(); i++) {
+      if (is_loggable(panel, "ball tracking", DEBUG)) {
+          logger(panel, "ball tracking", DEBUG) << "Position (" << localMaxima[i].first.x << ", " << localMaxima[i].first.y << ") with weight " << localMaxima[i].second << endl;
+      }
 			blobs.emplace_back(localMaxima[i].first, 0.0, 0.0, localMaxima[i].second);
 		}
 

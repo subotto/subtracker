@@ -18,18 +18,48 @@ bool operator< (Subnode const &a, Subnode const &b) {
 }
 */
 
+BlobsTracker::BlobsTracker(control_panel_t& panel)
+  : _fps(120.0),
+    _max_speed(18.0),
+    _max_unseen_distance(0.3),
+    _max_interpolation_time(0.5),
+    _skip_parameter(-8),
+    _variance_parameter(0.3),
+    _absent_parameter(-10),
+    _appearance_parameter(400.0),
+    _disappearance_parameter(400.0),
+    sigma0(0.03),
+    sigma_per_second(1.0),
+    panel(panel)
+
+{
+  trackbar(panel, "ball tracking", "fps", _fps, {0, 100, 1});
+  trackbar(panel, "ball tracking", "max speed", _max_speed, {0., +100., 0.1});
+  trackbar(panel, "ball tracking", "max_unseen_distance", _max_unseen_distance, {0., 1., 0.01});
+  trackbar(panel, "ball tracking", "max_interpolation_time", _max_interpolation_time, {0., 10., 0.01});
+
+  trackbar(panel, "ball tracking", "skip parameter", _skip_parameter, {-100., +100., 0.1});
+  trackbar(panel, "ball tracking", "variance parameter", _variance_parameter, {0., 10., 0.01});
+  trackbar(panel, "ball tracking", "absent parameter", _absent_parameter, {-100., +100., 0.1});
+  trackbar(panel, "ball tracking", "appearance parameter", _appearance_parameter, {-1000., +1000., 0.1});
+  trackbar(panel, "ball tracking", "disappearance parameter", _disappearance_parameter, {-1000., +1000., 0.1});
+
+  trackbar(panel, "ball tracking", "sigma0", sigma0, {0, 10., 0.01});
+  trackbar(panel, "ball tracking", "sigma per second", sigma_per_second, {0, 10., 0.01});
+};
+
 void BlobsTracker::InsertFrameInTimeline(vector<Blob> blobs, int time) {
 	vector<Node> v;
 	for (int i=0; i<blobs.size(); i++) {
 		Node n = Node( blobs[i], time, false );
 		v.push_back(n);
 	}
-	
+
 	// Inserting the absent-ball node
 	Blob phantom ( Point2f(0.0,0.0), 0.0, 0.0, 0.0 );
 	Node n ( phantom, time, true );
 	v.push_back(n);
-	
+
 	_timeline.push_back(v);
 }
 
