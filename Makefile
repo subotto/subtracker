@@ -39,6 +39,7 @@ analysis.o \
 staging.o \
 blobs_tracker.o \
 tracking_types.o \
+spots_tracker.o \
 
 OBJECTS_tester = \
 blobs_tracker.o \
