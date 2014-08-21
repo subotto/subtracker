@@ -7,7 +7,7 @@
 
 #include "control.hpp"
 #include "framereader_structs.hpp"
-#include "subotto_tracking.hpp"
+#include "tracking_types.hpp"
 #include "analysis.hpp"
 #include "blobs_tracker.hpp"
 
@@ -24,8 +24,8 @@ public:
   SubottoMetrics table_metrics;
   foosmen_params_t foosmen_params;
   FoosmenMetrics foosmen_metrics;
-	int local_maxima_limit = 5;
-	float local_maxima_min_distance = 0.10f;
+  int local_maxima_limit;
+  float local_maxima_min_distance;
 
   FrameSettings(Mat ref_frame, Mat ref_mask);
 
@@ -109,8 +109,8 @@ public:
 
   // Blobs tracking
   BlobsTracker blobs_tracker;
-  int blobs_timeline_span = 120;
-	int blobs_frames_to_process = 60;
+  int blobs_timeline_span;
+  int blobs_frames_to_process;
 
   SubtrackerContext(Mat ref_frame, Mat ref_mask, control_panel_t &panel);
   ~SubtrackerContext();

@@ -4,9 +4,10 @@
 #include "context.hpp"
 #include "analysis.hpp"
 #include "staging.hpp"
+#include "subotto_tracking.hpp"
 
 FrameSettings::FrameSettings(Mat ref_frame, Mat ref_mask)
-  : table_frame_size(128, 64) {
+  : table_frame_size(128, 64), local_maxima_limit(5), local_maxima_min_distance(0.10f) {
 
   this->reference.image = ref_frame;
   this->reference.mask = ref_mask;
@@ -181,7 +182,7 @@ void FrameAnalysis::show_all_displays() {
 
 
 SubtrackerContext::SubtrackerContext(Mat ref_frame, Mat ref_mask, control_panel_t &panel)
-  : last_frame_num(0), frame_settings(ref_frame, ref_mask), prev_frame_analysis(NULL), panel(panel), blobs_tracker(panel) {
+  : last_frame_num(0), frame_settings(ref_frame, ref_mask), prev_frame_analysis(NULL), panel(panel), blobs_tracker(panel), blobs_timeline_span(120), blobs_frames_to_process(60) {
 
 }
 
