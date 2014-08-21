@@ -243,15 +243,6 @@ void init_table_tracking_panel(table_tracking_params_t& params, control_panel_t&
 	trackbar(panel, "table detect", "follow optical flow ransac threshold", params.following_params.optical_flow_ransac_threshold, {0.0f, 100.f, 0.1f});
 }
 
-table_tracking_status_t::table_tracking_status_t(const table_tracking_params_t& params, const SubottoReference& reference)
-  : frames_to_next_detection(0) {
-
-	Size size(128, 64);
-  resize(reference.image, this->scaled_reference, size);
-	GoodFeaturesToTrackDetector(params.following_params.optical_flow_features).detect(this->scaled_reference, this->reference_features);
-
-}
-
 Mat track_table(Mat frame, table_tracking_status_t& status, table_tracking_params_t& params, control_panel_t& panel, const SubottoReference& reference) {
 	Mat undistorted = correctDistortion(frame);
 
