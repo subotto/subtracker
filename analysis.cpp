@@ -14,38 +14,26 @@ TableDescription::TableDescription(Size tableFrameSize) {
 
 }
 
-void startTableAnalysis(Mat tableFrame, const TableDescription& table, TableAnalysis& analysis) {
-	subtract(tableFrame, table.mean, analysis.diff);
-}
+void do_table_analysis(control_panel_t &panel,
+                       const Mat &tableFrame,
+                       const TableDescription &table,
+                       TableAnalysis &tableAnalysis) {
 
-// Well, this is not Gaussian...
-static void fastLargeGaussianBlur(Mat in, Mat& out, float stdDev) {
-	Mat temp;
-	in.copyTo(temp);
-	int boxSize = stdDev * 3 * sqrt(2 * CV_PI) / 4 + 0.5;
-	for(int i = 0; i < 3; i++) {
-		blur(temp, out, Size(boxSize, boxSize));
-		out.copyTo(temp);
-	}
-}
+	subtract(tableFrame, table.mean, tableAnalysis.diff);
 
-static void computeFilteredDiff(TableAnalysis& analysis) {
 	Mat low;
-	fastLargeGaussianBlur(analysis.diff, low, tableDiffLowFilterStdDev);
-	subtract(analysis.diff, low, analysis.filteredDiff);
-}
+	Mat temp;
+	tableAnalysis.diff.copyTo(temp);
+	int boxSize = tableDiffLowFilterStdDev * 3 * sqrt(2 * CV_PI) / 4 + 0.5;
+	for(int i = 0; i < 3; i++) {
+		blur(temp, low, Size(boxSize, boxSize));
+		low.copyTo(temp);
+	}
+	subtract(tableAnalysis.diff, low, tableAnalysis.filteredDiff);
 
-// Perform scalar-wise square
-static void computeScatterDiag(const Mat& in, Mat& out) {
-	multiply(in, in, out);
-}
+	multiply(tableAnalysis.filteredDiff, tableAnalysis.filteredDiff, tableAnalysis.filteredScatter);
 
-static void computeScatter(TableAnalysis& analysis) {
-	computeScatterDiag(analysis.filteredDiff, analysis.filteredScatter);
-}
-
-static void computeNLL(const TableDescription& table, TableAnalysis& analysis) {
-	Mat tableDiffNorm = analysis.filteredScatter / table.correctedVariance;
+	Mat tableDiffNorm = tableAnalysis.filteredScatter / table.correctedVariance;
 
 	Mat logVariance;
 	log(table.variance, logVariance);
@@ -55,43 +43,10 @@ static void computeNLL(const TableDescription& table, TableAnalysis& analysis) {
 
 	Mat notTableProbTrunc;
 	float tableProbThresh = 20.f;
-	threshold(notTableProb, analysis.nll, tableProbThresh, 0, CV_THRESH_TRUNC);
-}
+	threshold(notTableProb, tableAnalysis.nll, tableProbThresh, 0, CV_THRESH_TRUNC);
 
+  dump_time(panel, "cycle", "table analysis");
 
-void do_table_analysis(control_panel_t &panel,
-                       const Mat &tableFrame,
-                       const TableDescription &table,
-                       TableAnalysis &tableAnalysis) {
-
-		startTableAnalysis(tableFrame, table, tableAnalysis);
-		computeFilteredDiff(tableAnalysis);
-		computeScatter(tableAnalysis);
-		computeNLL(table, tableAnalysis);
-
-		dump_time(panel, "cycle", "table analysis");
-
-}
-
-
-static void startBallAnalysis(Mat tableFrame, const BallDescription& ball, BallAnalysis& analysis) {
-	analysis.diff = tableFrame - ball.meanColor;
-}
-
-static void computeScatter(BallAnalysis& analysis) {
-	computeScatterDiag(analysis.diff, analysis.scatter);
-}
-
-static void computeLL(const BallDescription& ball, BallAnalysis& analysis) {
-	Mat ballDiffNorm = analysis.scatter / ball.valueVariance;
-
-	transform(ballDiffNorm, analysis.ll, -Matx<float, 1, 3>(1, 1, 1));
-	analysis.ll -= 3 * log(ball.valueVariance);
-}
-
-static void computeDensity(const TableAnalysis& tableAnalysis, const BallAnalysis& ballAnalysis, Mat& density) {
-	Mat pixelProb = ballAnalysis.ll + tableAnalysis.nll;
-	blur(pixelProb, density, Size(3, 3));
 }
 
 
@@ -102,34 +57,22 @@ void do_ball_analysis(control_panel_t &panel,
                       BallAnalysis& ballAnalysis,
                       Mat& density) {
 
-		startBallAnalysis(tableFrame, ball, ballAnalysis);
-		computeScatter(ballAnalysis);
-		computeLL(ball, ballAnalysis);
+	ballAnalysis.diff = tableFrame - ball.meanColor;
 
-		computeDensity(tableAnalysis, ballAnalysis, density);
-    show(panel, "ball tracking", "density", density);
+	multiply(ballAnalysis.diff, ballAnalysis.diff, ballAnalysis.scatter);
 
-		dump_time(panel, "cycle", "ball analysis");
+	Mat ballDiffNorm = ballAnalysis.scatter / ball.valueVariance;
 
-}
+	transform(ballDiffNorm, ballAnalysis.ll, -Matx<float, 1, 3>(1, 1, 1));
+	ballAnalysis.ll -= 3 * log(ball.valueVariance);
 
+	Mat pixelProb = ballAnalysis.ll + tableAnalysis.nll;
+	blur(pixelProb, density, Size(3, 3));
 
+  show(panel, "ball tracking", "density", density);
 
-static void updateMean(TableDescription& table, Mat tableFrame) {
-	accumulateWeighted(tableFrame, table.mean, 0.005f);
-}
+  dump_time(panel, "cycle", "ball analysis");
 
-static void updateVariance(TableDescription& table, const TableAnalysis& analysis) {
-	Mat scatter;
-	computeScatterDiag(analysis.diff, scatter);
-	accumulateWeighted(scatter, table.variance, 0.005f);
-}
-
-static void computeCorrectedVariance(TableDescription& table) {
-	Mat tableMeanLaplacian;
-	Laplacian(table.mean, tableMeanLaplacian, -1, 3);
-	Mat tableMeanBorders = tableMeanLaplacian.mul(tableMeanLaplacian);
-	addWeighted(table.variance, 1, tableMeanBorders, 0.004, 0.002, table.correctedVariance);
 }
 
 
@@ -138,18 +81,25 @@ void do_update_table_description(control_panel_t &panel,
                                  const TableAnalysis& tableAnalysis,
                                  TableDescription& table) {
 
-		updateMean(table, tableFrame);
-    show(panel, "frame", "mean", table.mean);
-		updateVariance(table, tableAnalysis);
+	accumulateWeighted(tableFrame, table.mean, 0.005f);
 
-		dump_time(panel, "cycle", "update table description");
+  show(panel, "frame", "mean", table.mean);
+
+	Mat scatter;
+	multiply(tableAnalysis.diff, tableAnalysis.diff, scatter);
+	accumulateWeighted(scatter, table.variance, 0.005f);
+
+  dump_time(panel, "cycle", "update table description");
 
 }
 
 void do_update_corrected_variance(control_panel_t &panel,
                                   TableDescription &table) {
 
-  computeCorrectedVariance(table);
+	Mat tableMeanLaplacian;
+	Laplacian(table.mean, tableMeanLaplacian, -1, 3);
+	Mat tableMeanBorders = tableMeanLaplacian.mul(tableMeanLaplacian);
+	addWeighted(table.variance, 1, tableMeanBorders, 0.004, 0.002, table.correctedVariance);
 
   dump_time(panel, "cycle", "update corrected variance");
 
