@@ -117,6 +117,18 @@ static void feed_frames(FrameReader &frame_reader, SubtrackerContext &ctx) {
     // Feed the frame to the subtracker
     ctx.feed(frame_info.data, frame_info.timestamp, frame_info.playback_time);
 
+    // Obtain as many processed frames as possible
+    FrameAnalysis *frameAnalysis;
+    while (frameAnalysis = ctx.get_processed_frame()) {
+      // Print the frame
+      cout << frameAnalysis->get_csv_line() << endl;
+
+      // Show everything!
+      frameAnalysis->show_all_displays();
+
+      delete frameAnalysis;
+    }
+
     dump_time(panel, "cycle", "finished frame feed");
 
   }

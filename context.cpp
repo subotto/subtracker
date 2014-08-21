@@ -132,6 +132,16 @@ void FrameAnalysis::draw_ball_display() {
 
 }
 
+void FrameAnalysis::show_all_displays() {
+
+  // Possibly draw ball display
+  if (will_show(panel, "ball tracking", "ball")) {
+    this->draw_ball_display();
+    show(panel, "ball tracking", "ball", this->ball_display);
+  }
+
+}
+
 
 SubtrackerContext::SubtrackerContext(Mat ref_frame, Mat ref_mask, control_panel_t &panel)
   : last_frame_num(0), frame_settings(ref_frame, ref_mask), prev_frame_analysis(NULL), panel(panel), blobs_tracker(panel) {
@@ -239,14 +249,7 @@ void SubtrackerContext::do_blobs_tracking() {
           frame_analysis.ball_is_present = false;
         }
 
-        // Print the frame
-        cout << frame_analysis.get_csv_line() << endl;
-
-        // Possibly draw ball display
-        if (will_show(panel, "ball tracking", "ball")) {
-          frame_analysis.draw_ball_display();
-          show(panel, "ball tracking", "ball", frame_analysis.ball_display);
-        }
+        this->ready_frames.push_back(frame_analysis);
       }
     }
   }
@@ -255,6 +258,18 @@ void SubtrackerContext::do_blobs_tracking() {
   // the queue
   if (frame_num < this->blobs_timeline_span) {
     this->past_frames.pop_front();
+  }
+
+}
+
+FrameAnalysis *SubtrackerContext::get_processed_frame() {
+
+  if (this->ready_frames.empty()) {
+    return NULL;
+  } else {
+    FrameAnalysis *ret = new FrameAnalysis(this->ready_frames.front());
+    this->ready_frames.pop_front();
+    return ret;
   }
 
 }

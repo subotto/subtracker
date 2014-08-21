@@ -88,6 +88,7 @@ public:
 
   string get_csv_line();
   void draw_ball_display();
+  void show_all_displays();
 
 };
 
@@ -102,6 +103,7 @@ public:
   FrameAnalysis *frame_analysis;
   FrameAnalysis *prev_frame_analysis;
   deque< FrameAnalysis > past_frames;
+  deque< FrameAnalysis > ready_frames;
 
   // Blobs tracking
   BlobsTracker blobs_tracker;
@@ -112,6 +114,8 @@ public:
   ~SubtrackerContext();
 
   void feed(Mat frame, time_point< video_clock > timestamp, time_point< system_clock > playback_time);
+  FrameAnalysis *get_processed_frame();
+
   void do_table_tracking();
   void do_analysis();
   void do_blob_search();
