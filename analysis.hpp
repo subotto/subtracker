@@ -159,10 +159,5 @@ void do_foosmen_analysis(control_panel_t &panel,
                          const TableAnalysis& tableAnalysis,
                          float barsShift[BARS][2],
                          float barsRot[BARS][2]);
-void push_foosmen_result(const int current_time,
-                         const int timeline_span,
-                         deque< vector<float> > &foosmenValues,
-                         const float barsShift[BARS][2],
-                         const float barsRot[BARS][2]);
 
 #endif /* ANALYSIS_HPP_ */

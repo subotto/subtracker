@@ -279,23 +279,3 @@ void do_foosmen_analysis(control_panel_t &panel,
 		dump_time(panel, "cycle", "foosmen analysis");
 
 }
-
-void push_foosmen_result(const int current_time,
-                         const int timeline_span,
-                         deque< vector<float> > &foosmenValues,
-                         const float barsShift[BARS][2],
-                         const float barsRot[BARS][2]) {
-
-		// Saving values for later...
-		if ( current_time >= timeline_span ) {
-			vector<float> foosmenValuesFrame;
-			for(int side = 1; side >= 0; side--) {
-				for(int bar = 0; bar < BARS; bar++) {
-					foosmenValuesFrame.push_back( -barsShift[bar][side] );
-					foosmenValuesFrame.push_back( barsRot[bar][side] );
-				}
-			}
-			foosmenValues.push_back( foosmenValuesFrame );
-		}
-
-}
