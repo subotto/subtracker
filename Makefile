@@ -51,8 +51,8 @@ v4l2cap.o \
 tester.o
 
 BINARIES = \
-subtracker2014 \
 subtracker2015
+#subtracker2014
 #tester
 
 TEST_BINARIES = \

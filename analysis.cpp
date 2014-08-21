@@ -69,8 +69,6 @@ void do_ball_analysis(control_panel_t &panel,
 	Mat pixelProb = ballAnalysis.ll + tableAnalysis.nll;
 	blur(pixelProb, density, Size(3, 3));
 
-  show(panel, "ball tracking", "density", density);
-
   dump_time(panel, "cycle", "ball analysis");
 
 }
@@ -82,8 +80,6 @@ void do_update_table_description(control_panel_t &panel,
                                  TableDescription& table) {
 
 	accumulateWeighted(tableFrame, table.mean, 0.005f);
-
-  show(panel, "frame", "mean", table.mean);
 
 	Mat scatter;
 	multiply(tableAnalysis.diff, tableAnalysis.diff, scatter);
@@ -244,34 +240,6 @@ static void findFoosmen(control_panel_t &panel, FoosmenBarMetrics barMetrics, Fo
 //	show(ss.str(), analysis.overlapped, 200);
 }
 
-static void drawFoosmen(Mat out, SubottoMetrics subottoMetrics, FoosmenMetrics foosmenMetrics, float shift[][2] = nullptr, float rot[][2] = nullptr) {
-	static float zeros[BARS][2];
-
-	if(!shift) {
-		shift = zeros;
-	}
-
-	for(int side = 0; side < 2; side++) {
-		for(int bar = 0; bar < BARS; bar++) {
-			float xx = barx(side, bar, out.size(), subottoMetrics, foosmenMetrics);
-			line(out, Point(xx, 0), Point(xx, out.rows), Scalar(1.f, 1.f, 1.f));
-
-			for(int i = 0; i < foosmenMetrics.count[bar]; i++) {
-				float y = (0.5f + i - foosmenMetrics.count[bar] * 0.5f) * foosmenMetrics.distance[bar];
-				float yy = (0.5f + (y + shift[bar][side]) / subottoMetrics.width) * out.rows;
-
-				line(out, Point(xx - 5, yy), Point(xx + 5, yy), Scalar(0.f, 1.f, 0.f));
-
-				if(rot) {
-					float len = 20;
-					float r = rot[bar][side];
-					line(out, Point(xx, yy), Point(xx + sin(r) * len, yy + cos(r) * len), Scalar(1.f, 1.f, 0.f), 1, 16);
-				}
-			}
-		}
-	}
-}
-
 
 void do_foosmen_analysis(control_panel_t &panel,
                          FoosmenBarMetrics barsMetrics[BARS][2],
@@ -309,13 +277,6 @@ void do_foosmen_analysis(control_panel_t &panel,
 		}
 
 		dump_time(panel, "cycle", "foosmen analysis");
-
-		if(will_show(panel, "foosmen tracking", "foosmen")) {
-			Mat tableFoosmen;
-			tableFrame.copyTo(tableFoosmen);
-			drawFoosmen(tableFoosmen, metrics, foosmenMetrics, barsShift, barsRot);
-			show(panel, "foosmen tracking", "foosmen", tableFoosmen);
-		}
 
 }
 

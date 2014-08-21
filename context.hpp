@@ -70,6 +70,7 @@ public:
   float ball_pos_x, ball_pos_y;
   bool ball_is_present;
   Mat ball_display;
+  Mat foosmen_display;
 
   FrameAnalysis(Mat frame, int frame_num, time_point< video_clock > timestamp, time_point< system_clock > playback_time, FrameSettings frame_settings, control_panel_t &panel);
 
@@ -88,6 +89,7 @@ public:
 
   string get_csv_line();
   void draw_ball_display();
+  void draw_foosmen_display();
   void show_all_displays();
 
 };

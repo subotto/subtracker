@@ -132,12 +132,60 @@ void FrameAnalysis::draw_ball_display() {
 
 }
 
+static void drawFoosmen(Mat out, SubottoMetrics subottoMetrics, FoosmenMetrics foosmenMetrics, float shift[][2] = nullptr, float rot[][2] = nullptr) {
+	static float zeros[BARS][2];
+
+	if(!shift) {
+		shift = zeros;
+	}
+
+	for(int side = 0; side < 2; side++) {
+		for(int bar = 0; bar < BARS; bar++) {
+			float xx = barx(side, bar, out.size(), subottoMetrics, foosmenMetrics);
+			line(out, Point(xx, 0), Point(xx, out.rows), Scalar(1.f, 1.f, 1.f));
+
+			for(int i = 0; i < foosmenMetrics.count[bar]; i++) {
+				float y = (0.5f + i - foosmenMetrics.count[bar] * 0.5f) * foosmenMetrics.distance[bar];
+				float yy = (0.5f + (y + shift[bar][side]) / subottoMetrics.width) * out.rows;
+
+				line(out, Point(xx - 5, yy), Point(xx + 5, yy), Scalar(0.f, 1.f, 0.f));
+
+				if(rot) {
+					float len = 20;
+					float r = rot[bar][side];
+					line(out, Point(xx, yy), Point(xx + sin(r) * len, yy + cos(r) * len), Scalar(1.f, 1.f, 0.f), 1, 16);
+				}
+			}
+		}
+	}
+}
+
+void FrameAnalysis::draw_foosmen_display() {
+
+  this->table_frame.copyTo(this->foosmen_display);
+  drawFoosmen(this->foosmen_display, this->frame_settings.table_metrics, this->frame_settings.foosmen_metrics, this->bars_shift, this->bars_rot);
+
+}
+
 void FrameAnalysis::show_all_displays() {
+
+  show(this->panel, "frame", "frame", this->frame);
+  show(this->panel, "frame", "table_frame", this->table_frame);
+
+  show(this->panel, "ball tracking", "density", this->ball_density);
+
+  show(this->panel, "frame", "mean", this->table_description.mean);
+
+  // Possibly draw foosmen display
+  if (will_show(this->panel, "foosmen tracking", "foosmen")) {
+    this->draw_foosmen_display();
+    show(this->panel, "foosmen tracking", "foosmen", this->foosmen_display);
+  }
 
   // Possibly draw ball display
   if (will_show(panel, "ball tracking", "ball")) {
     this->draw_ball_display();
-    show(panel, "ball tracking", "ball", this->ball_display);
+    show(this->panel, "ball tracking", "ball", this->ball_display);
   }
 
 }
@@ -155,8 +203,6 @@ void SubtrackerContext::feed(Mat frame, time_point< video_clock> timestamp, time
 
   // Do the actual analysis
   this->do_table_tracking();
-  show(this->panel, "frame", "frame", this->frame_analysis->frame);
-  show(this->panel, "frame", "table_frame", this->frame_analysis->table_frame);
   this->do_analysis();
   this->do_blob_search();
 

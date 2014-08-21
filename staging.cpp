@@ -125,9 +125,6 @@ static vector<pair<Point2f, float>> findLocalMaxima(control_panel_t &panel, Mat 
 	Mat dilatedDensity;
 	dilate(density, dilatedDensity, Mat::ones(2 * radiusY + 1, 2 * radiusX + 1, CV_8U));
 
-  show(panel, "frame", "density", density);
-  show(panel, "frame", "dilatedDensiy", dilatedDensity);
-
 	Mat localMaxMask = (density >= dilatedDensity);
 
 	Mat_<Point> nonZero;
