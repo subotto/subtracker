@@ -16,7 +16,17 @@ SpotNode::SpotNode(Spot spot, double time, int num, bool present)
 }
 
 SpotsTracker::SpotsTracker(control_panel_t &panel)
-  : panel(panel), front_num(-1), dynamic_depth(60) {
+  : panel(panel),
+    front_num(-1),
+    dynamic_depth(60),
+    back_badness(INFTY),
+    appearance_badness(400.0),
+    disappearance_badness(400.0),
+    absence_badness(-10.0),
+    max_speed(18.0),
+    max_unseen_distance(0.3),
+    skip_badness(-8.0),
+    variance_parameter(0.3) {
 
   // Push a frame with just an absent node; it will be ignored when
   // returning results
