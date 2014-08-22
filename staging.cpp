@@ -2,7 +2,7 @@
 
 #include "opencv2/imgproc/imgproc.hpp"
 
-#include "blobs_tracker.hpp"
+#include "spots_tracker.hpp"
 #include "subotto_metrics.hpp"
 #include "staging.hpp"
 #include "analysis.hpp"
@@ -51,11 +51,11 @@ static vector<pair<Point2f, float>> findLocalMaxima(control_panel_t &panel, Mat 
 	return results;
 }
 
-void search_blobs(control_panel_t &panel,
+void search_spots(control_panel_t &panel,
                   const Mat &density,
                   int local_maxima_limit,
                   float local_maxima_min_distance,
-                  vector< Blob > &blobs,
+                  vector< Spot > &spots,
                   const SubottoMetrics &metrics,
                   const Size &tableFrameSize,
                   int current_time) {
@@ -82,7 +82,7 @@ void search_blobs(control_panel_t &panel,
       if (is_loggable(panel, "ball tracking", DEBUG)) {
           logger(panel, "ball tracking", DEBUG) << "Position (" << localMaxima[i].first.x << ", " << localMaxima[i].first.y << ") with weight " << localMaxima[i].second << endl;
       }
-			blobs.emplace_back(localMaxima[i].first, 0.0, 0.0, localMaxima[i].second);
+			spots.emplace_back(localMaxima[i].first, localMaxima[i].second);
 		}
 
 		if(is_loggable(panel, "ball tracking", DEBUG))

@@ -82,6 +82,12 @@ tuple< bool, double > SpotsTracker::jump_badness(const SpotNode &n1, const SpotN
 
 void SpotsTracker::push_back(vector< Spot > spots, double time) {
 
+  // When first frame is pushed, put its timestamp to the initial
+  // phantom frame (so that time counte does not explode)
+  if (this->timeline.front().front().num == -1) {
+    this->timeline.front().front().time = time;
+  }
+
   // Prepere a vector with the new nodes
   vector< SpotNode > v;
   for (auto spot : spots) {
@@ -135,23 +141,36 @@ SpotNode &SpotsTracker::_front() {
 
 }
 
-SpotNode SpotsTracker::front() {
+tuple< bool, Point2f > SpotsTracker::front() {
 
   // Return _front(), unless it has number -1; in that case try to pop
-  SpotNode &ret = this->_front();
-  if (ret.num == -1) {
-    this->pop_front();
-    ret = this->_front();
+  if (this->front_num == -1) {
+    this->_pop_front();
   }
-  return ret;
+  SpotNode &ret = this->_front();
+
+  return make_tuple(true, ret.spot.center);
 
 }
 
-void SpotsTracker::pop_front() {
+void SpotsTracker::_pop_front() {
 
   this->timeline.pop_front();
   this->front_num += 1;
 
   assert(this->front_num == this->timeline.front().front().num);
+
+}
+
+void SpotsTracker::pop_front() {
+
+  if (this->front_num == -1) this->_pop_front();
+  this->_pop_front();
+
+}
+
+int SpotsTracker::get_front_num() {
+
+  return this->front_num;
 
 }

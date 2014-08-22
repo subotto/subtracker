@@ -34,8 +34,9 @@ public:
 class SpotsTracker {
 public:
   void push_back(vector< Spot > spot, double time);
-  SpotNode front();
+  tuple< bool, Point2f > front();
   void pop_front();
+  int get_front_num();
 
   SpotsTracker(control_panel_t &panel);
 
@@ -58,6 +59,7 @@ private:
 
   tuple< bool, double > jump_badness(const SpotNode &n1, const SpotNode &n2) const;
   SpotNode &_front();
+  void _pop_front();
 };
 
 #endif

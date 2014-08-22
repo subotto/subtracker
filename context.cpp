@@ -88,13 +88,13 @@ void FrameAnalysis::update_corrected_variance() {
 
 }
 
-void FrameAnalysis::search_blobs() {
+void FrameAnalysis::search_spots() {
 
-  ::search_blobs(this->panel,
+  ::search_spots(this->panel,
                  this->ball_density,
                  this->frame_settings.local_maxima_limit,
                  this->frame_settings.local_maxima_min_distance,
-                 this->blobs,
+                 this->spots,
                  this->frame_settings.table_metrics,
                  this->frame_settings.table_frame_size,
                  this->frame_num);
@@ -182,7 +182,7 @@ void FrameAnalysis::show_all_displays() {
 
 
 SubtrackerContext::SubtrackerContext(Mat ref_frame, Mat ref_mask, control_panel_t &panel)
-  : last_frame_num(0), frame_settings(ref_frame, ref_mask), prev_frame_analysis(NULL), panel(panel), blobs_tracker(panel), blobs_timeline_span(120), blobs_frames_to_process(60) {
+  : last_frame_num(0), frame_settings(ref_frame, ref_mask), prev_frame_analysis(NULL), panel(panel), spots_tracker(panel), spots_timeline_span(60) {
 
 }
 
@@ -194,10 +194,10 @@ void SubtrackerContext::feed(Mat frame, time_point< video_clock> timestamp, time
   // Do the actual analysis
   this->do_table_tracking();
   this->do_analysis();
-  this->do_blob_search();
+  this->do_spot_search();
 
-  // Pass the results through the blob tracker
-  this->do_blobs_tracking();
+  // Pass the results through the spots tracker
+  this->do_spots_tracking();
 
   // Store FrameAnalysis for next round
   if (this->prev_frame_analysis != NULL) {
@@ -247,53 +247,41 @@ void SubtrackerContext::do_analysis() {
 
 }
 
-void SubtrackerContext::do_blob_search() {
+void SubtrackerContext::do_spot_search() {
 
-  this->frame_analysis->search_blobs();
+  this->frame_analysis->search_spots();
 
 }
 
-void SubtrackerContext::do_blobs_tracking() {
+void SubtrackerContext::do_spots_tracking() {
 
-  // Store the frame in our deque and in the BlobsTracker
+  // Store the frame in our deque and in the SpotsTracker
   int frame_num = this->frame_analysis->frame_num;
   this->past_frames.push_back(*this->frame_analysis);
-  this->blobs_tracker.InsertFrameInTimeline(this->frame_analysis->blobs, frame_num);
+  this->spots_tracker.push_back(this->frame_analysis->spots, duration_cast< duration< double > >(this->frame_analysis->timestamp.time_since_epoch()).count());
 
   // If we have already filled enough of the past...
-  if (frame_num >= 2*this->blobs_timeline_span) {
-    int initial_time = this->blobs_tracker.GetFrontTime();
-    this->blobs_tracker.PopFrameFromTimeline();
-    int processed_time = initial_time + this->blobs_timeline_span;
+  if (frame_num >= this->spots_timeline_span) {
+    bool valid;
+    Point2f position;
+    tie(valid, position) = this->spots_tracker.front();
+    int front_num = this->spots_tracker.get_front_num();
+    this->spots_tracker.pop_front();
 
-    if (initial_time % this->blobs_frames_to_process == 0) {
-      logger(this->panel, "gio", DEBUG) << "Calling ProcessFrames(" << initial_time << ", " << processed_time << ", " << processed_time + this->blobs_frames_to_process << ") after processing frame " << frame_num << endl;
-      vector< Point2f > positions = this->blobs_tracker.ProcessFrames(initial_time, processed_time, processed_time + this->blobs_frames_to_process);
-
-      for (int i=0; i < positions.size(); i++) {
-        FrameAnalysis frame_analysis = this->past_frames.front();
-        this->past_frames.pop_front();
-        logger(this->panel, "gio", DEBUG) << processed_time << " " << i << " " << frame_analysis.frame_num << endl;
-        assert(processed_time + i == frame_analysis.frame_num);
-
-        // Copy the position in the frame analysis if it is acceptable
-        if (positions[i].x < 900.0 && positions[i].y < 900.0) {
-          frame_analysis.ball_pos_x = positions[i].x;
-          frame_analysis.ball_pos_y = positions[i].y;
-          frame_analysis.ball_is_present = true;
-        } else {
-          frame_analysis.ball_is_present = false;
-        }
-
-        this->ready_frames.push_back(frame_analysis);
-      }
-    }
-  }
-
-  // Early frames will not be used in output, so we remove them from
-  // the queue
-  if (frame_num < this->blobs_timeline_span) {
+    FrameAnalysis frame_analysis = this->past_frames.front();
     this->past_frames.pop_front();
+    assert(front_num == frame_analysis.frame_num);
+
+    // Copy the position in the frame analysis if it is valid
+    if (valid) {
+      frame_analysis.ball_pos_x = position.x;
+      frame_analysis.ball_pos_y = position.y;
+      frame_analysis.ball_is_present = true;
+    } else {
+      frame_analysis.ball_is_present = false;
+    }
+
+    this->ready_frames.push_back(frame_analysis);
   }
 
 }

@@ -9,7 +9,7 @@
 #include "framereader_structs.hpp"
 #include "tracking_types.hpp"
 #include "analysis.hpp"
-#include "blobs_tracker.hpp"
+#include "spots_tracker.hpp"
 
 using namespace std;
 using namespace cv;
@@ -63,8 +63,8 @@ public:
   float bars_shift[BARS][2];
   float bars_rot[BARS][2];
 
-  // Search blobs
-  vector< Blob > blobs;
+  // Search spots
+  vector< Spot > spots;
 
   // Final position
   float ball_pos_x, ball_pos_y;
@@ -85,7 +85,7 @@ public:
   void update_table_description();
   void update_corrected_variance();
 
-  void search_blobs();
+  void search_spots();
 
   string get_csv_line();
   void draw_ball_display();
@@ -107,10 +107,9 @@ public:
   deque< FrameAnalysis > past_frames;
   deque< FrameAnalysis > ready_frames;
 
-  // Blobs tracking
-  BlobsTracker blobs_tracker;
-  int blobs_timeline_span;
-  int blobs_frames_to_process;
+  // Spots tracking
+  SpotsTracker spots_tracker;
+  int spots_timeline_span;
 
   SubtrackerContext(Mat ref_frame, Mat ref_mask, control_panel_t &panel);
   ~SubtrackerContext();
@@ -120,8 +119,8 @@ public:
 
   void do_table_tracking();
   void do_analysis();
-  void do_blob_search();
-  void do_blobs_tracking();
+  void do_spot_search();
+  void do_spots_tracking();
 
 };
 
