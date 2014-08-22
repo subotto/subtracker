@@ -25,7 +25,7 @@ public:
   double badness;
   double time;
   int num;
-  SpotNode *prev;
+  vector< SpotNode >::iterator prev;
   bool present;
 
   SpotNode(Spot spot, double time, int num, bool present);
@@ -33,7 +33,9 @@ public:
 
 class SpotsTracker {
 public:
-  void insert(vector< Spot > spot, double time);
+  void push_back(vector< Spot > spot, double time);
+  SpotNode front();
+  void pop_front();
 
   SpotsTracker(control_panel_t &panel);
 
@@ -41,6 +43,9 @@ private:
   deque< vector< SpotNode > > timeline;
   control_panel_t &panel;
   int node_num;
+  int front_num;
+  double back_badness;
+  vector< SpotNode >::iterator back_best;
 
   int dynamic_depth;
   double appearance_badness;
@@ -52,6 +57,7 @@ private:
   double variance_parameter;
 
   tuple< bool, double > jump_badness(const SpotNode &n1, const SpotNode &n2) const;
+  SpotNode &_front();
 };
 
 #endif
