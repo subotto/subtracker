@@ -24,10 +24,11 @@ public:
   Spot spot;
   double badness;
   double time;
-  Spot *prev;
+  int num;
+  SpotNode *prev;
   bool present;
 
-  SpotNode(Spot spot, double time, bool present);
+  SpotNode(Spot spot, double time, int num, bool present);
 };
 
 class SpotsTracker {
@@ -39,6 +40,18 @@ public:
 private:
   deque< vector< SpotNode > > timeline;
   control_panel_t &panel;
+  int node_num;
+
+  int dynamic_depth;
+  double appearance_badness;
+  double disappearance_badness;
+  double absence_badness;
+  double max_speed;
+  double max_unseen_distance;
+  double skip_badness;
+  double variance_parameter;
+
+  tuple< bool, double > jump_badness(const SpotNode &n1, const SpotNode &n2) const;
 };
 
 #endif
