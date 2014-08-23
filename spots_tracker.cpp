@@ -21,6 +21,7 @@ SpotNode::SpotNode(Spot spot, double time, int num, bool present)
 
 SpotsTracker::SpotsTracker(control_panel_t &panel)
   : panel(panel),
+    node_num(0),
     front_num(-1),
 
     dynamic_depth(60),
@@ -112,7 +113,7 @@ void SpotsTracker::push_back(vector< Spot > spots, double time) {
 
     // Implement a step of the dynamic programming algorithm (with
     // bounded depth)
-    for (long int i = begin; i <= this->timeline.size(); i++) {
+    for (long int i = begin; i < this->timeline.size(); i++) {
       for (vector< SpotNode >::iterator it1 = this->timeline[i].begin(); it1 != this->timeline[i].end(); it1++) {
         SpotNode &n1 = *it1;
         bool legal_jump;
