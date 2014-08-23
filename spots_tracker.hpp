@@ -6,6 +6,7 @@
 
 #include <vector>
 #include <deque>
+#include <unordered_map>
 
 using namespace std;
 using namespace cv;
@@ -16,6 +17,7 @@ public:
   double weight;
 
 public:
+  Spot();
   Spot(Point2f center, double weight);
 };
 
@@ -27,6 +29,13 @@ public:
   int num;
   vector< SpotNode >::iterator prev;
   bool present;
+
+  // Backup values of the previous node, so we have them also when
+  // previous node gets destroyed
+  int prev_num;
+  bool prev_present;
+  Spot prev_spot;
+  double prev_time;
 
   SpotNode(Spot spot, double time, int num, bool present);
 };
@@ -42,6 +51,7 @@ public:
 
 private:
   deque< vector< SpotNode > > timeline;
+  unordered_map< int, double > frame_num_rev_map;
   control_panel_t &panel;
   int node_num;
   int front_num;

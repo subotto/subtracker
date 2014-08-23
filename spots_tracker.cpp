@@ -5,6 +5,10 @@
 
 const double INFTY = 1e100;
 
+Spot::Spot() {
+
+}
+
 Spot::Spot(Point2f center, double weight)
   : center(center), weight(weight) {
 
@@ -18,6 +22,7 @@ SpotNode::SpotNode(Spot spot, double time, int num, bool present)
 SpotsTracker::SpotsTracker(control_panel_t &panel)
   : panel(panel),
     front_num(-1),
+
     dynamic_depth(60),
     back_badness(INFTY),
     appearance_badness(400.0),
@@ -35,6 +40,7 @@ SpotsTracker::SpotsTracker(control_panel_t &panel)
   vector< SpotNode > v;
   v.push_back(phantom_node);
 
+  this->frame_num_rev_map[-1] = 0.0;
   this->timeline.push_back(v);
 
 }
@@ -82,6 +88,9 @@ tuple< bool, double > SpotsTracker::jump_badness(const SpotNode &n1, const SpotN
 
 void SpotsTracker::push_back(vector< Spot > spots, double time) {
 
+  // Remember the reverse map from frame_num to time
+  this->frame_num_rev_map[this->node_num] = time;
+
   // When first frame is pushed, put its timestamp to the initial
   // phantom frame (so that time counte does not explode)
   if (this->timeline.front().front().num == -1) {
@@ -114,6 +123,10 @@ void SpotsTracker::push_back(vector< Spot > spots, double time) {
         if (new_badness < n2.badness) {
           n2.badness = new_badness;
           n2.prev = it1;
+          n2.prev_num = n1.num;
+          n2.prev_time = n1.time;
+          n2.prev_present = n1.present;
+          n2.prev_spot = n1.spot;
         }
       }
     }
@@ -130,11 +143,18 @@ void SpotsTracker::push_back(vector< Spot > spots, double time) {
 
 }
 
+static Point2f interpolate(double a, double t, double b, Point2f x, Point2f y) {
+
+  double t1 = (t - a) / (b - a);
+  return (1 - t1) * x + t1 * y;
+
+}
+
 SpotNode &SpotsTracker::_front() {
 
   // Go backward until you find the front level
   vector< SpotNode >::iterator it = this->back_best;
-  while (it->num != this->front_num) {
+  while (it->prev_num > this->front_num) {
     it = it->prev;
   }
   return *it;
@@ -149,13 +169,24 @@ tuple< bool, Point2f > SpotsTracker::front() {
   }
   SpotNode &ret = this->_front();
 
-  return make_tuple(true, ret.spot.center);
+  if (ret.prev_num == this->front_num) {
+    return make_tuple(ret.prev_present, ret.prev_spot.center);
+  } else if (ret.num == this->front_num) {
+    return make_tuple(ret.present, ret.spot.center);
+  } else {
+    if (ret.present && ret.prev_present) {
+      return make_tuple(true, interpolate(ret.prev_time, this->frame_num_rev_map[this->front_num], ret.time, ret.prev_spot.center, ret.spot.center));
+    } else {
+      return make_tuple(false, ret.spot.center);
+    }
+  }
 
 }
 
 void SpotsTracker::_pop_front() {
 
   this->timeline.pop_front();
+  this->frame_num_rev_map.erase(this->front_num);
   this->front_num += 1;
 
   assert(this->front_num == this->timeline.front().front().num);
