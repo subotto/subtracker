@@ -81,6 +81,8 @@ static void key_pressed(SubtrackerContext &ctx, char c) {
 }
 
 int update_gui_skip = 5;
+bool step_frame = false;
+bool step_on_frame_produced = true;
 
 static void feed_frames(FrameReader &frame_reader, SubtrackerContext &ctx) {
 
@@ -90,23 +92,28 @@ static void feed_frames(FrameReader &frame_reader, SubtrackerContext &ctx) {
 
   for (int frame_num = 0; ; frame_num++) {
 
-    dump_time(panel, "cycle", "feed new frame");
+    dump_time(panel, "cycle", "before GUI");
 
     // Every now and then, do GUI computation
-    panel.update_display = (frame_num % (update_gui_skip + 1) == 0);
+    panel.update_display = (frame_num % (update_gui_skip + 1) == 0) || step_frame;
     if (panel.update_display) {
 
 			namedWindow("control panel", WINDOW_NORMAL);
 
       // Check of key pressions (FIXME: this process just one key
       // pression every cycle)
+    wait_other_key:
 			int c = waitKey(1);
       if (c > 0) c &= 0xff;
       key_pressed(ctx, c);
 
+      if (step_frame && c != '.') goto wait_other_key;
+
       dump_time(panel, "cycle", "wait key");
 
     }
+
+    dump_time(panel, "cycle", "beginning real cycle");
 
     // Read a new frame and perhaps terminate program
     auto frame_info = frame_reader.get();
@@ -127,9 +134,11 @@ static void feed_frames(FrameReader &frame_reader, SubtrackerContext &ctx) {
       frameAnalysis->show_all_displays();
 
       delete frameAnalysis;
+
+      if (step_on_frame_produced) step_frame = true;
     }
 
-    dump_time(panel, "cycle", "finished frame feed");
+    dump_time(panel, "cycle", "finished cycle");
 
   }
 
