@@ -48,7 +48,7 @@ static tuple< vector< KeyPoint >, Mat > get_features(Mat frame, Mat mask, int fe
 
 }
 
-static Mat detect_table(Mat frame, table_detection_params_t& params, control_panel_t& panel, const SubottoReference& reference, const SubottoMetrics &metrics) {
+static Mat detect_table(Mat frame, table_detection_params_t& params, control_panel_t& panel, const SubottoReference& reference, const SubottoMetrics &metrics, FrameAnalysis &frame_analysis) {
 
 	const Mat& reference_image = reference.image;
 	const Mat& reference_mask = reference.mask;
@@ -64,11 +64,11 @@ static Mat detect_table(Mat frame, table_detection_params_t& params, control_pan
 	BFMatcher dm;
 	dm.knnMatch(reference_features_descriptions, frame_features_descriptions, matches_groups, params.features_knn, Mat());
 
-	if(will_show(panel, "table detect", "matches")) {
-		Mat matches;
-		drawMatches(reference_image, reference_features, frame, frame_features, matches_groups, matches);
-		show(panel, "table detect", "matches", matches);
-	}
+	//if(will_show(panel, "table detect", "matches")) {
+  if (true) {
+    Mat &matches = frame_analysis.detect_table_matches;
+    drawMatches(reference_image, reference_features, frame, frame_features, matches_groups, matches);
+  }
 
 	vector<Point2f> coarse_from, coarse_to;
 
@@ -103,11 +103,8 @@ static Mat detect_table(Mat frame, table_detection_params_t& params, control_pan
 
 	}
 
-	Mat warped;
+	Mat &warped = frame_analysis.detect_table_after_matching;
 	warpPerspective(frame, warped, coarse_transform, reference_image.size(), WARP_INVERSE_MAP | INTER_LINEAR);
-
-	show(panel, "table detect", "after feature matching", warped);
-  show(panel, "table detect", "reference image", reference_image);
 
 	vector<KeyPoint> optical_flow_features;
 
@@ -161,14 +158,14 @@ static Mat detect_table(Mat frame, table_detection_params_t& params, control_pan
 	return transform;
 }
 
-static Mat follow_table(Mat frame, Mat previous_transform, table_following_params_t& params, table_tracking_status_t& status, control_panel_t& panel, const SubottoReference& reference, const SubottoMetrics &metrics) {
+static Mat follow_table(Mat frame, Mat previous_transform, table_following_params_t& params, table_tracking_status_t& status, control_panel_t& panel, const SubottoReference& reference, const SubottoMetrics &metrics, FrameAnalysis &frame_analysis) {
 	Mat scaled_reference_image = status.scaled_reference;
 
 	Size size = scaled_reference_image.size();
 
 	auto& reference_metrics = reference.metrics;
 
-	Mat warped;
+	Mat &warped = frame_analysis.follow_table_before;
 
 	dump_time(panel, "cycle", "follow start");
 
@@ -178,9 +175,6 @@ static Mat follow_table(Mat frame, Mat previous_transform, table_following_param
 					size, WARP_INVERSE_MAP | INTER_LINEAR);
 
 	dump_time(panel, "cycle", "follow warp");
-
-	if(will_show(panel, "table detect", "follow table before"))
-		show(panel, "table detect", "follow table before", warped);
 
 	vector<KeyPoint> optical_flow_features = status.reference_features;
 
@@ -245,17 +239,19 @@ void init_table_tracking_panel(table_tracking_params_t& params, control_panel_t&
 	trackbar(panel, "table detect", "follow optical flow ransac threshold", params.following_params.optical_flow_ransac_threshold, {0.0f, 100.f, 0.1f});
 }
 
-Mat track_table(Mat frame, table_tracking_status_t& status, table_tracking_params_t& params, control_panel_t& panel, const SubottoReference& reference, const SubottoMetrics &metrics) {
+Mat track_table(Mat frame, table_tracking_status_t& status, table_tracking_params_t& params, control_panel_t& panel, const SubottoReference& reference, const SubottoMetrics &metrics, FrameAnalysis &frame_analysis) {
 	Mat undistorted = correctDistortion(frame);
 
 	Mat transform;
 
 	if (status.near_transform.empty() || status.frames_to_next_detection <= 0) {
-		transform = detect_table(undistorted, params.detection, panel, reference, metrics);
+    frame_analysis.feature_matching_used = true;
+		transform = detect_table(undistorted, params.detection, panel, reference, metrics, frame_analysis);
 		status.frames_to_next_detection = params.detect_every_frames;
 		status.near_transform = transform;
 	} else {
-		transform = follow_table(undistorted, status.near_transform, params.following_params, status, panel, reference, metrics);
+    frame_analysis.feature_matching_used = false;
+		transform = follow_table(undistorted, status.near_transform, params.following_params, status, panel, reference, metrics, frame_analysis);
 		status.frames_to_next_detection--;
 		// smooth the previous transform
 		accumulateWeighted(transform, status.near_transform, params.near_transform_alpha);

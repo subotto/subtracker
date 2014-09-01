@@ -47,6 +47,10 @@ public:
   table_tracking_status_t table_tracking_status;
   Mat table_transform;
   Mat table_frame;
+  bool feature_matching_used;
+  Mat follow_table_before;
+  Mat detect_table_matches;
+  Mat detect_table_after_matching;
 
   // Table analysis
   TableDescription table_description;

@@ -28,7 +28,7 @@ void FrameAnalysis::setup_from_prev_table_tracking(const FrameAnalysis &prev_fra
 
 void FrameAnalysis::track_table() {
 
-  this->table_transform = ::track_table(this->frame, this->table_tracking_status, this->frame_settings.table_tracking_params, this->panel, this->frame_settings.reference, this->frame_settings.table_metrics);
+  this->table_transform = ::track_table(this->frame, this->table_tracking_status, this->frame_settings.table_tracking_params, this->panel, this->frame_settings.reference, this->frame_settings.table_metrics, *this);
 
 }
 
@@ -161,10 +161,17 @@ void FrameAnalysis::show_all_displays() {
 
   show(this->panel, "frame", "frame", this->frame);
   show(this->panel, "frame", "table_frame", this->table_frame);
+  show(this->panel, "frame", "mean", this->table_description.mean);
+
+  show(this->panel, "table detect", "reference image", this->frame_settings.reference.image);
+  if (this->feature_matching_used) {
+    show(this->panel, "table detect", "matches", this->detect_table_matches);
+    show(this->panel, "table detect", "after feature matching", this->detect_table_after_matching);
+  } else {
+    show(this->panel, "table detect", "follow table before", this->follow_table_before);
+  }
 
   show(this->panel, "ball tracking", "density", this->ball_density);
-
-  show(this->panel, "frame", "mean", this->table_description.mean);
 
   // Possibly draw foosmen display
   if (will_show(this->panel, "foosmen tracking", "foosmen")) {

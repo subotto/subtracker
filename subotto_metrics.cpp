@@ -46,10 +46,10 @@ vector<Point2f> sizeCorners(Size size) {
 vector< Point2f > subottoReferenceMetricsCorners(SubottoReferenceMetrics metrics) {
 
   return {
-    metrics.blue_defence_corner,
     metrics.red_attack_corner,
-    metrics.red_defence_corner,
+    metrics.blue_defence_corner,
     metrics.blue_attack_corner,
+    metrics.red_defence_corner,
   };
 
 }
