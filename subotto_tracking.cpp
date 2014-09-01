@@ -48,7 +48,7 @@ static tuple< vector< KeyPoint >, Mat > get_features(Mat frame, Mat mask, int fe
 
 }
 
-static Mat detect_table(Mat frame, table_detection_params_t& params, control_panel_t& panel, const SubottoReference& reference) {
+static Mat detect_table(Mat frame, table_detection_params_t& params, control_panel_t& panel, const SubottoReference& reference, const SubottoMetrics &metrics) {
 
 	const Mat& reference_image = reference.image;
 	const Mat& reference_mask = reference.mask;
@@ -107,6 +107,7 @@ static Mat detect_table(Mat frame, table_detection_params_t& params, control_pan
 	warpPerspective(frame, warped, coarse_transform, reference_image.size(), WARP_INVERSE_MAP | INTER_LINEAR);
 
 	show(panel, "table detect", "after feature matching", warped);
+  show(panel, "table detect", "reference image", reference_image);
 
 	vector<KeyPoint> optical_flow_features;
 
@@ -154,12 +155,13 @@ static Mat detect_table(Mat frame, table_detection_params_t& params, control_pan
 
 	Mat flow_transform = coarse_transform * flow_correction;
 
-	Mat transform = flow_transform * referenceToSize(reference_metrics, reference_image.size());
+  logger(panel, "gio", VERBOSE) << endl << referenceToSize(reference_metrics, metrics) << endl;
+	Mat transform = flow_transform * referenceToSize(reference_metrics, metrics);
 
 	return transform;
 }
 
-static Mat follow_table(Mat frame, Mat previous_transform, table_following_params_t& params, table_tracking_status_t& status, control_panel_t& panel, const SubottoReference& reference) {
+static Mat follow_table(Mat frame, Mat previous_transform, table_following_params_t& params, table_tracking_status_t& status, control_panel_t& panel, const SubottoReference& reference, const SubottoMetrics &metrics) {
 	Mat scaled_reference_image = status.scaled_reference;
 
 	Size size = scaled_reference_image.size();
@@ -172,7 +174,7 @@ static Mat follow_table(Mat frame, Mat previous_transform, table_following_param
 
 	warpPerspective(frame, warped,
 			previous_transform
-					* sizeToReference(reference_metrics, size),
+					* sizeToReference(reference_metrics, metrics),
 					size, WARP_INVERSE_MAP | INTER_LINEAR);
 
 	dump_time(panel, "cycle", "follow warp");
@@ -222,7 +224,7 @@ static Mat follow_table(Mat frame, Mat previous_transform, table_following_param
 
 	dump_time(panel, "cycle", "follow motion estimation");
 
-	return previous_transform * sizeToReference(reference_metrics, size) * correction * referenceToSize(reference_metrics, size);
+	return previous_transform * sizeToReference(reference_metrics, metrics) * correction * referenceToSize(reference_metrics, metrics);
 }
 
 void init_table_tracking_panel(table_tracking_params_t& params, control_panel_t& panel) {
@@ -243,17 +245,17 @@ void init_table_tracking_panel(table_tracking_params_t& params, control_panel_t&
 	trackbar(panel, "table detect", "follow optical flow ransac threshold", params.following_params.optical_flow_ransac_threshold, {0.0f, 100.f, 0.1f});
 }
 
-Mat track_table(Mat frame, table_tracking_status_t& status, table_tracking_params_t& params, control_panel_t& panel, const SubottoReference& reference) {
+Mat track_table(Mat frame, table_tracking_status_t& status, table_tracking_params_t& params, control_panel_t& panel, const SubottoReference& reference, const SubottoMetrics &metrics) {
 	Mat undistorted = correctDistortion(frame);
 
 	Mat transform;
 
 	if (status.near_transform.empty() || status.frames_to_next_detection <= 0) {
-		transform = detect_table(undistorted, params.detection, panel, reference);
+		transform = detect_table(undistorted, params.detection, panel, reference, metrics);
 		status.frames_to_next_detection = params.detect_every_frames;
 		status.near_transform = transform;
 	} else {
-		transform = follow_table(undistorted, status.near_transform, params.following_params, status, panel, reference);
+		transform = follow_table(undistorted, status.near_transform, params.following_params, status, panel, reference, metrics);
 		status.frames_to_next_detection--;
 		// smooth the previous transform
 		accumulateWeighted(transform, status.near_transform, params.near_transform_alpha);

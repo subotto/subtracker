@@ -43,18 +43,15 @@ vector<Point2f> sizeCorners(Size size) {
 	};
 }
 
-vector<Point2f> subottoReferenceCorners(SubottoReferenceMetrics metrics) {
-	float dx = metrics.offset.x;
-	float dy = metrics.offset.y;
-	float w = metrics.frameSize.width;
-	float h = metrics.frameSize.height;
+vector< Point2f > subottoReferenceMetricsCorners(SubottoReferenceMetrics metrics) {
 
-	return {
-		Point2f(dx+w, dy+h),
-		Point2f(dx+w, dy-h),
-		Point2f(dx-w, dy-h),
-		Point2f(dx-w, dy+h)
-	};
+  return {
+    metrics.blue_defence_corner,
+    metrics.red_attack_corner,
+    metrics.red_defence_corner,
+    metrics.blue_attack_corner,
+  };
+
 }
 
 Mat unitsToSize(SubottoMetrics metrics, Size size) {
@@ -69,14 +66,22 @@ Mat sizeToUnits(SubottoMetrics metrics, Size size) {
 	return transform;
 }
 
-Mat referenceToSize(SubottoReferenceMetrics metrics, Size size) {
+Mat referenceToSize(SubottoReferenceMetrics metrics, SubottoMetrics table_metrics) {
 	Mat transform;
-	getPerspectiveTransform(subottoReferenceCorners(metrics), sizeCorners(size)).convertTo(transform, CV_32F);
+  getPerspectiveTransform(subottoCornersUnits(table_metrics), subottoReferenceMetricsCorners(metrics)).convertTo(transform, CV_32F);
 	return transform;
 }
 
-Mat sizeToReference(SubottoReferenceMetrics metrics, Size size) {
+Mat sizeToReference(SubottoReferenceMetrics metrics, SubottoMetrics table_metrics) {
 	Mat transform;
-	getPerspectiveTransform(sizeCorners(size), subottoReferenceCorners(metrics)).convertTo(transform, CV_32F);
+  getPerspectiveTransform(subottoReferenceMetricsCorners(metrics), subottoCornersUnits(table_metrics)).convertTo(transform, CV_32F);
 	return transform;
+}
+
+SubottoReferenceMetrics::SubottoReferenceMetrics()
+  : red_defence_corner(252, 72),
+    red_attack_corner(67, 67),
+    blue_defence_corner(58, 183),
+    blue_attack_corner(253, 186) {
+
 }

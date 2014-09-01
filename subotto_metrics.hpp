@@ -3,26 +3,27 @@
 
 #include <opencv2/core/core.hpp>
 
+using namespace cv;
+
 struct SubottoMetrics {
 	float length = 1.15;
 	float width = 0.70;
 };
 
-/*struct SubottoReferenceMetrics {
-	cv::Point2f offset {-0.016f, -0.018f};
-	cv::Size2f frameSize {-1.98, -0.98};
-  };*/
-
 struct SubottoReferenceMetrics {
-	cv::Point2f offset {0.0f, 0.0f};
-	cv::Size2f frameSize {-1.67, -1.25};
+  Point2f red_defence_corner;
+  Point2f red_attack_corner;
+  Point2f blue_defence_corner;
+  Point2f blue_attack_corner;
+
+  SubottoReferenceMetrics();
 };
 
 cv::Mat unitsToSize(SubottoMetrics metrics, cv::Size size);
 cv::Mat sizeToUnits(SubottoMetrics metrics, cv::Size size);
 
-cv::Mat referenceToSize(SubottoReferenceMetrics metrics, cv::Size size);
-cv::Mat sizeToReference(SubottoReferenceMetrics metrics, cv::Size size);
+Mat referenceToSize(SubottoReferenceMetrics metrics, SubottoMetrics table_metrics);
+Mat sizeToReference(SubottoReferenceMetrics metrics, SubottoMetrics table_metrics);
 
 std::vector<cv::Point2f> subottoCornersUnits(SubottoMetrics metrics);
 std::vector<cv::Point2f> subottoCornersMeters(SubottoMetrics metrics);

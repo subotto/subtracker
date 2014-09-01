@@ -28,7 +28,7 @@ void FrameAnalysis::setup_from_prev_table_tracking(const FrameAnalysis &prev_fra
 
 void FrameAnalysis::track_table() {
 
-  this->table_transform = ::track_table(this->frame, this->table_tracking_status, this->frame_settings.table_tracking_params, this->panel, this->frame_settings.reference);
+  this->table_transform = ::track_table(this->frame, this->table_tracking_status, this->frame_settings.table_tracking_params, this->panel, this->frame_settings.reference, this->frame_settings.table_metrics);
 
 }
 
