@@ -78,6 +78,12 @@ Mat sizeToReference(SubottoReferenceMetrics metrics, SubottoMetrics table_metric
 	return transform;
 }
 
+Mat sizeToSize(Size from, Size to) {
+	Mat transform;
+  getPerspectiveTransform(sizeCorners(from), sizeCorners(to)).convertTo(transform, CV_32F);
+	return transform;
+}
+
 SubottoReferenceMetrics::SubottoReferenceMetrics()
   : red_defence_corner(252, 72),
     red_attack_corner(67, 67),

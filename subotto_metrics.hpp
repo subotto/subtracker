@@ -25,6 +25,8 @@ cv::Mat sizeToUnits(SubottoMetrics metrics, cv::Size size);
 Mat referenceToSize(SubottoReferenceMetrics metrics, SubottoMetrics table_metrics);
 Mat sizeToReference(SubottoReferenceMetrics metrics, SubottoMetrics table_metrics);
 
+Mat sizeToSize(Size from, Size to);
+
 std::vector<cv::Point2f> subottoCornersUnits(SubottoMetrics metrics);
 std::vector<cv::Point2f> subottoCornersMeters(SubottoMetrics metrics);
 std::vector<cv::Point2f> subottoReferenceCorners(SubottoReferenceMetrics metrics);

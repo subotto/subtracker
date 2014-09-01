@@ -152,7 +152,10 @@ static Mat detect_table(Mat frame, table_detection_params_t& params, control_pan
 
 	Mat flow_transform = coarse_transform * flow_correction;
 
-  logger(panel, "gio", VERBOSE) << endl << referenceToSize(reference_metrics, metrics) << endl;
+  logger(panel, "gio", DEBUG) << "flow_transform " << endl << flow_transform << endl;
+  logger(panel, "gio", DEBUG) << "referenceToSize(...)" << endl << referenceToSize(reference_metrics, metrics) << endl;
+  logger(panel, "gio", DEBUG) << "sizeToReference(...)" << endl << sizeToReference(reference_metrics, metrics) << endl;
+  logger(panel, "gio", DEBUG) << "identity" << endl << referenceToSize(reference_metrics, metrics) * sizeToReference(reference_metrics, metrics) << endl;
 	Mat transform = flow_transform * referenceToSize(reference_metrics, metrics);
 
 	return transform;
@@ -169,9 +172,12 @@ static Mat follow_table(Mat frame, Mat previous_transform, table_following_param
 
 	dump_time(panel, "cycle", "follow start");
 
+  logger(panel, "gio", DEBUG) << "previous_transform * ..." << endl << previous_transform * sizeToReference(reference_metrics, metrics) << endl;
+
 	warpPerspective(frame, warped,
-			previous_transform
-					* sizeToReference(reference_metrics, metrics),
+                  previous_transform
+                  * sizeToReference(reference_metrics, metrics)
+                  * sizeToSize(size, frame.size()),
 					size, WARP_INVERSE_MAP | INTER_LINEAR);
 
 	dump_time(panel, "cycle", "follow warp");
