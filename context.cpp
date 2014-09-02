@@ -7,7 +7,7 @@
 #include "subotto_tracking.hpp"
 
 FrameSettings::FrameSettings(Mat ref_frame, Mat ref_mask)
-  : table_frame_size(128, 64), local_maxima_limit(5), local_maxima_min_distance(0.10f) {
+  : table_frame_size(reference.metrics.get_ideal_rectangle_size()), local_maxima_limit(5), local_maxima_min_distance(0.10f) {
 
   this->reference.image = ref_frame;
   this->reference.mask = ref_mask;
@@ -16,7 +16,9 @@ FrameSettings::FrameSettings(Mat ref_frame, Mat ref_mask)
 
 
 FrameAnalysis::FrameAnalysis(Mat frame, int frame_num, time_point< video_clock > timestamp, time_point< system_clock > playback_time, FrameSettings frame_settings, control_panel_t &panel)
-  : frame(frame), frame_num(frame_num), timestamp(timestamp), playback_time(playback_time), frame_settings(frame_settings), panel(panel), table_tracking_status(frame_settings.table_tracking_params, frame_settings.reference), table_description(frame_settings.table_frame_size) {
+  : frame(frame), frame_num(frame_num), timestamp(timestamp), playback_time(playback_time), frame_settings(frame_settings), panel(panel), table_tracking_status(frame_settings.table_tracking_params, frame_settings.reference, frame_settings.table_frame_size), table_description(frame_settings.table_frame_size) {
+
+  logger(this->panel, "gio", DEBUG) << "table_frame_size: " << this->frame_settings.table_frame_size << endl;
 
 }
 
@@ -157,6 +159,15 @@ void FrameAnalysis::draw_foosmen_display() {
 
 }
 
+double density_inf = -150.0;
+double density_sup = 30.0;
+
+static Mat normalize_matrix(const Mat &mat) {
+
+  return (mat - density_inf) / (density_sup - density_inf);
+
+}
+
 void FrameAnalysis::show_all_displays() {
 
   show(this->panel, "frame", "frame", this->frame);
@@ -171,7 +182,9 @@ void FrameAnalysis::show_all_displays() {
     show(this->panel, "table detect", "follow table before", this->follow_table_before);
   }
 
-  show(this->panel, "ball tracking", "density", this->ball_density);
+  show(this->panel, "ball tracking", "density", normalize_matrix(this->ball_density));
+  show(this->panel, "ball tracking", "table NLL", normalize_matrix(this->table_analysis.nll));
+  show(this->panel, "ball tracking", "ball LL", normalize_matrix(this->ball_analysis.ll));
 
   // Possibly draw foosmen display
   if (will_show(this->panel, "foosmen tracking", "foosmen")) {
@@ -184,6 +197,10 @@ void FrameAnalysis::show_all_displays() {
     this->draw_ball_display();
     show(this->panel, "ball tracking", "ball", this->ball_display);
   }
+
+  double density_min, density_max;
+  minMaxLoc(this->ball_density, &density_min, &density_max, NULL, NULL);
+  logger(this->panel, "ball tracking", DEBUG) << "Density minimum: " << density_min << "; density maximum: " << density_max << endl;
 
 }
 

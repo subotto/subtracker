@@ -17,6 +17,7 @@ struct SubottoReferenceMetrics {
   Point2f blue_attack_corner;
 
   SubottoReferenceMetrics();
+  Size get_ideal_rectangle_size();
 };
 
 cv::Mat unitsToSize(SubottoMetrics metrics, cv::Size size);

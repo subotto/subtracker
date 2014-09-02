@@ -91,3 +91,16 @@ SubottoReferenceMetrics::SubottoReferenceMetrics()
     blue_attack_corner(253, 186) {
 
 }
+
+inline static double avg(double a, double b) {
+
+  return (a+b)/2;
+
+}
+
+Size SubottoReferenceMetrics::get_ideal_rectangle_size() {
+
+  return Size(avg(norm(red_defence_corner - red_attack_corner), norm(blue_defence_corner - blue_attack_corner)),
+              avg(norm(red_defence_corner - blue_attack_corner), norm(red_attack_corner - blue_defence_corner)));
+
+}

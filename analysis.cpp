@@ -41,9 +41,10 @@ void do_table_analysis(control_panel_t &panel,
 	Mat notTableProb;
 	transform(tableDiffNorm + logVariance, notTableProb, Matx<float, 1, 3>(1, 1, 1));
 
-	Mat notTableProbTrunc;
+	//Mat notTableProbTrunc;
 	float tableProbThresh = 20.f;
-	threshold(notTableProb, tableAnalysis.nll, tableProbThresh, 0, CV_THRESH_TRUNC);
+	//threshold(notTableProb, tableAnalysis.nll, tableProbThresh, 0, CV_THRESH_TRUNC);
+  notTableProb.copyTo(tableAnalysis.nll);
 
   dump_time(panel, "cycle", "table analysis");
 
@@ -64,9 +65,9 @@ void do_ball_analysis(control_panel_t &panel,
 	Mat ballDiffNorm = ballAnalysis.scatter / ball.valueVariance;
 
 	transform(ballDiffNorm, ballAnalysis.ll, -Matx<float, 1, 3>(1, 1, 1));
-	ballAnalysis.ll -= 3 * log(ball.valueVariance);
+	ballAnalysis.ll -= log(ball.valueVariance);
 
-	Mat pixelProb = ballAnalysis.ll + tableAnalysis.nll;
+	Mat pixelProb = 0.5 * ballAnalysis.ll + tableAnalysis.nll;
 	blur(pixelProb, density, Size(3, 3));
 
   dump_time(panel, "cycle", "ball analysis");

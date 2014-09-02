@@ -22,9 +22,7 @@ table_detection_params_t::table_detection_params_t()
 
 table_following_params_t::table_following_params_t()
   : optical_flow_features(100),
-    optical_flow_ransac_threshold(1.0f),
-
-    optical_flow_size(128, 64)
+    optical_flow_ransac_threshold(1.0f)
 
 {}
 
@@ -34,11 +32,10 @@ table_tracking_params_t::table_tracking_params_t()
 
 {}
 
-table_tracking_status_t::table_tracking_status_t(const table_tracking_params_t& params, const SubottoReference& reference)
+table_tracking_status_t::table_tracking_status_t(const table_tracking_params_t& params, const SubottoReference& reference, Size table_frame_size)
   : frames_to_next_detection(0) {
 
-	Size size(128, 64);
-  resize(reference.image, this->scaled_reference, size);
+  resize(reference.image, this->scaled_reference, table_frame_size);
 	GoodFeaturesToTrackDetector(params.following_params.optical_flow_features).detect(this->scaled_reference, this->reference_features);
 
 }
