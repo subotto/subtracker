@@ -90,6 +90,8 @@ static void feed_frames(FrameReader &frame_reader, SubtrackerContext &ctx) {
 
   trackbar(panel, "control panel", "update GUI skip", update_gui_skip, {0, 20, 1});
 
+  //VideoWriter video_writer("ball_position.mpg", CV_FOURCC('P','I','M','1'), 100, ctx.frame_settings.table_frame_size, true);
+
   for (int frame_num = 0; ; frame_num++) {
 
     dump_time(panel, "cycle", "before GUI");
@@ -132,6 +134,11 @@ static void feed_frames(FrameReader &frame_reader, SubtrackerContext &ctx) {
 
       // Show everything!
       frameAnalysis->show_all_displays();
+
+      // And output the frame with the ball
+      /*Mat video_frame;
+      frameAnalysis->ball_display.convertTo(video_frame, CV_8U, 255.0);
+      video_writer.write(video_frame);*/
 
       delete frameAnalysis;
 

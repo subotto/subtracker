@@ -131,7 +131,7 @@ void FrameAnalysis::draw_ball_display() {
   Point2f ball_disp_pos;
   ball_disp_pos.x = (this->ball_pos_x / this->frame_settings.table_metrics.length + 0.5f) * this->ball_density.cols;
   ball_disp_pos.y = -(this->ball_pos_y / this->frame_settings.table_metrics.width - 0.5f) * this->ball_density.rows;
-  circle(this->ball_display, ball_disp_pos, 8, Scalar(0,255,0), 2);
+  circle(this->ball_display, ball_disp_pos, 8, Scalar(0.0, 1.0, 0.0), 2);
 
 }
 
