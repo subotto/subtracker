@@ -38,8 +38,8 @@ private:
 	control_panel_t& panel;
 
 public:
-	FrameReader(int device, control_panel_t& panel);
-	FrameReader(const char* file, control_panel_t& panel, bool simulate_live = false);
+	FrameReader(int device, control_panel_t& panel, int width=320, int height=240, int fps=125);
+	FrameReader(const char* file, control_panel_t& panel, bool simulate_live=false);
 	void read();
 	FrameInfo get();
 	~FrameReader();

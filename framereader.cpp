@@ -6,12 +6,12 @@ static const seconds frame_count_interval(5);
 static const int stats_interval = 1;
 static const int buffer_size = 500;
 
-FrameReader::FrameReader(int device, control_panel_t& panel)
+FrameReader::FrameReader(int device, control_panel_t& panel, int width, int height, int fps)
 	: panel(panel) {
   running = true;
   count = 0;
   last_stats = high_resolution_clock::now();
-  cap = v4l2cap(device, 320, 240, 125);
+  cap = v4l2cap(device, width, height, fps);
   t = thread(&FrameReader::read, this);
 }
 
