@@ -1,7 +1,7 @@
 CPP = g++
-CFLAGS = $(shell pkg-config --cflags opencv) -g -O2
+CFLAGS = $(shell pkg-config --cflags opencv) -lturbojpeg -g -O2
 PWD := $(shell pwd)
-CPPFLAGS = $(shell pkg-config --cflags opencv) -I$(PWD) -g -std=c++11 -O2
+CPPFLAGS = $(shell pkg-config --cflags opencv) -I$(PWD) -lturbojpeg -g -std=c++11 -O2
 LIBS = $(shell pkg-config --libs opencv)
 
 HEADERS = \
@@ -41,6 +41,12 @@ blobs_tracker.o \
 tracking_types.o \
 spots_tracker.o \
 
+OBJECTS_camera_source = \
+camera_source.o \
+framereader.o \
+control.o \
+v4l2cap.o \
+
 OBJECTS_tester = \
 blobs_tracker.o \
 control.o \
@@ -53,7 +59,8 @@ v4l2cap.o \
 tester.o
 
 BINARIES = \
-subtracker2015
+subtracker2015 \
+camera_source
 #subtracker2014
 #tester
 
@@ -69,6 +76,7 @@ tests: $(TEST_BINARIES)
 clean:
 	rm -f $(OBJECTS_subtracker2014)
 	rm -f $(OBJECTS_subtracker2015)
+	rm -f $(OBJECTS_camera_source)
 	rm -f $(OBJECTS_tester)
 	rm -f $(BINARIES)
 	rm -f $(TEST_BINARIES)
@@ -88,6 +96,9 @@ subtracker2014: $(OBJECTS_subtracker2014) Makefile
 
 subtracker2015: $(OBJECTS_subtracker2015) Makefile
 	$(CPP) $(CPPFLAGS) $(LIBS) -o $@ $(OBJECTS_subtracker2015)
+
+camera_source: $(OBJECTS_camera_source) Makefile
+	$(CPP) $(CPPFLAGS) $(LIBS) -o $@ $(OBJECTS_camera_source)
 
 tester: $(OBJECTS_tester) Makefile
 	$(CPP) $(CPPFLAGS) $(LIBS) -o $@ $(OBJECTS_tester)
