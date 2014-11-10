@@ -2,7 +2,7 @@ CPP = g++
 CFLAGS = $(shell pkg-config --cflags opencv) -lturbojpeg -g -O2
 PWD := $(shell pwd)
 CPPFLAGS = $(shell pkg-config --cflags opencv) -I$(PWD) -lturbojpeg -g -std=c++11 -O2
-LIBS = $(shell pkg-config --libs opencv)
+LIBS = $(shell pkg-config --libs opencv) -lpthread
 
 HEADERS = \
 blobs_tracker.hpp \

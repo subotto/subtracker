@@ -80,9 +80,9 @@ static void key_pressed(SubtrackerContext &ctx, char c) {
 
 }
 
-int update_gui_skip = 5;
+int update_gui_skip = 1;
 bool step_frame = false;
-bool step_on_frame_produced = false;
+bool step_on_frame_produced = true;
 
 static void feed_frames(FrameReader &frame_reader, SubtrackerContext &ctx) {
 
