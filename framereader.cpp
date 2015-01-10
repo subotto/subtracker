@@ -10,7 +10,7 @@ FrameReader::FrameReader(int device, control_panel_t& panel, int width, int heig
 	: panel(panel) {
   running = true;
   count = 0;
-  last_stats = high_resolution_clock::now();
+  last_stats = system_clock::now();
   cap = v4l2cap(device, width, height, fps);
   t = thread(&FrameReader::read, this);
 }
@@ -19,7 +19,7 @@ FrameReader::FrameReader(const char* file, control_panel_t& panel, bool simulate
 	: panel(panel) {
   running = true;
   count = 0;
-  last_stats = high_resolution_clock::now();
+  last_stats = system_clock::now();
   cap = VideoCapture(file);
   if(!cap.isOpened()) {
     fprintf(stderr, "Cannot open video file!\n");
@@ -104,7 +104,7 @@ void FrameReader::read() {
       }
     }
 
-    auto playback_time = video_start_time + timestamp.time_since_epoch();
+    auto playback_time = video_start_time + duration_cast< time_point< system_clock >::duration >(timestamp.time_since_epoch());
 
     if(rate_limited) {
       this_thread::sleep_until(playback_time);
@@ -114,7 +114,7 @@ void FrameReader::read() {
     // frame su 2 se queue.size() < 2*buffer_size, uno su 3 se
     // queue.size() < 3*buffer_size, etc
     if (count % (queue.size() / buffer_size + 1) == 0) {
-      queue.push_back( { timestamp, playback_time, frame, true });
+      queue.push_back({ timestamp, playback_time, frame, true });
       queue_not_empty.notify_all();
       enqueued_frames++;
     } else {
