@@ -95,10 +95,10 @@ subtracker2014: $(OBJECTS_subtracker2014) Makefile
 	$(CPP) $(CPPFLAGS) $(LIBS) -o $@ $(OBJECTS_subtracker2014)
 
 subtracker2015: $(OBJECTS_subtracker2015) Makefile
-	$(CPP) $(CPPFLAGS) $(LIBS) -o $@ $(OBJECTS_subtracker2015)
+	$(CPP) $(CPPFLAGS) -o $@ $(OBJECTS_subtracker2015) $(LIBS)
 
 camera_source: $(OBJECTS_camera_source) Makefile
-	$(CPP) $(CPPFLAGS) $(LIBS) -o $@ $(OBJECTS_camera_source)
+	$(CPP) $(CPPFLAGS) -o $@ $(OBJECTS_camera_source) $(LIBS)
 
 tester: $(OBJECTS_tester) Makefile
 	$(CPP) $(CPPFLAGS) $(LIBS) -o $@ $(OBJECTS_tester)
