@@ -14,6 +14,15 @@ TableDescription::TableDescription(Size tableFrameSize) {
 
 }
 
+void TableDescription::set_first_frame(Mat firstFrame) {
+
+     firstFrame.copyTo(this->mean);
+     // At the beginning we know nearly nothing about the actualy
+     // table
+     this->variance = Mat(this->mean.size(), CV_32FC3, 1000.f);
+
+}
+
 void do_table_analysis(control_panel_t &panel,
                        const Mat &tableFrame,
                        const TableDescription &table,

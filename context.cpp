@@ -50,6 +50,12 @@ void FrameAnalysis::setup_from_prev_table_analysis(const FrameAnalysis & prev_fr
 
 }
 
+void FrameAnalysis::setup_first_table_analysis() {
+
+  this->table_description.set_first_frame(this->table_frame);
+
+}
+
 void FrameAnalysis::analyze_table() {
 
   ::do_table_analysis(this->panel, this->table_frame, this->table_description, this->table_analysis);
@@ -256,6 +262,8 @@ void SubtrackerContext::do_analysis() {
   // Update running state from previous frame
   if (this->prev_frame_analysis != NULL) {
     this->frame_analysis->setup_from_prev_table_analysis(*this->prev_frame_analysis);
+  } else {
+    this->frame_analysis->setup_first_table_analysis();
   }
 
   // Do the actual analysis

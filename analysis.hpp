@@ -14,6 +14,7 @@ struct TableDescription {
 	Mat correctedVariance;
 
   TableDescription(Size tableFrameSize);
+  void set_first_frame(Mat firstFrame);
 };
 
 struct TableAnalysis {

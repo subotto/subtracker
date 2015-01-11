@@ -83,6 +83,7 @@ public:
   void warp_table_frame();
 
   void setup_from_prev_table_analysis(const FrameAnalysis & prev_frame_analysis);
+  void setup_first_table_analysis();
   void analyze_table();
   void analyze_ball();
   void analyze_foosmen();
