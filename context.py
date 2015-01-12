@@ -46,8 +46,10 @@ class FrameAnalysis:
         self.tic("lifetime")
 
     def do_table_tracking(self):
+        self.tic("table tracking")
         self.table_transform = self.table_tracker.track_table(self.frame)
         # TODO: warp table
+        self.toc("table tracking")
 
     def do_compute_ball_density(self):
         # TODO
@@ -102,7 +104,7 @@ class SubtrackerContext:
         # Pass the frame to the spots tracker
         # TODO
         self.tracking_frames.append(frame_analysis)
-        logging.debug(repr((frame_analysis.frame_num, frame_analysis.timestamp)))
+        #logging.debug(repr((frame_analysis.frame_num, frame_analysis.timestamp)))
         spots = [Spot(point, weight) for point, weight in []]
         layer = Layer(spots, frame_analysis.frame_num, frame_analysis.timestamp)
         ready_frame_num, ready_position = self.spots_tracker.push_back_and_get_info(layer)
@@ -117,7 +119,7 @@ class SubtrackerContext:
 
     def get_processed_frame(self):
         try:
-            frame_analysis = self.queue.get(block=False)
+            frame_analysis = self.ready_frames.get(block=False)
             self.queue.task_done()
             return frame_analysis
         except Queue.Empty:
