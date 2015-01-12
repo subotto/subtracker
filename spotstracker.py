@@ -1,3 +1,7 @@
+#!/usr/bin/python
+# coding=utf8
+
+
 """
 Implementation of Gio-Giove algorithm to reconstruct ball trajectory.
 
@@ -11,17 +15,35 @@ import itertools
 import cv2
 
 
+class SpotsTrackerSettings:
+    
+    def __init__(self):
+        self.absent_ball_weight = 0.0    # Weight of a Spot with absent ball
+        self.skip_badness = 0.0  # Badness added for every skipped frame
+        
+        self.disappearance_badness = 400.0
+        self.appearance_badness = 400.0
+        self.absence_badness = -10.0
+        
+        self.max_speed = 18.0
+        self.max_unseen_distance = 0.3
+        
+        self.variance_parameter = 0.3
+        
+        self.dynamic_depth = 60
+
 
 class Spot:
     """
     A relevant point of some frame.
     """
     
-    def __init__(self, point, weight):
+    def __init__(self, point, weight, frame_num=None, time=None):
         self.point = point
         self.weight = weight    # Likelihood
-        self.frame_num = None   # Frame number (possibly set by Layer)
-        self.time = None    # Layer time (set by Layer)
+        
+        self.frame_num = frame_num  # Frame number (possibly set by Layer)
+        self.time = time    # Layer time (set by Layer)
         
         self.badness = None # Badness from starting spot to this spot (will be set by SpotsTracker.best_trajectory)
         self.prev_spot = None   # Previous spot in dynamic programming reconstruction (will be set by SpotsTracker.best_trajectory)
@@ -37,32 +59,16 @@ class Layer:
     
     def __init__(self, spots, frame_num, time):
         self.spots = spots  # List of spots
-        
-        # Add the special Spot with absent ball
-        self.spots.append(Spot(None, SpotsTracker.ABSENT_BALL_WEIGHT))
+        self.frame_num = frame_num
+        self.time = time
         
         # Set frame_num and time for the spots
         for spot in spots:
             spot.frame_num = self.frame_num
             spot.time = self.time
-        
+
 
 class SpotsTracker:
-    
-    ABSENT_BALL_WEIGHT = 0.0    # Weight of a Spot with absent ball
-    SKIP_BADNESS = 0.0  # Badness added for every skipped frame
-    
-    DISAPPEARANCE_BADNESS = 400.0
-    APPEARANCE_BADNESS = 400.0
-    ABSENCE_BADNESS = -10.0
-    
-    MAX_SPEED = 18.0
-    MAX_UNSEEN_DISTANCE = 0.3
-    
-    VARIANCE_PARAMETER = 0.3
-    
-    DYNAMIC_DEPTH = 60
-    
     
     def __init__(self):
         self.timeline = collections.deque() # Deque of layers
@@ -70,6 +76,8 @@ class SpotsTracker:
         
         self.fake_initial_spot = Spot(None, 0.0)    # Used in dynamic programming
         self.fake_final_spot = Spot(None, 0.0)       # Used in dynamic programming
+        
+        self.settings = SpotsTrackerSettings()
     
     
     def extended_spots(self):
@@ -83,6 +91,9 @@ class SpotsTracker:
     
     
     def push_back(self, layer):
+        # Add the special Spot with absent ball to the layer
+        layer.spots.append(Spot(None, self.settings.absent_ball_weight, frame_num=layer.frame_num, time=layer.time))
+        
         self.timeline.append(layer)
         
         # Update self.first_num if the timeline was empty
@@ -135,13 +146,13 @@ class SpotsTracker:
         # Presence transitions
         if start.present() and not end.present():
             # Present to absent
-            result += self.DISAPPEARANCE_BADNESS
+            result += self.settings.disappearance_badness
         elif not start.present() and end.present():
             # Absent to present
-            result += self.APPEARANCE_BADNESS
+            result += self.settings.appearance_badness
         elif not start.present() and not end.present():
             # Absent to absent
-            result += self.ABSENCE_BADNESS
+            result += self.settings.absence_badness
             if skip > 0:
                 return None
         
@@ -149,16 +160,16 @@ class SpotsTracker:
         result -= end.weight
         
         # Skip badness
-        result += float(skip) * self.SKIP_BADNESS
+        result += float(skip) * self.settings.skip_badness
         
         # Locality check and gaussian likelihood
         if start.present() and end.present():
             distance = cv2.norm(start.point - end.point)
-            if distance > self.MAX_SPEED * time:
+            if distance > self.settings.max_speed * time:
                 return None
-            if distance > self.MAX_UNSEEN_DISTANCE:
+            if distance > self.settings.max_unseen_distance:
                 return None
-            result += distance ** 2 / (time * self.VARIANCE_PARAMETER)
+            result += distance ** 2 / (time * self.settings.variance_parameter)
         
         return result
     
@@ -197,7 +208,7 @@ class SpotsTracker:
     def push_back_and_get_info(self, layer):
         self.push_back(layer)
         
-        if len(self.timeline) > self.DYNAMIC_DEPTH:
+        if len(self.timeline) > self.settings.dynamic_depth:
             position = self.estimate_position()
             num_frame = self.first_num
             self.pop_front()
