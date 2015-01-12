@@ -155,8 +155,8 @@ class TestSpotsTracker(unittest.TestCase):
         self.assertTrue(num_frame is None)
         self.assertTrue(position is None)
         
-        # Push second layer
-        spots = [Spot(point=numpy.array([0.2, -0.5]), weight=0.2)]
+        # Push second layer -- this layer does not contain spots
+        spots = []
         layer = Layer(spots=spots, frame_num=6, time=0.1)
         
         num_frame, position = tracker.push_back_and_get_info(layer)
