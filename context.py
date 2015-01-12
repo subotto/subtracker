@@ -3,8 +3,10 @@
 
 import copy
 import Queue
+import collections
 
 from tabletracker import TableTracker, TableTrackingSettings
+from spotstracker import SpotsTracker, Spot, Layer
 
 
 class FrameSettings:
@@ -28,6 +30,7 @@ class FrameAnalysis:
 
         # Computed data
         self.table_transform = None
+        self.ball_density = None
 
         # Final data
         self.ball_pos = None  # False if absent, (x, y) if present
@@ -36,6 +39,10 @@ class FrameAnalysis:
     def do_table_tracking(self):
         self.table_transform = self.table_tracker.track_table(self.frame)
         # TODO: warp table
+
+    def do_compute_ball_density(self):
+        # TODO
+        self.ball_density = None
 
     def get_csv_line(self):
         line = "%.5f" % (self.playback_time)
@@ -57,6 +64,8 @@ class SubtrackerContext:
         self.frame_settings = None
         self.prev_frame_analysis = None
         self.ready_frames = Queue.Queue()
+        self.tracking_frames = collections.deque()
+        self.spots_tracker = SpotsTracker()
 
     def feed(self, frame, timestamp, playback_time):
         # Create the FrameAnalysis object
@@ -64,11 +73,21 @@ class SubtrackerContext:
         self.last_frame_num += 1
 
         # Do all sort of nice things to the frame
-        frame_analysis.do_table_tracking()
         # TODO
+        frame_analysis.do_table_tracking()
+        frame_analysis.do_compute_ball_density()
 
-        # FIXME: temporary, just for debugging
-        self.queue.put(frame_analysis)
+        # Pass the frame to the spots tracker
+        # TODO
+        self.tracking_frames.append(frame_analysis)
+        spots = [Spot(point, weight) for point, weight in []]
+        layer = Layer(spots, frame_analysis.frame_num, frame_analysis.timestamp)
+        ready_frame_num, ready_position = self.spots_tracker.push_back_and_get_info(layer)
+        if ready_frame_num is not None:
+            ready_frame_analysis = self.tracking_frames.popleft()
+            assert ready_frame_analysis.frame_num == ready_frame_num
+            ready_frame_analysis.ball_pos = ready_position
+            self.ready_frames.put(ready_rame_analysis)
 
         # Save frame analysis as previous one
         self.prev_frame_analysis = frame_analysis
