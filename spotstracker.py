@@ -1,5 +1,9 @@
 """
 Implementation of Gio-Giove algorithm to reconstruct ball trajectory.
+
+USAGE
+For each frame, create a list of Spot objects (relevant points of a frame, with coordinates and likelihood) and a Layer object with that list.
+Then feed the frame to the SpotsTracker using SpotsTracker.push_back_and_get_info, which returns None or a couple (num_frame, estimated position).
 """
 
 import collections
@@ -15,8 +19,8 @@ class Spot:
     
     def __init__(self, point, weight):
         self.point = point
-        self.weight = weight
-        self.frame_num = None  # Frame number (possibly set by Layer)
+        self.weight = weight    # Likelihood
+        self.frame_num = None   # Frame number (possibly set by Layer)
         self.time = None    # Layer time (set by Layer)
         
         self.badness = None # Badness from starting spot to this spot (will be set by SpotsTracker.best_trajectory)
