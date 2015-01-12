@@ -97,6 +97,18 @@ class TestArcBadness(unittest.TestCase):
         self.assertTrue(tracker.arc_badness(start, end) is None)
 
 
+class TestInterpolate(unittest.TestCase):
+    
+    def test_interpolate(self):
+        tracker = SpotsTracker()
+        
+        start = Spot(point=numpy.array([1.0, 0.7]), weight=0.2, frame_num=5, time=0.0)
+        end = Spot(point=numpy.array([0.2, -0.5]), weight=0.2, frame_num=10, time=0.1)
+        
+        result = tracker.interpolate(start, end, 0.05)
+        self.assertTrue(numpy.allclose(result, numpy.array([0.6, 0.1])))
+
+
 class TestSpotsTracker(unittest.TestCase):
     
     def test_constant_path(self):
