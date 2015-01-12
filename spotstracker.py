@@ -45,7 +45,7 @@ class Spot:
         self.frame_num = frame_num  # Frame number (possibly set by Layer)
         self.time = time    # Layer time (set by Layer)
         
-        self.badness = None # Badness from starting spot to this spot (will be set by SpotsTracker.best_trajectory)
+        self.badness = 0.0  # Badness from starting spot to this spot (will be set by SpotsTracker.best_trajectory)
         self.prev_spot = None   # Previous spot in dynamic programming reconstruction (will be set by SpotsTracker.best_trajectory)
     
     def present(self):
@@ -70,24 +70,25 @@ class Layer:
 
 class SpotsTracker:
     
-    def __init__(self):
+    def __init__(self, settings=SpotsTrackerSettings()):
         self.timeline = collections.deque() # Deque of layers
         self.first_num = None   # frame_num of the first layer in the timeline
         
         self.fake_initial_spot = Spot(None, 0.0)    # Used in dynamic programming
         self.fake_final_spot = Spot(None, 0.0)       # Used in dynamic programming
         
-        self.settings = SpotsTrackerSettings()
+        self.settings = settings
     
     
     def extended_spots(self):
         """
-        Returns a generator of all the spots in the timeline, including fake_initial_spot.
+        Returns a generator of all the spots in the timeline, including fake_initial_spot and fake_final_spot.
         """
         yield self.fake_initial_spot
         for layer in self.timeline:
             for spot in layer.spots:
                 yield spot
+        yield self.fake_final_spot
     
     
     def push_back(self, layer):
@@ -139,15 +140,14 @@ class SpotsTracker:
         """
         Returns the badness of the arc from Spot start to Spot end, or None if the arc does not exist.
         """
-        time = end.time - start.time
         skip = end.frame_num - start.frame_num - 1
         result = 0.0
         
         # Presence transitions
-        if start.present() and not end.present():
+        if start.present() and not end.present() and end is not self.fake_final_spot:
             # Present to absent
             result += self.settings.disappearance_badness
-        elif not start.present() and end.present():
+        elif not start.present() and end.present() and start is not self.fake_initial_spot:
             # Absent to present
             result += self.settings.appearance_badness
         elif not start.present() and not end.present():
@@ -164,6 +164,7 @@ class SpotsTracker:
         
         # Locality check and gaussian likelihood
         if start.present() and end.present():
+            time = end.time - start.time
             distance = cv2.norm(start.point - end.point)
             if distance > self.settings.max_speed * time:
                 return None
@@ -187,6 +188,13 @@ class SpotsTracker:
         """
         spot = self.fake_final_spot
         previous = spot.prev_spot
+        
+        """
+        for spot in self.extended_spots():
+            print spot.frame_num, spot.point, spot.weight, spot.badness,
+            if spot.prev_spot is not None:
+                print "Previous:", spot.prev_spot.frame_num, spot.prev_spot.point
+        """
         
         while previous is not None and previous.frame_num > self.first_num:
             spot = previous

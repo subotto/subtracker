@@ -97,6 +97,33 @@ class TestArcBadness(unittest.TestCase):
         self.assertTrue(tracker.arc_badness(start, end) is None)
 
 
+class TestSpotsTracker(unittest.TestCase):
+    
+    def test_constant_path(self):
+        settings = SpotsTrackerSettings()
+        settings.dynamic_depth = 1
+        settings.absence_badness = 0.0
+        
+        tracker = SpotsTracker(settings=settings)
+        
+        # Push first layer
+        spots = [Spot(point=numpy.array([1.0, 0.7]), weight=0.3), Spot(point=numpy.array([0.2, -0.5]), weight=0.2)]
+        layer = Layer(spots=spots, frame_num=5, time=0.0)
+        
+        num_frame, position = tracker.push_back_and_get_info(layer)
+        self.assertTrue(num_frame is None)
+        self.assertTrue(position is None)
+        
+        # Push second layer
+        spots = [Spot(point=numpy.array([1.0, 0.7]), weight=0.3), Spot(point=numpy.array([0.2, -0.5]), weight=0.2)]
+        layer = Layer(spots=spots, frame_num=6, time=0.1)
+        
+        num_frame, position = tracker.push_back_and_get_info(layer)
+        self.assertEqual(num_frame, 5)
+        self.assertTrue(numpy.allclose(position, numpy.array([1.0, 0.7])))
+
+
+
 if __name__ == '__main__':
     unittest.main()
 
