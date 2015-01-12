@@ -165,6 +165,9 @@ class SpotsTracker:
         # Locality check and gaussian likelihood
         if start.present() and end.present():
             time = end.time - start.time
+            if time == 0.0:
+                raise Exception("Different layers have the same timestamp")
+            
             distance = cv2.norm(start.point - end.point)
             if distance > self.settings.max_speed * time:
                 return None

@@ -101,7 +101,7 @@ class TestSpotsTracker(unittest.TestCase):
     
     def test_constant_path(self):
         settings = SpotsTrackerSettings()
-        settings.dynamic_depth = 1
+        settings.dynamic_depth = 2
         settings.absence_badness = 0.0
         
         tracker = SpotsTracker(settings=settings)
@@ -119,7 +119,23 @@ class TestSpotsTracker(unittest.TestCase):
         layer = Layer(spots=spots, frame_num=6, time=0.1)
         
         num_frame, position = tracker.push_back_and_get_info(layer)
+        self.assertTrue(num_frame is None)
+        self.assertTrue(position is None)
+        
+        # Push third layer
+        spots = [Spot(point=numpy.array([1.0, 0.7]), weight=0.3), Spot(point=numpy.array([0.2, -0.5]), weight=0.2)]
+        layer = Layer(spots=spots, frame_num=7, time=0.2)
+        
+        num_frame, position = tracker.push_back_and_get_info(layer)
         self.assertEqual(num_frame, 5)
+        self.assertTrue(numpy.allclose(position, numpy.array([1.0, 0.7])))
+        
+        # Push fourth layer
+        spots = [Spot(point=numpy.array([1.0, 0.7]), weight=0.3), Spot(point=numpy.array([0.2, -0.5]), weight=0.2)]
+        layer = Layer(spots=spots, frame_num=8, time=0.3)
+        
+        num_frame, position = tracker.push_back_and_get_info(layer)
+        self.assertEqual(num_frame, 6)
         self.assertTrue(numpy.allclose(position, numpy.array([1.0, 0.7])))
 
 
