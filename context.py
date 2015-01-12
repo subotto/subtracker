@@ -4,6 +4,9 @@
 import copy
 import Queue
 import collections
+import logging
+
+from monotonic_time import monotonic_time
 
 from tabletracker import TableTracker, TableTrackingSettings
 from spotstracker import SpotsTracker, Spot, Layer
@@ -36,6 +39,12 @@ class FrameAnalysis:
         self.ball_pos = None  # False if absent, (x, y) if present
         self.bars_pos = None  # list of (lists of?) (shift, angle)
 
+        # Timing data
+        self.timings = {}
+
+        # Record beginning of processing of this frame
+        self.tic("lifetime")
+
     def do_table_tracking(self):
         self.table_transform = self.table_tracker.track_table(self.frame)
         # TODO: warp table
@@ -54,14 +63,27 @@ class FrameAnalysis:
         for side in [0, 1]:
             for bar in xrange(BARS):
                 line += ",%.5f,%.5f" % (self.bars_pos[side][bar][0], self.bars_pos[side][bar][1])
-        return line + '\n'
+        line += '\n'
+
+        # Record finishing of processing of this frame
+        self.toc("lifetime")
+
+    def tic(self, name):
+        assert name not in self.timings
+        self.timings[name] = [monotonic_time(), None]
+
+    def toc(self, name):
+        assert name in self.timings
+        assert self.timings[name][1] is None
+        self.timings[name][1] = monotonic_time()
+        logging.info("Frame %d, %s took %f seconds", self.frame_num, name, self.timings[name][1] - self.timings[name][0])
 
 
 class SubtrackerContext:
 
     def __init__(self):
         self.last_frame_num = 0
-        self.frame_settings = None
+        self.frame_settings = FrameSettings()
         self.prev_frame_analysis = None
         self.ready_frames = Queue.Queue()
         self.tracking_frames = collections.deque()
@@ -80,6 +102,7 @@ class SubtrackerContext:
         # Pass the frame to the spots tracker
         # TODO
         self.tracking_frames.append(frame_analysis)
+        logging.debug(repr((frame_analysis.frame_num, frame_analysis.timestamp)))
         spots = [Spot(point, weight) for point, weight in []]
         layer = Layer(spots, frame_analysis.frame_num, frame_analysis.timestamp)
         ready_frame_num, ready_position = self.spots_tracker.push_back_and_get_info(layer)

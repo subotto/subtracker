@@ -3,6 +3,7 @@
 
 import sys
 import cv2
+import logging
 
 #from control import ControlPanel
 from context import SubtrackerContext
@@ -51,6 +52,8 @@ def feed_frames(frame_reader, ctx, panel):
         frame_num += 1
 
 def main():
+    logging.basicConfig(level=logging.DEBUG)
+
     # Read arguments
     if len(sys.argv) in [3, 4]:
         video_filename = sys.argv[1]

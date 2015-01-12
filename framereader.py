@@ -8,9 +8,7 @@ import cv2
 import Queue
 import collections
 
-# If would be nicer if this actually were a monotonic clock, but I see
-# no way to have one in Python 2.
-monotonic_time = time.time
+from monotonic_time import monotonic_time
 
 # The two timing fields "timestamp" and "playback_time" convey
 # slightly different information: the timestamp of a frame is its time
