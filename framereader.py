@@ -36,6 +36,8 @@ class FrameReader(threading.Thread):
         self.last_stats = monotonic_time()
         self.from_file = from_file
         self.queue = Queue.Queue()
+        self.rate_limited = False
+        self.can_drop_frames = False
 
     def get(self):
         try:
