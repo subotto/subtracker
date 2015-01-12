@@ -92,6 +92,7 @@ class FrameReader(threading.Thread):
                 timestamp -= first_timestamp
 
             # TODO: implement rate_limited and can_drop_frames
+            # TODO: implement statistics
 
             # Push the frame to the queue
             queue.put(FrameInfo(True, timestamp, playback_time, frame))
