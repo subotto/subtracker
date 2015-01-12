@@ -4,7 +4,7 @@
 
 __all__ = ["monotonic_time"]
 
-import ctypes, os
+import ctypes, os, sys, time
 
 CLOCK_MONOTONIC_RAW = 4 # see <linux/time.h>
 
@@ -19,11 +19,17 @@ clock_gettime = librt.clock_gettime
 clock_gettime.argtypes = [ctypes.c_int, ctypes.POINTER(timespec)]
 
 def monotonic_time():
-    t = timespec()
-    if clock_gettime(CLOCK_MONOTONIC_RAW , ctypes.pointer(t)) != 0:
-        errno_ = ctypes.get_errno()
-        raise OSError(errno_, os.strerror(errno_))
-    return t.tv_sec + t.tv_nsec * 1e-9
+    # Linux is supported
+    if sys.platform.startswith("linux"):
+        t = timespec()
+        if clock_gettime(CLOCK_MONOTONIC_RAW , ctypes.pointer(t)) != 0:
+            errno_ = ctypes.get_errno()
+            raise OSError(errno_, os.strerror(errno_))
+        return t.tv_sec + t.tv_nsec * 1e-9
+
+    # All the other platforms are not. Sorry!
+    else:
+        return time.time()
 
 if __name__ == "__main__":
     print monotonic_time()
