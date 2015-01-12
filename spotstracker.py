@@ -213,7 +213,7 @@ class SpotsTracker:
         
         else:
             # Interpolate between the two closest estimates
-            return self.interpolate(previous, spot, self.layers[0].time)
+            return self.interpolate(previous, spot, self.timeline[0].time)
     
     
     def push_back_and_get_info(self, layer):
