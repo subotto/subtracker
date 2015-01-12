@@ -31,6 +31,8 @@ FrameInfo = collections.namedtuple('FrameInfo', ['valid', 'timestamp', 'playback
 class FrameReader(threading.Thread):
 
     def __init__(self, from_file):
+        super(FrameReader, self).__init__()
+
         self.running = True
         self.count = 0
         self.last_stats = monotonic_time()
@@ -40,12 +42,9 @@ class FrameReader(threading.Thread):
         self.can_drop_frames = False
 
     def get(self):
-        try:
-            frame_info = self.queue.get(block=False)
-            self.queue.task_done()
-            return frame_info
-        except Queue.Empty:
-            return None
+        frame_info = self.queue.get(block=True)
+        self.queue.task_done()
+        return frame_info
 
     def stop(self):
         self.running = False
@@ -62,8 +61,8 @@ class FrameReader(threading.Thread):
         while self.running:
             # Retrieve a frame
             retval, frame = self.cap.read()
-            if not frame:
-                queue.put(FrameInfo(False, None, None, None))
+            if not retval:
+                self.queue.put(FrameInfo(False, None, None, None))
                 return
 
             # Retrieve timing information: if frame is taken from a
@@ -95,7 +94,7 @@ class FrameReader(threading.Thread):
             # TODO: implement statistics
 
             # Push the frame to the queue
-            queue.put(FrameInfo(True, timestamp, playback_time, frame))
+            self.queue.put(FrameInfo(True, timestamp, playback_time, frame))
 
 class CameraFrameReader(FrameReader):
 
