@@ -4,18 +4,38 @@
 import copy
 import Queue
 
+from tabletracker import TableTracker, TableTrackingSettings
+
+
+class FrameSettings:
+
+    def __init__(self):
+        self.table_tracking_settings = TableTrackingSettings()
+
+
 class FrameAnalysis:
 
-    def __init__(self, frame, frame_num, timestamp, playback_time, frame_settings):
+    def __init__(self, frame, frame_num, timestamp, playback_time, frame_settings, prev_frame_analysis):
         self.frame = frame
         self.frame_num = frame_num
         self.timestamp = timestamp
         self.playback_time = playback_time
         self.frame_settings = copy.deepcopy(frame_settings)
 
+        # Table tracker
+        prev_table_tracker = prev_frame_analysis.table_tracker if prev_frame_analysis is not None else None
+        self.table_tracker = TableTracker(prev_table_tracker, self.frame_settings.table_tracking_settings)
+
+        # Computed data
+        self.table_transform = None
+
         # Final data
         self.ball_pos = None  # False if absent, (x, y) if present
         self.bars_pos = None  # list of (lists of?) (shift, angle)
+
+    def do_table_tracking(self):
+        self.table_transform = self.table_tracker.track_table(self.frame)
+        # TODO: warp table
 
     def get_csv_line(self):
         line = "%.5f" % (self.playback_time)
@@ -40,10 +60,11 @@ class SubtrackerContext:
 
     def feed(self, frame, timestamp, playback_time):
         # Create the FrameAnalysis object
-        frame_analysis = FrameAnalysis(frame, self.last_frame_num, timestamp, playback_time, self.frame_settings)
+        frame_analysis = FrameAnalysis(frame, self.last_frame_num, timestamp, playback_time, self.frame_settings, self.prev_frame_analysis)
         self.last_frame_num += 1
 
         # Do all sort of nice things to the frame
+        frame_analysis.do_table_tracking()
         # TODO
 
         # FIXME: temporary, just for debugging
