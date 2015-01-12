@@ -93,12 +93,12 @@ void SpotsTracker::push_back(vector< Spot > spots, double time) {
   this->frame_num_rev_map[this->node_num] = time;
 
   // When first frame is pushed, put its timestamp to the initial
-  // phantom frame (so that time counte does not explode)
+  // phantom frame (so that time counter does not explode)
   if (this->timeline.front().front().num == -1) {
     this->timeline.front().front().time = time;
   }
 
-  // Prepere a vector with the new nodes
+  // Prepare a vector with the new nodes
   vector< SpotNode > v;
   for (auto spot : spots) {
     v.emplace_back(spot, time, this->node_num, true);
