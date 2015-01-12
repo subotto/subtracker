@@ -15,7 +15,7 @@ class FrameAnalysis:
 
         # Final data
         self.ball_pos = None  # False if absent, (x, y) if present
-        self.bars_pos = None  # list of (shift, angle)
+        self.bars_pos = None  # list of (lists of?) (shift, angle)
 
     def get_csv_line(self):
         line = "%.5f" % (self.playback_time)
@@ -23,6 +23,7 @@ class FrameAnalysis:
             line += ",%.5f,%.5f" % (self.ball_pos[0], self.ball_pos[1])
         else:
             line += ",,"
+        # FIXME: decide how bars are to be enumerated
         for side in [0, 1]:
             for bar in xrange(BARS):
                 line += ",%.5f,%.5f" % (self.bars_pos[side][bar][0], self.bars_pos[side][bar][1])
