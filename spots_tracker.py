@@ -57,30 +57,38 @@ class SpotsTracker:
     
     VARIANCE_PARAMETER = 0.3
     
+    DYNAMIC_DEPTH = 60
+    
     
     def __init__(self):
         self.timeline = collections.deque() # Deque of layers
         self.first_num = None   # frame_num of the first layer in the timeline
-        self.last_num = None    # frame_num of the last layer in the timeline
         
         self.fake_initial_spot = Spot(None, 0.0)    # Used in dynamic programming
         self.fake_final_spot = Spot(None, 0.0)       # Used in dynamic programming
     
     
+    def extended_spots(self):
+        """
+        Returns a generator of all the spots in the timeline, including fake_initial_spot.
+        """
+        yield self.fake_initial_spot
+        for layer in self.timeline:
+            for spot in layer.spots:
+                yield spot
+    
+    
     def push_back(self, layer):
         self.timeline.append(layer)
-        
-        # Update self.last_num
-        self.last_num = layer.frame_num
         
         # Update self.first_num if the timeline was empty
         if len(self.timeline) == 1:
             self.first_num = self.timeline[0].frame_num
         
-        # Update fake_final_spot
-        self.fake_final_spot.frame_num += 1
+        # Update fake_final_spot.frame_num
+        self.fake_final_spot.frame_num = layer.frame_num + 1
         
-        # Update fake_initial_spot.frame_num if it is None
+        # Update fake_initial_spot.frame_num if it is None (i.e. if this is the first insertion in the timeline)
         if self.fake_initial_spot.frame_num is None:
             self.fake_initial_spot.frame_num = self.timeline[0].frame_num - 1
         
@@ -110,17 +118,6 @@ class SpotsTracker:
             self.first_num = None
         else:
             self.first_num = self.timeline[0].frame_num
-    
-    
-    def extended_spots(self):
-        """
-        Returns a generator of all the spots in the timeline, including fake_initial_spot and fake_final_spot.
-        """
-        yield self.fake_initial_spot
-        for layer in self.timeline:
-            for spot in layer.spots:
-                yield spot
-        yield self.fake_final_spot
     
     
     def arc_badness(self, start, end):
@@ -193,42 +190,16 @@ class SpotsTracker:
             return self.interpolate(previous, spot, self.layers[0].time)
     
     
-    def best_trajectory(self):
-        """
-        Returns a list of spots (at most one per layer) that is the best trajectory for the ball, and the badness of such trajectory.
-        """
+    def push_back_and_get_info(self, layer):
+        self.push_back(layer)
         
-        for spot in self.extended_spots():
-            if spot is self.fake_initial_spot:
-                # Base step
-                spot.badness = 0.0
-                spot.prev_spot = None
-            else:
-                # Dynamic programming
-                spot.badness = None
-                spot.prev_spot = None
-                
-                # Find best trajectory until this spot, trying all possible previous spots
-                for previous in self.extended_spots():
-                    if previous.frame_num < spot.frame_num:
-                        # Try arc from previous to spot
-                        badness = self.arc_badness(previous, spot)
-                        if badness is not None:
-                            badness += previous.badness
-                            if spot.badness is None or badness < spot.badness:
-                                # New badness is lower!
-                                spot.badness = badness
-                                spot.prev_spot = previous
+        if len(self.timeline) > self.DYNAMIC_DEPTH:
+            position = self.estimate_position()
+            num_frame = self.first_num
+            self.pop_front()
+            return num_frame, position
         
-        backward_trajectory = []
-        spot = self.fake_final_spot
-        while spot.prev_spot is not None and spot.prev_spot is not self.fake_initial_spot:
-            spot = spot.prev_spot
-            backward_trajectory.append(spot)
-        
-        trajectory = reversed(backward_trajectory)
-        badness = self.fake_final_spot.badness
-        
-        return trajectory, badness
+        else:
+            return None, None
 
 
