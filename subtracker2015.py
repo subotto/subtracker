@@ -8,17 +8,7 @@ import logging
 #from control import ControlPanel
 from context import SubtrackerContext
 from framereader import CameraFrameReader, FileFrameReader
-
-
-# Mock implementation
-class ControlPanel():
-
-    def on_key_pressed(self, c):
-        pass
-
-    def on_new_analysis(self, frame_analysis):
-        pass
-
+from control import ControlPanel
 
 def feed_frames(frame_reader, ctx, panel):
     frame_num = 0
