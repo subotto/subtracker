@@ -4,12 +4,15 @@
 import Queue
 import collections
 import logging
+import cv2
+import cv
 
 from monotonic_time import monotonic_time
 
 from tabletracker import TableTracker, TableTrackingSettings
 from spotstracker import SpotsTracker, Spot, Layer
 from tablebg import TableBackgroundEstimationSettings, estimate_table_background
+from transformation import pixels_to_rectangle, rectangle_to_region
 
 logger = logging.getLogger("context")
 timings_logger = logging.getLogger("timings")
@@ -19,6 +22,8 @@ class FrameSettings:
     def __init__(self, controls):
         self.table_tracking_settings = TableTrackingSettings()
         self.table_bg_settings = TableBackgroundEstimationSettings(controls.subpanel("tablebg"))
+
+        self.table_frame_size = (300, 200)
 
 class FrameAnalysis:
 
@@ -40,6 +45,7 @@ class FrameAnalysis:
 
         # Computed data
         self.table_transform = None
+        self.table_frame = None
         self.ball_density = None
 
         # Final data
@@ -55,8 +61,16 @@ class FrameAnalysis:
     def do_table_tracking(self):
         self.tic("table tracking")
         self.table_corners = self.table_tracker.track_table(self.frame)
-        # TODO: warp table
         self.toc("table tracking")
+        self.tic("table warping")
+        #logger.info("%r", (self.frame))
+        self.table_frame = cv2.warpPerspective(self.frame,
+                                               rectangle_to_region(self.table_corners) * pixels_to_rectangle(*self.frame_settings.table_frame_size),
+                                               self.frame_settings.table_frame_size,
+                                               flags=cv2.INTER_LINEAR | cv2.WARP_INVERSE_MAP,
+                                               borderMode=cv2.BORDER_REPLICATE)
+        self.toc("table warping")
+        self.controls.subpanel("table tracking").show("table frame", self.table_frame / 256.0)
 
     def do_compute_ball_density(self):
         self.tic("compute ball density")
