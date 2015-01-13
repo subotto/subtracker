@@ -34,11 +34,13 @@ class FrameReader(threading.Thread):
 
         self.running = True
         self.count = 0
-        self.last_stats = monotonic_time()
+        self.last_stats = None
+        self.stats_interval = 2.0
         self.from_file = from_file
         self.queue = Queue.Queue()
         self.rate_limited = False
         self.can_drop_frames = False
+        self.base_size = 500
 
     def get(self, block=True):
         try:
@@ -53,6 +55,13 @@ class FrameReader(threading.Thread):
         self.running = False
 
     def run(self):
+        try:
+            self.actual_run()
+        except:
+            logging.critical("Frame reader raised an exception", exc_info=True)
+            self.queue.put(FrameInfo(False, None, None, None))
+
+    def actual_run(self):
         first_timestamp = None
 
         # If the input is from a camera, wait a bit to allow it to
@@ -60,25 +69,39 @@ class FrameReader(threading.Thread):
         if not self.from_file:
             time.sleep(1)
 
+        start_time = time.time()
+        start_monotonic_time = monotonic_time()
+        self.last_stats = start_monotonic_time
+
         while self.running:
-            # Retrieve a frame
-            retval, frame = self.cap.read()
+            # Retrieve a frame; frame grabbing and actual retrieval
+            # are separated in the hope to take timings as precise as
+            # possible.
+            if self.from_file:
+                timestamp = self.cap.get(cv.CV_CAP_PROP_POS_MSEC) / 1000.0
+            retval = self.cap.grab()
+            current_time = time.time()
+            current_monotonic_time = monotonic_time()
             if not retval:
                 self.queue.put(FrameInfo(False, None, None, None))
                 return
+            retval, frame = self.cap.retrieve()
+            if not retval:
+                self.queue.put(FrameInfo(False, None, None, None))
+                return
+            self.count += 1
 
             # Retrieve timing information: if frame is taken from a
             # file, we have to take timing for the file itself. If we
             # are rate limiting, then this already provides
             # synchronization and we can take the current time as
             # playback time. If not, we arbitrarily set playback time
-            # to be the timestamp.
+            # following the timestamp.
             if self.from_file:
-                timestamp = self.cap.get(cv.CV_CAP_PROP_POS_MSEC) / 1000.0
                 if self.rate_limited:
-                    playback_time = time.time()
+                    playback_time = current_time
                 else:
-                    playback_time = timestamp
+                    playback_time = start_time + timestamp
 
             # If the frame is taken from a camera, then there does not
             # appear to be any reliable way to have timing information
@@ -86,18 +109,33 @@ class FrameReader(threading.Thread):
             # everything, hoping that the operating system does not
             # introduce too much noise.
             else:
-                playback_time = time.time()
-                timestamp = monotonic_time()
+                playback_time = current_time
+                timestamp = current_monotonic_time
                 if first_timestamp is None:
                     first_timestamp = timestamp
                 timestamp -= first_timestamp
 
-            # TODO: implement rate_limited and can_drop_frames
-            # TODO: implement statistics
+            # Print statistics every now and then
+            if current_monotonic_time > self.last_stats + self.stats_interval:
+                self.last_stats = current_monotonic_time
+                logging.info("Queue size: %d", self.queue.qsize())
+                # TODO: we may want to add more
 
             # Push the frame to the queue
-            logging.info("Produced frame with timestamp %f and playback time %f", timestamp, playback_time)
-            self.queue.put(FrameInfo(True, timestamp, playback_time, frame), block=True)
+            if self.can_drop_frames and self.count % (self.queue.qsize() / self.base_size + 1) != 0:
+                logging.debug("Dropped frame with timestamp %f and playback time %f", timestamp, playback_time)
+            else:
+                logging.debug("Produced frame with timestamp %f and playback time %f", timestamp, playback_time)
+                self.queue.put(FrameInfo(True, timestamp, playback_time, frame), block=True)
+
+            # Limit frame rate
+            if self.rate_limited:
+                target_timestamp = self.cap.get(cv.CV_CAP_PROP_POS_MSEC) / 1000.0
+                target_time = start_monotonic_time + target_timestamp
+                if current_monotonic_time < target_time:
+                    wait_for = target_time - current_monotonic_time
+                    time.sleep(wait_for)
+                    logging.debug("Waited for %f seconds.", wait_for)
 
 class CameraFrameReader(FrameReader):
 

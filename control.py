@@ -18,8 +18,8 @@ class ControlGroup:
     def window(self, name):
         return self.children.setdefault(name, Window(name))
 
-    def trackbar(self, name, **args):
-        return self.children.setdefault(name, Trackbar(name, **args))
+    def trackbar(self, name, *args, **kwargs):
+        return self.children.setdefault(name, Trackbar(name, *args, **kwargs))
 
     def subpanel(self, name):
         return self.children.setdefault(name, ControlGroup())
@@ -46,6 +46,11 @@ class ControlGroupDisplay:
     def show(self):
         for name, c in self.group.children.items():
             self.child(name).show()
+
+    def hide(self):
+        for name, c in self.group.children.items():
+            self.child(name).hide()
+        cv2.destroyWindow(" ".join(namespace + ("settings",)))
 
     def child(self, name):
         if not self.children.has_key(name):
@@ -84,8 +89,8 @@ class ControlGroupStatus:
     def show(self, name, image):
         self.window(name).image = image
 
-    def trackbar(self, name, **args):
-        trackbar = self.group.trackbar(name, **args)
+    def trackbar(self, name, *args, **kwargs):
+        trackbar = self.group.trackbar(name, *args, **kwargs)
         return self.children.setdefault(name, trackbar.create_status())
 
     def subpanel(self, name):
@@ -102,7 +107,7 @@ class Trackbar:
     It is only an abstract representation, similarly to ControlGroup.
     """
 
-    def __init__(self, name, window_name = "", initial_value = 0.0, min_value = 0.0, max_value = 1.0, step = 0.01):
+    def __init__(self, name, initial_value=0.0, min_value=0.0, max_value=1.0, step=0.01, window_name=""):
         self.name = name
         self.window_name = window_name
 
@@ -129,7 +134,8 @@ class TrackbarDisplay:
         self.namespace = namespace
         self.trackbar = trackbar
         self.name = trackbar.name
-        self.window_name = " ".join(namespace + (trackbar.window_name,))
+        self.window_name = " ".join(namespace[:-1] + ("settings",))
+        self.pos = trackbar.initial_pos
 
         self.shown = False
 
@@ -140,12 +146,18 @@ class TrackbarDisplay:
             cv2.createTrackbar(self.name, self.window_name, t.initial_pos, t.max_pos, self.on_change)
             self.shown = True
 
+    def hide(self):
+        if self.shown:
+            # At the moment, the window is destroyed by the caller (FIXME)
+            self.shown = False
+
     def update(self, status):
-        self.show()
+        pass
 
     def read(self, status):
-        pos = cv2.getTrackbarPos(self.name, self.window_name)
-        status.set_pos(pos)
+        if self.shown:
+            self.pos = cv2.getTrackbarPos(self.name, self.window_name)
+        status.set_pos(self.pos)
 
     def on_change(self, value):
         pass
@@ -206,13 +218,18 @@ class WindowDisplay:
             cv2.createTrackbar("brightness", self.name, self.brightness_pos, WindowDisplay.max_pos, self.on_trackbar_change)
             self.shown = True
 
+    def hide(self):
+        if self.shown:
+            cv2.destroyWindow(self.name)
+            self.shown = False
+
     def update(self, status):
         self.show()
         self.last_image = status.image
         self.update_image()
 
     def update_image(self):
-        if self.last_image is not None:
+        if self.shown and self.last_image is not None:
             disp = self.last_image * self.contrast + self.brightness
             cv2.imshow(self.name, disp)
 
@@ -254,14 +271,17 @@ class ControlPanel:
     """
 
     key_map = {
-        "h": ("help", )
+        "h": ("help", ),
+        "t": ("show", "tablebg")
     }
 
     def __init__(self):
         self.controls = ControlGroup()
         self.display = self.controls.display()
+        cv2.namedWindow("panel")
 
-    def on_key_pressed(self, key):
+    def on_key_pressed(self, key_code):
+        key = chr(key_code)
         action = ControlPanel.key_map.get(key, ("unbound_key", key))
         getattr(self, action[0])(*action[1:])
 
@@ -271,7 +291,6 @@ class ControlPanel:
         return status
 
     def on_new_analysis(self, analysis):
-        self.display.show()
         self.display.child("frame analysis").update(analysis.controls)
 
     def unbound_key(self, key):
@@ -279,6 +298,9 @@ class ControlPanel:
 
     def help(self):
         logging.info("TODO: keys documentation goes here (?)")
+
+    def show(self, name):
+        self.display.child("frame analysis").child(name).show()
 
 if __name__ == "__main__":
     test()
