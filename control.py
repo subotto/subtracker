@@ -272,7 +272,8 @@ class ControlPanel:
 
     key_map = {
         "h": ("help", ),
-        "t": ("show", "tablebg")
+        "t": ("show", "table tracking"),
+        "g": ("show", "tablebg")
     }
 
     def __init__(self):
@@ -280,8 +281,7 @@ class ControlPanel:
         self.display = self.controls.display()
         cv2.namedWindow("panel")
 
-    def on_key_pressed(self, key_code):
-        key = chr(key_code)
+    def on_key_pressed(self, key):
         action = ControlPanel.key_map.get(key, ("unbound_key", key))
         getattr(self, action[0])(*action[1:])
 

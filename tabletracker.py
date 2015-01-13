@@ -38,7 +38,6 @@ class TableTrackingSettings:
 class TableTracker:
 
     def __init__(self, prev_table_tracker, settings, controls):
-        print "Constructor"
         self.settings = settings
         self.controls = controls
         
@@ -150,7 +149,6 @@ class TableTracker:
         # DEBUG
         debug = self.frame.copy()
         for p in self.optical_flow_points:
-            print p[0]
             cv2.circle(debug, tuple(p[0]), 2, (255,0,0), -1)
         self.controls.show("lk points", debug/256.0)
         # Compute homography using good points
