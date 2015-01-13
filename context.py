@@ -81,7 +81,7 @@ class FrameAnalysis:
         assert name in self.timings
         assert self.timings[name][1] is None
         self.timings[name][1] = monotonic_time()
-        logging.info("Frame %d, %s took %f seconds", self.frame_num, name, self.timings[name][1] - self.timings[name][0])
+        logging.debug("Frame %d, %s took %f seconds", self.frame_num, name, self.timings[name][1] - self.timings[name][0])
 
 
 class SubtrackerContext:

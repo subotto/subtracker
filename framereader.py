@@ -34,7 +34,8 @@ class FrameReader(threading.Thread):
 
         self.running = True
         self.count = 0
-        self.last_stats = monotonic_time()
+        self.last_stats = None
+        self.stats_interval = 2.0
         self.from_file = from_file
         self.queue = Queue.Queue()
         self.rate_limited = False
@@ -70,6 +71,7 @@ class FrameReader(threading.Thread):
 
         start_time = time.time()
         start_monotonic_time = monotonic_time()
+        self.last_stats = start_monotonic_time
 
         while self.running:
             # Retrieve a frame; frame grabbing and actual retrieval
@@ -113,13 +115,17 @@ class FrameReader(threading.Thread):
                     first_timestamp = timestamp
                 timestamp -= first_timestamp
 
-            # TODO: implement statistics
+            # Print statistics every now and then
+            if current_monotonic_time > self.last_stats + self.stats_interval:
+                self.last_stats = current_monotonic_time
+                logging.info("Queue size: %d", self.queue.qsize())
+                # TODO: we may want to add more
 
             # Push the frame to the queue
             if self.can_drop_frames and self.count % (self.queue.qsize() / self.base_size + 1) != 0:
-                logging.info("Dropped frame with timestamp %f and playback time %f", timestamp, playback_time)
+                logging.debug("Dropped frame with timestamp %f and playback time %f", timestamp, playback_time)
             else:
-                logging.info("Produced frame with timestamp %f and playback time %f", timestamp, playback_time)
+                logging.debug("Produced frame with timestamp %f and playback time %f", timestamp, playback_time)
                 self.queue.put(FrameInfo(True, timestamp, playback_time, frame), block=True)
 
             # Limit frame rate

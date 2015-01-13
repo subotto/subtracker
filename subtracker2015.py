@@ -65,7 +65,7 @@ def feed_frames(frame_reader, ctx, panel):
         frame_num += 1
 
 def main():
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
 
     # Read arguments
     if len(sys.argv) in [3, 4]:
