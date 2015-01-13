@@ -24,7 +24,7 @@ def feed_frames(frame_reader, ctx, panel):
     frame_num = 0
     update_gui_skip = 1
     step_frame = False
-    step_on_frame_produced = True
+    step_on_frame_produced = False
     while True:
         # Decide whether we have to update GUI; so far it always
         # happen!
