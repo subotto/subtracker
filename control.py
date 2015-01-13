@@ -1,77 +1,103 @@
 import math
 import cv2
+import logging
 
-class ControlPanel:
+class ControlGroup:
+    """
+    A group of related controls.
+
+    Represents abstractly a groups of controls and holds their configuration.
+    It does NOT hold the current values of the controls (see ControlGroupStatus)
+    and it is NOT associated to any concrete visualization of them with
+    OpenCV (see ControlGroupDisplay).
+    """
 
     def __init__(self):
         self.children = {}
 
     def window(self, name):
-        return self.children.setdefault(name, Image(name))
+        return self.children.setdefault(name, Window(name))
 
     def trackbar(self, name, **args):
         return self.children.setdefault(name, Trackbar(name, **args))
 
     def subpanel(self, name):
-        return self.children.setdefault(name, ControlPanel())
+        return self.children.setdefault(name, ControlGroup())
 
     def child(self, name):
         return self.children[name]
 
-    def display(self, namespace):
-        return ControlPanelDisplay(namespace, self)
+    def display(self, namespace = ()):
+        return ControlGroupDisplay(namespace, self)
 
     def create_status(self):
-        return ControlPanelStatus(self)
+        return ControlGroupStatus(self)
 
-class ControlPanelDisplay:
+class ControlGroupDisplay:
+    """
+    A visualization of a group of controls with OpenCV.
+    """
 
-    def __init__(self, namespace, panel):
-        self.panel = panel
+    def __init__(self, namespace, group):
+        self.group = group
         self.namespace = namespace
         self.children = {}
 
     def show(self):
-        for name, c in self.panel.children.items():
+        for name, c in self.group.children.items():
             if not self.children.has_key(name):
                 self.children[name] = c.display(self.namespace + (name,))
+            self.children[name].show()
 
-        for c in self.children.values():
-            c.show()
+    def update(self, status):
+        """
+        Updates the visualization with the values in status.
+        """
 
-    def update(self, context):
         for name, c in self.children.items():
-            c.update(context.child(name))
+            c.update(status.child(name))
 
-    def read(self, context):
+    def read(self, status):
+        """
+        Reads the status of the controls and saves it in status.
+        """
+
         for name, c in self.children.items():
-            c.read(context.child(name))
+            c.read(status.child(name))
 
-class ControlPanelStatus:
+class ControlGroupStatus:
+    """
+    Values that can be shown or read from a group of controls.
+    """
 
-    def __init__(self, panel):
-        self.panel = panel
+    def __init__(self, group):
+        self.group = group
         self.children = {}
 
     def window(self, name):
-        image = self.panel.window(name)
-        return self.children.setdefault(name, image.create_status())
+        window = self.group.window(name)
+        return self.children.setdefault(name, window.create_status())
 
     def show(self, name, image):
         self.window(name).image = image
 
     def trackbar(self, name, **args):
-        trackbar = self.panel.trackbar(name, **args)
+        trackbar = self.group.trackbar(name, **args)
         return self.children.setdefault(name, trackbar.create_status())
 
     def subpanel(self, name):
-        subpanel = self.panel.subpanel(name)
+        subpanel = self.group.subpanel(name)
         return self.children.setdefault(name, subpanel.create_status())
 
     def child(self, name):
-        return self.children.setdefault(name, self.panel.child(name).create_status())
+        return self.children.setdefault(name, self.group.child(name).create_status())
 
 class Trackbar:
+    """
+    A trackbar configured to select a real number in a given interval.
+
+    It is only an abstract representation, similarly to ControlGroup.
+    """
 
     def __init__(self, name, window_name = "", initial_value = 0.0, min_value = 0.0, max_value = 1.0, step = 0.01):
         self.name = name
@@ -92,6 +118,9 @@ class Trackbar:
         return TrackbarStatus(self)
 
 class TrackbarDisplay:
+    """
+    The visualization of a trackbar with OpenCV.
+    """
 
     def __init__(self, namespace, trackbar):
         self.namespace = namespace
@@ -119,6 +148,9 @@ class TrackbarDisplay:
         pass
 
 class TrackbarStatus:
+    """
+    Holds a possible value of a trackbar.
+    """
 
     def __init__(self, trackbar):
         self.trackbar = trackbar
@@ -127,31 +159,39 @@ class TrackbarStatus:
     def set_pos(self, pos):
         self.value = self.trackbar.min_value + (pos * self.trackbar.step)
 
-class Image:
+class Window:
+    """
+    A window used to display an image.
+
+    It is only an abstract representation, similarly to ControlGroup.
+    """
 
     def __init__(self, name):
         self.name = name
 
     def display(self, namespace):
-        return ImageDisplay(namespace, self)
+        return WindowDisplay(namespace, self)
 
     def create_status(self):
-        return ImageStatus(self)
+        return WindowStatus(self)
 
-class ImageDisplay:
+class WindowDisplay:
+    """
+    The visualization of a window with OpenCV.
+    """
 
     initial_pos = 300
     max_pos = 600
 
-    def __init__(self, namespace, image):
+    def __init__(self, namespace, window):
         self.namespace = namespace
-        self.image = image
+        self.window = window
 
-        self.name = " ".join(namespace + (image.name,))
+        self.name = " ".join(namespace + (window.name,))
 
         self.last_image = None
-        self.contrast_pos = ImageDisplay.initial_pos
-        self.brightness_pos = ImageDisplay.initial_pos
+        self.contrast_pos = WindowDisplay.initial_pos
+        self.brightness_pos = WindowDisplay.initial_pos
         self.process_trackbar_pos()
 
         self.shown = False
@@ -159,8 +199,8 @@ class ImageDisplay:
     def show(self):
         if not self.shown:
             cv2.namedWindow(self.name)
-            cv2.createTrackbar("contrast", self.name, self.contrast_pos, ImageDisplay.max_pos, self.on_trackbar_change)
-            cv2.createTrackbar("brightness", self.name, self.brightness_pos, ImageDisplay.max_pos, self.on_trackbar_change)
+            cv2.createTrackbar("contrast", self.name, self.contrast_pos, WindowDisplay.max_pos, self.on_trackbar_change)
+            cv2.createTrackbar("brightness", self.name, self.brightness_pos, WindowDisplay.max_pos, self.on_trackbar_change)
             self.shown = True
 
     def update(self, status):
@@ -176,11 +216,11 @@ class ImageDisplay:
         pass
 
     def trackbar_pos_to_contrast(self, pos):
-        diff = pos - ImageDisplay.initial_pos
+        diff = pos - WindowDisplay.initial_pos
         return math.pow(10, diff/100.0)
 
     def trackbar_pos_to_brightness(self, pos):
-        diff = pos - ImageDisplay.initial_pos
+        diff = pos - WindowDisplay.initial_pos
         return math.copysign(math.pow(10, abs(diff/100.0) - 1.0), diff)
 
     def process_trackbar_pos(self):
@@ -194,59 +234,44 @@ class ImageDisplay:
         self.process_trackbar_pos()
         self.update_image()
 
-class ImageStatus:
+class WindowStatus:
+    """
+    Holds the image that can be shown in a window.
+    """
 
     def __init__(self, image):
-        # FIXME: name clash 'image'
         self.image = None
 
-class FrameAnalysisPlayback:
 
-    def __init__(self, panel):
-        self.panel = panel
-        self.display = panel.display(())
+class ControlPanel:
+    """
+    Manages the visualization and the content of all the controls during
+    real-time or offline analysis of a video.
+    """
 
-    def create_panel(self):
-        panel = ControlPanelStatus(self.panel)
-        self.display.read(panel)
-        return panel
-
-    def on_new_analysis(self, analysis):
-        self.display.show()
-        self.display.update(analysis.panel)
-
-class MainPanel(ControlPanel):
     key_map = {
-        " ": ("clear_all_panels", )
+        "h": ("help", )
     }
 
+    def __init__(self):
+        self.controls = ControlGroup()
+        self.display = self.controls.display()
+
     def on_key_pressed(self, key):
-        action = ControlPanel.key_map[key]
+        action = ControlPanel.key_map.get(key, ("unbound_key", key))
         getattr(self, action[0])(*action[1:])
 
-    def __init__(self):
-        pass
+    def on_new_analysis(self, analysis):
+        status = self.controls.create_status()
+        status.subpanel("frame analysis").show("frame", analysis.frame)
+        self.display.show()
+        self.display.update(status)
 
-def test():
-    import random
+    def unbound_key(self, key):
+        logging.info("Unbound key: %s" % (key,))
 
-    class FrameAnalysisStub:
-
-        def __init__(self, panel):
-            self.panel = panel
-
-    panel = ControlPanel()
-    frames = FrameAnalysisPlayback(panel)
-
-    while cv2.waitKey(0) != "q":
-        frame_panel = frames.create_panel()
-        analysis = FrameAnalysisStub(frame_panel)
-
-        frame_panel.show("test1", cv2.imread("data/ref.png") * random.gauss(1, 0.1))
-        coeff = frame_panel.subpanel("test2").trackbar("coeff", window_name = "settings", initial_value = 0.5).value
-        frame_panel.subpanel("test2").show("test3", cv2.imread("data/ref.png") * coeff)
-
-        frames.on_new_analysis(analysis)
+    def help(self):
+        logging.info("TODO: keys documentation goes here (?)")
 
 if __name__ == "__main__":
     test()
