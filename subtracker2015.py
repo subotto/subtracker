@@ -22,18 +22,27 @@ class MockControlPanel():
 
 def feed_frames(frame_reader, ctx, panel):
     frame_num = 0
+    update_gui_skip = 1
+    step_frame = False
+    step_on_frame_produced = True
     while True:
         # Decide whether we have to update GUI; so far it always
         # happen!
-        update_display = True
+        update_display = (frame_num % (update_gui_skip + 1) == 0) or step_frame
         if update_display:
             while True:
                 #logging.debug("Before waitKey()")
                 c = cv2.waitKey(1)
-                #logging.debug("After waitKey() = %d", c)
                 if c < 0:
-                    break
+                    if not step_frame:
+                        break
+                    else:
+                        continue
                 c &= 0xff
+                c = chr(c)
+                #logging.debug("After waitKey() = %r", c)
+                if step_frame and c == '.':
+                    break
                 panel.on_key_pressed(c)
 
         # Get a frame and feed it to the context
@@ -49,6 +58,8 @@ def feed_frames(frame_reader, ctx, panel):
                 break
             panel.on_new_analysis(frame_analysis)
             sys.stdout.write(frame_analysis.get_csv_line())
+            if step_on_frame_produced:
+                step_frame = True
 
         # Prepare for next round
         frame_num += 1
