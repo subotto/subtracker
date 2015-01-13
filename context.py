@@ -54,15 +54,17 @@ class FrameAnalysis:
 
     def do_table_tracking(self):
         self.tic("table tracking")
-        self.table_transform = self.table_tracker.track_table(self.frame)
+        self.table_corners = self.table_tracker.track_table(self.frame)
         # TODO: warp table
         self.toc("table tracking")
 
     def do_compute_ball_density(self):
+        self.tic("compute ball density")
         # TODO: using the original frame as a warped frame
         self.table_bg_estimation = estimate_table_background(self.prev_table_bg_estimation, self.frame, self.frame_settings.table_bg_settings, self.controls.subpanel("tablebg"))
         # TODO
         self.ball_density = None
+        self.toc("compute ball density")
 
     def get_csv_line(self):
         line = "%.5f" % (self.playback_time)

@@ -160,6 +160,16 @@ class TableTracker:
         pass
     
     def track_table(self, frame):
+        """Return the four corners of the table as a tuple, in the following order:
+          * red defence;
+          * red attack;
+          * blue defence;
+          * blue attack.
+
+        Each point is a numpy 2x1 matrix of floats. If nothing is
+        found, then None is returned.
+
+        """
         self.frame=frame
         self.table_points = None
         # ---- COMPUTE NEW TALBLE POINTS -----
