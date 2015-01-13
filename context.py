@@ -112,7 +112,7 @@ class SubtrackerContext:
             ready_frame_analysis = self.tracking_frames.popleft()
             assert ready_frame_analysis.frame_num == ready_frame_num
             ready_frame_analysis.ball_pos = ready_position
-            self.ready_frames.put(ready_rame_analysis)
+            self.ready_frames.put(ready_frame_analysis)
 
         # Save frame analysis as previous one
         self.prev_frame_analysis = frame_analysis
