@@ -270,6 +270,8 @@ class ControlPanel:
     real-time or offline analysis of a video.
     """
 
+    # Keys 'q' and '.' are intercepted before this key map; do not use
+    # them!
     key_map = {
         "h": ("help", ),
         "t": ("show", "table tracking"),

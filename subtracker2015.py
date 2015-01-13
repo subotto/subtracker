@@ -43,6 +43,8 @@ def feed_frames(frame_reader, ctx, panel):
                 #logging.debug("After waitKey() = %r", c)
                 if step_frame and c == '.':
                     break
+                if c == 'q':
+                    return
                 panel.on_key_pressed(c)
 
         # Get a frame and feed it to the context
