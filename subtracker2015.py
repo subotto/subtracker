@@ -72,6 +72,7 @@ def main():
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s.%(msecs).03d (%(name)s) %(message)s',
                         datefmt='%d/%m/%Y %H:%M:%S')
+    logging.getLogger("timings").setLevel(level=logging.DEBUG)
 
     # Read arguments
     if len(sys.argv) in [1,2]:
