@@ -266,7 +266,9 @@ class ControlPanel:
         getattr(self, action[0])(*action[1:])
 
     def create_frame_controls(self):
-        return self.controls.subpanel("frame analysis").create_status()
+        status = self.controls.subpanel("frame analysis").create_status()
+        self.display.child("frame analysis").read(status)
+        return status
 
     def on_new_analysis(self, analysis):
         self.display.show()

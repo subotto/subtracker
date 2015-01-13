@@ -51,4 +51,6 @@ class TableTracker:
     def track_table(self, frame):
         # TODO
 
-        self.controls.show("raw frame", frame)
+        # test controls are working
+        coeff = self.controls.trackbar("coeff", initial_value = 0.02, min_value = 0.01, max_value = 1.0).value
+        self.controls.show("raw frame", frame * coeff)
