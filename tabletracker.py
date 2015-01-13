@@ -42,11 +42,13 @@ class TableTrackingSettings:
 
 class TableTracker:
 
-    def __init__(self, prev_table_tracker, settings):
+    def __init__(self, prev_table_tracker, settings, controls):
         self.settings = settings
+        self.controls = controls
 
         # TODO: take data from prev_table_tracker or initialize it
 
     def track_table(self, frame):
         # TODO
-        pass
+
+        self.controls.show("raw frame", frame)

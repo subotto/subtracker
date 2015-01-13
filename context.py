@@ -20,16 +20,17 @@ class FrameSettings:
 
 class FrameAnalysis:
 
-    def __init__(self, frame, frame_num, timestamp, playback_time, frame_settings, prev_frame_analysis):
+    def __init__(self, frame, frame_num, timestamp, playback_time, frame_settings, prev_frame_analysis, controls):
         self.frame = frame
         self.frame_num = frame_num
         self.timestamp = timestamp
         self.playback_time = playback_time
         self.frame_settings = copy.deepcopy(frame_settings)
+        self.controls = controls
 
         # Table tracker
         prev_table_tracker = prev_frame_analysis.table_tracker if prev_frame_analysis is not None else None
-        self.table_tracker = TableTracker(prev_table_tracker, self.frame_settings.table_tracking_settings)
+        self.table_tracker = TableTracker(prev_table_tracker, self.frame_settings.table_tracking_settings, controls.subpanel("table tracking"))
 
         # Computed data
         self.table_transform = None
@@ -85,17 +86,21 @@ class FrameAnalysis:
 
 class SubtrackerContext:
 
-    def __init__(self):
+    def __init__(self, control_panel):
         self.last_frame_num = 0
         self.frame_settings = FrameSettings()
         self.prev_frame_analysis = None
         self.ready_frames = Queue.Queue()
         self.tracking_frames = collections.deque()
         self.spots_tracker = SpotsTracker()
+        self.control_panel = control_panel
 
     def feed(self, frame, timestamp, playback_time):
+        # Create the controls associated to a frame
+        frame_controls = self.control_panel.create_frame_controls()
+
         # Create the FrameAnalysis object
-        frame_analysis = FrameAnalysis(frame, self.last_frame_num, timestamp, playback_time, self.frame_settings, self.prev_frame_analysis)
+        frame_analysis = FrameAnalysis(frame, self.last_frame_num, timestamp, playback_time, self.frame_settings, self.prev_frame_analysis, frame_controls)
         self.last_frame_num += 1
 
         # Do all sort of nice things to the frame

@@ -85,7 +85,7 @@ def main():
 
     # Create panel and context
     panel = ControlPanel()
-    ctx = SubtrackerContext()
+    ctx = SubtrackerContext(panel)
 
     # Create frame reader
     if len(video_filename) == 1:

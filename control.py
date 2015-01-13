@@ -45,9 +45,12 @@ class ControlGroupDisplay:
 
     def show(self):
         for name, c in self.group.children.items():
-            if not self.children.has_key(name):
-                self.children[name] = c.display(self.namespace + (name,))
-            self.children[name].show()
+            self.child(name).show()
+
+    def child(self, name):
+        if not self.children.has_key(name):
+            self.children[name] = self.group.child(name).display(self.namespace + (name,))
+        return self.children[name]
 
     def update(self, status):
         """
@@ -138,7 +141,7 @@ class TrackbarDisplay:
             self.shown = True
 
     def update(self, status):
-        pass
+        self.show()
 
     def read(self, status):
         pos = cv2.getTrackbarPos(self.name, self.window_name)
@@ -204,6 +207,7 @@ class WindowDisplay:
             self.shown = True
 
     def update(self, status):
+        self.show()
         self.last_image = status.image
         self.update_image()
 
@@ -261,11 +265,12 @@ class ControlPanel:
         action = ControlPanel.key_map.get(key, ("unbound_key", key))
         getattr(self, action[0])(*action[1:])
 
+    def create_frame_controls(self):
+        return self.controls.subpanel("frame analysis").create_status()
+
     def on_new_analysis(self, analysis):
-        status = self.controls.create_status()
-        status.subpanel("frame analysis").show("frame", analysis.frame)
         self.display.show()
-        self.display.update(status)
+        self.display.child("frame analysis").update(analysis.controls)
 
     def unbound_key(self, key):
         logging.info("Unbound key: %s" % (key,))
