@@ -57,31 +57,15 @@ def main():
     logging.basicConfig(level=logging.DEBUG)
 
     # Read arguments
-    if len(sys.argv) in [3, 4]:
+    if len(sys.argv) in [1,2]:
         video_filename = sys.argv[1]
-        ref_filename = sys.argv[2]
-        if len(sys.argv) == 4:
-            mask_filename = sys.argv[3]
-        else:
-            mask_filename = None
     else:
-        print >> sys.stderr, "Usage: %s <video> <reference subotto> [<reference subotto mask>]" % (sys.argv[0])
+        print >> sys.stderr, "Usage: %s <video>" % (sys.argv[0])
         print >> sys.stderr, "<video> can be: "
         print >> sys.stderr, "\tn (a single digit number) - live capture from video device n"
         print >> sys.stderr, "\tfilename+ (with a trailing plus) - simulate live capture from video file"
         print >> sys.stderr, "\tfilename (without a trailing plus) - batch analysis of video file"
-        print >> sys.stderr, "<reference subotto> is the reference image used to look for the table"
-        print >> sys.stderr, "<reference sumotto mask> is an optional B/W image, of the same size,"
-        print >> sys.stderr, "\twhere black spots indicate areas of the reference image to hide"
-        print >> sys.stderr, "\twhen looking for the table (such as moving parts and spurious features)"
         sys.exit(1)
-
-    # Read input files
-    ref_frame = cv2.imread(ref_filename)
-    if mask_filename is not None:
-        mask_frame = cv2.imread(mask_filename)
-    else:
-        mask_frame = None
 
     # Create panel and context
     panel = ControlPanel()
