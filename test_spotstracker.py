@@ -122,23 +122,19 @@ class TestSpotsTracker(unittest.TestCase):
         spots = [Spot(point=numpy.array([1.0, 0.7]), weight=0.3), Spot(point=numpy.array([0.2, -0.5]), weight=0.2)]
         layer = Layer(spots=spots, frame_num=5, time=0.0)
         
-        num_frame, position = tracker.push_back_and_get_info(layer)
-        self.assertTrue(num_frame is None)
-        self.assertTrue(position is None)
+        self.assertEqual(tracker.push_back_and_get_info(layer), [])
         
         # Push second layer
         spots = [Spot(point=numpy.array([1.0, 0.7]), weight=0.3), Spot(point=numpy.array([0.2, -0.5]), weight=0.2)]
         layer = Layer(spots=spots, frame_num=6, time=0.1)
         
-        num_frame, position = tracker.push_back_and_get_info(layer)
-        self.assertTrue(num_frame is None)
-        self.assertTrue(position is None)
+        self.assertEqual(tracker.push_back_and_get_info(layer), [])
         
         # Push third layer
         spots = [Spot(point=numpy.array([1.0, 0.7]), weight=0.3), Spot(point=numpy.array([0.2, -0.5]), weight=0.2)]
         layer = Layer(spots=spots, frame_num=7, time=0.2)
         
-        num_frame, position = tracker.push_back_and_get_info(layer)
+        [(num_frame, position)] = tracker.push_back_and_get_info(layer)
         self.assertEqual(num_frame, 5)
         self.assertTrue(numpy.allclose(position, numpy.array([1.0, 0.7])))
         
@@ -146,7 +142,7 @@ class TestSpotsTracker(unittest.TestCase):
         spots = [Spot(point=numpy.array([1.0, 0.7]), weight=0.3), Spot(point=numpy.array([0.2, -0.5]), weight=0.2)]
         layer = Layer(spots=spots, frame_num=8, time=0.3)
         
-        num_frame, position = tracker.push_back_and_get_info(layer)
+        [(num_frame, position)] = tracker.push_back_and_get_info(layer)
         self.assertEqual(num_frame, 6)
         self.assertTrue(numpy.allclose(position, numpy.array([1.0, 0.7])))
     
@@ -163,23 +159,19 @@ class TestSpotsTracker(unittest.TestCase):
         spots = [Spot(point=numpy.array([1.0, 0.7]), weight=5.0), Spot(point=numpy.array([0.2, -0.5]), weight=0.2)]
         layer = Layer(spots=spots, frame_num=5, time=0.0)
         
-        num_frame, position = tracker.push_back_and_get_info(layer)
-        self.assertTrue(num_frame is None)
-        self.assertTrue(position is None)
+        self.assertEqual(tracker.push_back_and_get_info(layer), [])
         
         # Push second layer -- this layer does not contain spots
         spots = []
         layer = Layer(spots=spots, frame_num=6, time=0.1)
         
-        num_frame, position = tracker.push_back_and_get_info(layer)
-        self.assertTrue(num_frame is None)
-        self.assertTrue(position is None)
+        self.assertEqual(tracker.push_back_and_get_info(layer), [])
         
         # Push third layer
         spots = [Spot(point=numpy.array([1.0, 0.7]), weight=5.0), Spot(point=numpy.array([0.2, -0.5]), weight=0.2)]
         layer = Layer(spots=spots, frame_num=7, time=0.2)
         
-        num_frame, position = tracker.push_back_and_get_info(layer)
+        [(num_frame, position)] = tracker.push_back_and_get_info(layer)
         self.assertEqual(num_frame, 5)
         self.assertTrue(numpy.allclose(position, numpy.array([1.0, 0.7])))
         
@@ -187,7 +179,7 @@ class TestSpotsTracker(unittest.TestCase):
         spots = [Spot(point=numpy.array([1.0, 0.7]), weight=5.0), Spot(point=numpy.array([0.2, -0.5]), weight=0.2)]
         layer = Layer(spots=spots, frame_num=8, time=0.3)
         
-        num_frame, position = tracker.push_back_and_get_info(layer)
+        [(num_frame, position)] = tracker.push_back_and_get_info(layer)
         self.assertEqual(num_frame, 6)
         self.assertTrue(numpy.allclose(position, numpy.array([1.0, 0.7])))
 

@@ -7,7 +7,7 @@ Implementation of Gio-Giove algorithm to reconstruct ball trajectory.
 
 USAGE
 For each frame, create a list of Spot objects (relevant points of a frame, with coordinates and likelihood) and a Layer object with that list.
-Then feed the frame to the SpotsTracker using SpotsTracker.push_back_and_get_info, which returns None or a couple (num_frame, estimated position).
+Then feed the frame to the SpotsTracker using SpotsTracker.push_back_and_get_info, which returns a list of couples (num_frame, estimated position).
 """
 
 import collections
@@ -219,13 +219,14 @@ class SpotsTracker:
     def push_back_and_get_info(self, layer):
         self.push_back(layer)
         
-        if len(self.timeline) > self.settings.dynamic_depth:
+        result = []
+        
+        while len(self.timeline) > self.settings.dynamic_depth:
             position = self.estimate_position()
             num_frame = self.first_num
             self.pop_front()
-            return num_frame, position
+            result.append((num_frame, position))
         
-        else:
-            return None, None
+        return result
 
 
