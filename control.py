@@ -107,7 +107,7 @@ class Trackbar:
     It is only an abstract representation, similarly to ControlGroup.
     """
 
-    def __init__(self, name, initial_value = 0.0, min_value = 0.0, max_value = 1.0, step = 0.01, window_name = ""):
+    def __init__(self, name, initial_value=0.0, min_value=0.0, max_value=1.0, step=0.01, window_name=""):
         self.name = name
         self.window_name = window_name
 

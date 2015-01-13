@@ -1,5 +1,5 @@
-#!/usr/bin/python
-# coding=utf8
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
 
 import cv2
 import numpy
@@ -12,7 +12,10 @@ class TableBackgroundEstimationSettings:
         self.var_alpha = controls.trackbar("var alpha", 0.005, 0.0, 0.1, 0.001).value
 
 class TableBackgroundEstimation:
-    pass
+
+    def __init__(self):
+        self.mean = None
+        self.variance = None
 
 class FrameTableAnalysis:
     pass
@@ -21,12 +24,17 @@ def weighted_update(alpha, prev, curr):
     return (1 - alpha) * prev + alpha * curr
 
 def initial_estimation(warped_frame, settings):
+    # Our initial best estimate for the table is the first frame that
+    # we see
     estimation = TableBackgroundEstimation()
     estimation.mean = warped_frame.copy()
 
+    # But this is going to be terribly unreliable, so we put high
+    # variance (FIXME: is 1000.0 high enough? Or too much?)
     estimation.variance = []
-    for ch1 in range(3):
-        estimation.variance.append(cv2.split(numpy.zeros_like(warped_frame)))
+    for ch1 in xrange(3):
+        estimation.variance.append(cv2.split(1000.0 * numpy.ones_like(warped_frame)))
+
     return estimation
 
 def update_estimation(prev, warped_frame, settings):
@@ -39,8 +47,8 @@ def update_estimation(prev, warped_frame, settings):
 
     # TODO: save half the computations as variance is symmetric
     estimation.variance = [[None] * 3, [None] * 3, [None] * 3]
-    for ch1 in range(3):
-        for ch2 in range(3):
+    for ch1 in xrange(3):
+        for ch2 in xrange(3):
             scatter = cv2.multiply(diff_channels[ch1], diff_channels[ch2])
             prev_var = prev.variance[ch1][ch2]
             estimation.variance[ch1][ch2] = weighted_update(settings.var_alpha, prev_var, scatter)
