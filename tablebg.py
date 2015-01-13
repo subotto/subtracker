@@ -17,41 +17,54 @@ class TableBackgroundEstimation:
         self.mean = None
         self.variance = None
 
-class FrameTableAnalysis:
-    pass
-
 def weighted_update(alpha, prev, curr):
     return (1 - alpha) * prev + alpha * curr
 
 def initial_estimation(warped_frame, settings):
+    estimation = TableBackgroundEstimation()
+    
     # Our initial best estimate for the table is the first frame that
     # we see
-    estimation = TableBackgroundEstimation()
     estimation.mean = warped_frame.copy()
 
-    # But this is going to be terribly unreliable, so we put high
-    # variance (FIXME: is 1000.0 high enough? Or too much?)
-    estimation.variance = []
-    for ch1 in xrange(3):
-        estimation.variance.append(cv2.split(1000.0 * numpy.ones_like(warped_frame)))
+    h, w, channels = warped_frame.shape
+
+    # But this is going to be unreliable, so pixel channels can change
+    # completely
+    sigma = 1.0
+    
+    # Consider channels independent and homoskedastic, so initialize
+    # the variance to a multiple of identity.
+    estimation.variance = numpy.zeros((h, w, channels, channels))
+    for ch in xrange(channels):
+        estimation.variance[:,:,ch,ch] = sigma**2 * numpy.ones((h,w))
 
     return estimation
+
+def compute_scatter(frame, mean):
+    deviation = frame - mean
+
+    # For each pixel, compute the scatter matrix of channels
+    h, w, channels = frame.shape
+    scatter = numpy.empty((h, w, channels, channels))
+    # TODO: save half the computations as scatter is symmetric
+    for ch1 in xrange(channels):
+        for ch2 in xrange(channels):
+            scatter[:,:,ch1,ch2] = deviation[:,:,ch1] * deviation[:,:,ch2]
+
+    return scatter
 
 def update_estimation(prev, warped_frame, settings):
     estimation = TableBackgroundEstimation()
 
+    # Update the mean estimation using running avg
     estimation.mean = weighted_update(settings.alpha, prev.mean, warped_frame)
 
-    diff = warped_frame - estimation.mean
-    diff_channels = cv2.split(diff)
+    # Estimate the variance (see wiki/Scatter_matrix)
+    scatter = compute_scatter(warped_frame, estimation.mean)
 
-    # TODO: save half the computations as variance is symmetric
-    estimation.variance = [[None] * 3, [None] * 3, [None] * 3]
-    for ch1 in xrange(3):
-        for ch2 in xrange(3):
-            scatter = cv2.multiply(diff_channels[ch1], diff_channels[ch2])
-            prev_var = prev.variance[ch1][ch2]
-            estimation.variance[ch1][ch2] = weighted_update(settings.var_alpha, prev_var, scatter)
+    # Update the variance estimation using running avg
+    estimation.variance = weighted_update(settings.var_alpha, prev.variance, scatter)
 
     return estimation
 
@@ -62,5 +75,6 @@ def estimate_table_background(prev, warped_frame, settings, controls):
         estimation = initial_estimation(warped_frame, settings)
 
     controls.show("mean", estimation.mean)
-    controls.show("covar B-G", estimation.variance[0][1])
+    controls.show("covar B-G", estimation.variance[:,:,0,1])
+    
     return estimation
