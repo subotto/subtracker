@@ -194,7 +194,7 @@ class TableTracker:
             self.optical_flow_points = self.get_lk_points(self.frame, self.table_points, self.optical_flow_points)
         # ---- DEBUG ----
         debug_frame = frame.copy()
-        cv2.polylines(debug_frame,[numpy.int32(self.table_points)],True,(0,255,0),3)
+        cv2.polylines(debug_frame,[numpy.int32(self.table_points)],True,(0,0,255),1)
         # test controls are working
         #coeff = self.controls.trackbar("coeff", initial_value = 0.02, min_value = 0.01, max_value = 1.0).value
         self.controls.show("table points", debug_frame/256.0)
