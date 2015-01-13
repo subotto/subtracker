@@ -188,5 +188,8 @@ class TableTracker:
         # test controls are working
         #coeff = self.controls.trackbar("coeff", initial_value = 0.02, min_value = 0.01, max_value = 1.0).value
         self.controls.show("table points", debug_frame/256.0)
-        # Avoid memory leak
+
+        # After the computation, forget the reference to previous
+        # frame; this way the garbage collector is able to deallocate
+        # old frames
         self.prev = None
