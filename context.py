@@ -1,7 +1,6 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
-import copy
 import Queue
 import collections
 import logging
@@ -10,13 +9,13 @@ from monotonic_time import monotonic_time
 
 from tabletracker import TableTracker, TableTrackingSettings
 from spotstracker import SpotsTracker, Spot, Layer
-
+from tablebg import TableBackgroundEstimationSettings, estimate_table_background
 
 class FrameSettings:
 
-    def __init__(self):
+    def __init__(self, controls):
         self.table_tracking_settings = TableTrackingSettings()
-
+        self.table_bg_settings = TableBackgroundEstimationSettings(controls.subpanel("tablebg"))
 
 class FrameAnalysis:
 
@@ -25,12 +24,16 @@ class FrameAnalysis:
         self.frame_num = frame_num
         self.timestamp = timestamp
         self.playback_time = playback_time
-        self.frame_settings = copy.deepcopy(frame_settings)
+        self.frame_settings = frame_settings
         self.controls = controls
 
         # Table tracker
         prev_table_tracker = prev_frame_analysis.table_tracker if prev_frame_analysis is not None else None
         self.table_tracker = TableTracker(prev_table_tracker, self.frame_settings.table_tracking_settings, controls.subpanel("table tracking"))
+
+        # Table analysis
+        self.prev_table_bg_estimation = prev_frame_analysis.table_bg_estimation if prev_frame_analysis is not None else None
+        self.table_bg_estimation = None
 
         # Computed data
         self.table_transform = None
@@ -53,6 +56,8 @@ class FrameAnalysis:
         self.toc("table tracking")
 
     def do_compute_ball_density(self):
+        # TODO: using the original frame as a warped frame
+        self.table_bg_estimation = estimate_table_background(self.prev_table_bg_estimation, self.frame, self.frame_settings.table_bg_settings, self.controls.subpanel("tablebg"))
         # TODO
         self.ball_density = None
 
@@ -88,7 +93,6 @@ class SubtrackerContext:
 
     def __init__(self, control_panel):
         self.last_frame_num = 0
-        self.frame_settings = FrameSettings()
         self.prev_frame_analysis = None
         self.ready_frames = Queue.Queue()
         self.tracking_frames = collections.deque()
@@ -99,8 +103,11 @@ class SubtrackerContext:
         # Create the controls associated to a frame
         frame_controls = self.control_panel.create_frame_controls()
 
+        # Initialize settings
+        frame_settings = FrameSettings(frame_controls)
+
         # Create the FrameAnalysis object
-        frame_analysis = FrameAnalysis(frame, self.last_frame_num, timestamp, playback_time, self.frame_settings, self.prev_frame_analysis, frame_controls)
+        frame_analysis = FrameAnalysis(frame, self.last_frame_num, timestamp, playback_time, frame_settings, self.prev_frame_analysis, frame_controls)
         self.last_frame_num += 1
 
         # Do all sort of nice things to the frame
