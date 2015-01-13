@@ -11,6 +11,9 @@ from tabletracker import TableTracker, TableTrackingSettings
 from spotstracker import SpotsTracker, Spot, Layer
 from tablebg import TableBackgroundEstimationSettings, estimate_table_background
 
+logger = logging.getLogger("context")
+timings_logger = logging.getLogger("timings")
+
 class FrameSettings:
 
     def __init__(self, controls):
@@ -86,7 +89,7 @@ class FrameAnalysis:
         assert name in self.timings
         assert self.timings[name][1] is None
         self.timings[name][1] = monotonic_time()
-        logging.debug("Frame %d, %s took %f seconds", self.frame_num, name, self.timings[name][1] - self.timings[name][0])
+        timings_logger.debug("Frame %d, %s took %f seconds", self.frame_num, name, self.timings[name][1] - self.timings[name][0])
 
 
 class SubtrackerContext:
@@ -118,7 +121,7 @@ class SubtrackerContext:
         # Pass the frame to the spots tracker
         # TODO
         self.tracking_frames.append(frame_analysis)
-        #logging.debug(repr((frame_analysis.frame_num, frame_analysis.timestamp)))
+        #logger.debug(repr((frame_analysis.frame_num, frame_analysis.timestamp)))
         spots = [Spot(point, weight) for point, weight in []]
         layer = Layer(spots, frame_analysis.frame_num, frame_analysis.timestamp)
         ready_info = self.spots_tracker.push_back_and_get_info(layer)

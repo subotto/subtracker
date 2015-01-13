@@ -1,6 +1,12 @@
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
+
 import math
 import cv2
 import logging
+
+logger = logging.getLogger("control")
+
 
 class ControlGroup:
     """
@@ -296,10 +302,10 @@ class ControlPanel:
         self.display.child("frame analysis").update(analysis.controls)
 
     def unbound_key(self, key):
-        logging.info("Unbound key: %s" % (key,))
+        logger.info("Unbound key: %s" % (key,))
 
     def help(self):
-        logging.info("TODO: keys documentation goes here (?)")
+        logger.info("TODO: keys documentation goes here (?)")
 
     def show(self, name):
         self.display.child("frame analysis").child(name).show()

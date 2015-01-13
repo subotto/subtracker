@@ -9,6 +9,8 @@ from control import ControlPanel
 from context import SubtrackerContext
 from framereader import CameraFrameReader, FileFrameReader
 
+logger = logging.getLogger("main program")
+
 
 # Mock implementation
 class MockControlPanel():
@@ -31,7 +33,7 @@ def feed_frames(frame_reader, ctx, panel):
         update_display = (frame_num % (update_gui_skip + 1) == 0) or step_frame
         if update_display:
             while True:
-                #logging.debug("Before waitKey()")
+                #logger.debug("Before waitKey()")
                 c = cv2.waitKey(1)
                 if c < 0:
                     if not step_frame:
@@ -40,11 +42,11 @@ def feed_frames(frame_reader, ctx, panel):
                         continue
                 c &= 0xff
                 c = chr(c)
-                #logging.debug("After waitKey() = %r", c)
+                #logger.debug("After waitKey() = %r", c)
                 if step_frame and c == '.':
                     break
                 if c == 'q':
-                    return
+                    raise KeyboardInterrupt
                 panel.on_key_pressed(c)
 
         # Get a frame and feed it to the context
@@ -67,7 +69,9 @@ def feed_frames(frame_reader, ctx, panel):
         frame_num += 1
 
 def main():
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.INFO,
+                        format='%(asctime)s.%(msecs).03d (%(name)s) %(message)s',
+                        datefmt='%d/%m/%Y %H:%M:%S')
 
     # Read arguments
     if len(sys.argv) in [1,2]:
@@ -99,9 +103,9 @@ def main():
     try:
         feed_frames(frame_reader, ctx, panel)
     except KeyboardInterrupt:
-        logging.info("Exit requested")
+        logger.info("Exit requested")
     except:
-        logging.info("Exit because of exception", exc_info=True)
+        logger.info("Exit because of exception", exc_info=True)
 
     # When finishing, wait for the reader thread to terminate
     # gracefully and consume left frames
@@ -110,6 +114,8 @@ def main():
         if frame_reader.get(block=False) is None:
             break
     frame_reader.join()
+
+    logger.info("Exiting")
 
 if __name__ == '__main__':
     main()

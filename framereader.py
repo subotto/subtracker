@@ -11,6 +11,9 @@ import logging
 
 from monotonic_time import monotonic_time
 
+logger = logging.getLogger("framereader")
+
+
 # The two timing fields "timestamp" and "playback_time" convey
 # slightly different information: the timestamp of a frame is its time
 # in the video; the first frame has timestamp zero and the time
@@ -46,7 +49,7 @@ class FrameReader(threading.Thread):
         try:
             frame_info = self.queue.get(block=block)
             self.queue.task_done()
-            logging.debug("Frame retrieved")
+            logger.debug("Frame retrieved")
         except Queue.Empty:
             frame_info = None
         return frame_info
@@ -58,7 +61,7 @@ class FrameReader(threading.Thread):
         try:
             self.actual_run()
         except:
-            logging.critical("Frame reader raised an exception", exc_info=True)
+            logger.critical("Frame reader raised an exception", exc_info=True)
             self.queue.put(FrameInfo(False, None, None, None))
 
     def actual_run(self):
@@ -118,14 +121,14 @@ class FrameReader(threading.Thread):
             # Print statistics every now and then
             if current_monotonic_time > self.last_stats + self.stats_interval:
                 self.last_stats = current_monotonic_time
-                logging.info("Queue size: %d", self.queue.qsize())
+                logger.info("Queue size: %d", self.queue.qsize())
                 # TODO: we may want to add more
 
             # Push the frame to the queue
             if self.can_drop_frames and self.count % (self.queue.qsize() / self.base_size + 1) != 0:
-                logging.debug("Dropped frame with timestamp %f and playback time %f", timestamp, playback_time)
+                logger.debug("Dropped frame with timestamp %f and playback time %f", timestamp, playback_time)
             else:
-                logging.debug("Produced frame with timestamp %f and playback time %f", timestamp, playback_time)
+                logger.debug("Produced frame with timestamp %f and playback time %f", timestamp, playback_time)
                 self.queue.put(FrameInfo(True, timestamp, playback_time, frame), block=True)
 
             # Limit frame rate
@@ -135,7 +138,7 @@ class FrameReader(threading.Thread):
                 if current_monotonic_time < target_time:
                     wait_for = target_time - current_monotonic_time
                     time.sleep(wait_for)
-                    logging.debug("Waited for %f seconds.", wait_for)
+                    logger.debug("Waited for %f seconds.", wait_for)
 
 class CameraFrameReader(FrameReader):
 
