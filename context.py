@@ -61,8 +61,7 @@ class FrameAnalysis:
 
     def do_table_tracking(self):
         self.tic("table tracking")
-        self.table_tracker.track_table(self.frame)
-        self.table_corners = self.table_tracker.table_points
+        self.table_corners = self.table_tracker.track_table(self.frame)
         self.toc("table tracking")
         self.tic("table warping")
         warping_proj = numpy.dot(rectangle_to_region(self.table_corners), pixels_to_rectangle(*self.frame_settings.table_frame_size))

@@ -203,3 +203,5 @@ class TableTracker:
         # frame; this way the garbage collector is able to deallocate
         # old frames
         self.prev = None
+
+        return self.table_points
