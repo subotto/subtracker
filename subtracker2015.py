@@ -28,7 +28,9 @@ def feed_frames(frame_reader, ctx, panel):
         update_display = True
         if update_display:
             while True:
-                c = cv2.waitKey()
+                #logging.debug("Before waitKey()")
+                c = cv2.waitKey(1)
+                #logging.debug("After waitKey() = %d", c)
                 if c < 0:
                     break
                 c &= 0xff
@@ -97,11 +99,18 @@ def main():
     frame_reader.start()
 
     # Do the actual work
-    feed_frames(frame_reader, ctx, panel)
+    try:
+        feed_frames(frame_reader, ctx, panel)
+    except KeyboardInterrupt:
+        logging.info("Exit requested")
 
     # When finishing, wait for the reader thread to terminate
-    # gracefully
+    # gracefully and consume left frames
     frame_reader.stop()
+    while True:
+        if frame_reader.get(block=False) is None:
+            break
+    frame_reader.join()
 
 if __name__ == '__main__':
     main()

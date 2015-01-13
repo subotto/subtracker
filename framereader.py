@@ -7,6 +7,7 @@ import cv
 import cv2
 import Queue
 import collections
+import logging
 
 from monotonic_time import monotonic_time
 
@@ -39,14 +40,17 @@ class FrameReader(threading.Thread):
         self.rate_limited = False
         self.can_drop_frames = False
 
-    def get(self):
-        frame_info = self.queue.get(block=True)
-        self.queue.task_done()
+    def get(self, block=True):
+        try:
+            frame_info = self.queue.get(block=block)
+            self.queue.task_done()
+            logging.debug("Frame retrieved")
+        except Queue.Empty:
+            frame_info = None
         return frame_info
 
     def stop(self):
         self.running = False
-        self.join()
 
     def run(self):
         first_timestamp = None
@@ -92,7 +96,8 @@ class FrameReader(threading.Thread):
             # TODO: implement statistics
 
             # Push the frame to the queue
-            self.queue.put(FrameInfo(True, timestamp, playback_time, frame))
+            logging.info("Produced frame with timestamp %f and playback time %f", timestamp, playback_time)
+            self.queue.put(FrameInfo(True, timestamp, playback_time, frame), block=True)
 
 class CameraFrameReader(FrameReader):
 
@@ -117,3 +122,6 @@ class FileFrameReader(FrameReader):
         self.cap = cv2.VideoCapture(filename)
         self.rate_limited = simulate_live
         self.can_drop_frames = simulate_live
+
+        if not simulate_live:
+            self.queue = Queue.Queue(1)

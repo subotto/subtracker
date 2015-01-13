@@ -62,13 +62,15 @@ class FrameAnalysis:
         else:
             line += ",,"
         # FIXME: decide how bars are to be enumerated
-        for side in [0, 1]:
-            for bar in xrange(BARS):
-                line += ",%.5f,%.5f" % (self.bars_pos[side][bar][0], self.bars_pos[side][bar][1])
+        #for side in [0, 1]:
+        #    for bar in xrange(BARS):
+        #        line += ",%.5f,%.5f" % (self.bars_pos[side][bar][0], self.bars_pos[side][bar][1])
         line += '\n'
 
         # Record finishing of processing of this frame
         self.toc("lifetime")
+
+        return line
 
     def tic(self, name):
         assert name not in self.timings
@@ -107,8 +109,8 @@ class SubtrackerContext:
         #logging.debug(repr((frame_analysis.frame_num, frame_analysis.timestamp)))
         spots = [Spot(point, weight) for point, weight in []]
         layer = Layer(spots, frame_analysis.frame_num, frame_analysis.timestamp)
-        ready_frame_num, ready_position = self.spots_tracker.push_back_and_get_info(layer)
-        if ready_frame_num is not None:
+        ready_info = self.spots_tracker.push_back_and_get_info(layer)
+        for ready_frame_num, ready_position in ready_info:
             ready_frame_analysis = self.tracking_frames.popleft()
             assert ready_frame_analysis.frame_num == ready_frame_num
             ready_frame_analysis.ball_pos = ready_position
@@ -120,7 +122,7 @@ class SubtrackerContext:
     def get_processed_frame(self):
         try:
             frame_analysis = self.ready_frames.get(block=False)
-            self.queue.task_done()
+            self.ready_frames.task_done()
             return frame_analysis
         except Queue.Empty:
             return None
