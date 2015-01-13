@@ -6,6 +6,7 @@ import collections
 import logging
 import cv2
 import cv
+import numpy
 
 from monotonic_time import monotonic_time
 
@@ -63,9 +64,10 @@ class FrameAnalysis:
         self.table_corners = self.table_tracker.track_table(self.frame)
         self.toc("table tracking")
         self.tic("table warping")
-        #logger.info("%r", (self.frame))
+        warping_proj = numpy.dot(rectangle_to_region(self.table_corners), pixels_to_rectangle(*self.frame_settings.table_frame_size))
+        #logger.info("\n%r\n%r", self.table_corners, warping_proj)
         self.table_frame = cv2.warpPerspective(self.frame,
-                                               rectangle_to_region(self.table_corners) * pixels_to_rectangle(*self.frame_settings.table_frame_size),
+                                               warping_proj,
                                                self.frame_settings.table_frame_size,
                                                flags=cv2.INTER_LINEAR | cv2.WARP_INVERSE_MAP,
                                                borderMode=cv2.BORDER_REPLICATE)
