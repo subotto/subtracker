@@ -5,13 +5,13 @@ import sys
 import cv2
 import logging
 
-#from control import ControlPanel
+from control import ControlPanel
 from context import SubtrackerContext
 from framereader import CameraFrameReader, FileFrameReader
 
 
 # Mock implementation
-class ControlPanel():
+class MockControlPanel():
 
     def on_key_pressed(self, c):
         pass
@@ -103,6 +103,8 @@ def main():
         feed_frames(frame_reader, ctx, panel)
     except KeyboardInterrupt:
         logging.info("Exit requested")
+    except:
+        logging.info("Exit because of exception", exc_info=True)
 
     # When finishing, wait for the reader thread to terminate
     # gracefully and consume left frames
