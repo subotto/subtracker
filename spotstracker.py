@@ -12,7 +12,7 @@ Then feed the frame to the SpotsTracker using SpotsTracker.push_back_and_get_inf
 
 import collections
 import itertools
-import cv2
+from numpy import linalg
 
 
 class SpotsTrackerSettings:
@@ -168,7 +168,7 @@ class SpotsTracker:
             if time == 0.0:
                 raise Exception("Different layers have the same timestamp")
             
-            distance = cv2.norm(start.point - end.point)
+            distance = linalg.norm(start.point - end.point)
             if distance > self.settings.max_speed * time:
                 return None
             if distance > self.settings.max_unseen_distance:
