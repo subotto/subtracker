@@ -41,7 +41,7 @@ class TableTracker:
         self.settings = settings
         self.controls = controls
         
-        self.optical_flow_points = None
+        self.lk_track_points = None
         if prev_table_tracker is not None:
             self.prev=prev_table_tracker
             self.ref_kp = self.prev.ref_kp
@@ -49,8 +49,11 @@ class TableTracker:
             self.ref_image= self.prev.ref_image
             self.ref_mask= self.prev.ref_mask
             self.ref_lk_mask= self.prev.ref_lk_mask
+            self.ref_table_points = self.prev.ref_table_points
+            self.lk_assest_points=self.prev.lk_assest_points
         else:
             self.prev=None
+            self.lk_assest_points=None
             self.load_ref()
     
     def get_feature_detector(self, detector_name):
@@ -135,7 +138,7 @@ class TableTracker:
         lk_params = dict( winSize  = (15, 15),
                   maxLevel = 2,
                   criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
-        p0 = numpy.array(self.prev.optical_flow_points)
+        p0 = numpy.array(self.prev.lk_track_points)
         # Flow p0 forward
         p1, st, err = cv2.calcOpticalFlowPyrLK(self.prev.frame, self.frame, p0, None, **lk_params)
         # Flow p1 backward to check if it coincides with p0
@@ -145,10 +148,10 @@ class TableTracker:
             if numpy.linalg.norm(p0[k] - p0r[k]) < 1:
                 p0_good.append(p0[k])
                 p1_good.append(p1[k])
-        self.optical_flow_points=p1_good
+        self.lk_track_points=p1_good
         # DEBUG
         debug = self.frame.copy()
-        for p in self.optical_flow_points:
+        for p in self.lk_track_points:
             cv2.circle(debug, tuple(p[0]), 2, (255,0,0), -1)
         self.controls.show("lk points", debug/256.0)
         # Compute homography using good points
@@ -157,8 +160,39 @@ class TableTracker:
         return table_points
     
     def lk_assest(self):
-        pass
-    
+        lk_params = dict( winSize  = (15, 15),
+                  maxLevel = 2,
+                  criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
+
+        if self.lk_assest_points is None or len(self.lk_assest_points) < 10:
+            self.lk_assest_points = self.get_lk_points(self.ref_image, self.ref_table_points, self.lk_assest_points)
+
+        detection_settings = self.settings.detection_settings 
+        H=cv2.getPerspectiveTransform(detection_settings.ref_table_points.reshape(-1,1,2), self.prev.table_points)
+        warped_ref_image = cv2.warpPerspective(self.ref_image, H, (320,240))
+        self.controls.show("warped", warped_ref_image/256.0)
+        p0 = cv2.perspectiveTransform(self.lk_assest_points, H)
+        
+        # Flow p0 forward
+        p1, st, err = cv2.calcOpticalFlowPyrLK(warped_ref_image, self.frame, p0, None, **lk_params)
+        # Flow p1 backward to check if it coincides with p0
+        p0r, st, err = cv2.calcOpticalFlowPyrLK(self.frame, warped_ref_image, p1, None, **lk_params)
+        p0_good, p1_good = [], []
+        for k in range(len(p0)):
+            if numpy.linalg.norm(p0[k] - p0r[k]) < 1:
+                p0_good.append(p0[k])
+                p1_good.append(p1[k])
+        self.lk_assest_points=cv2.perspectiveTransform(numpy.array(p1_good), numpy.linalg.inv(H))
+        # DEBUG
+        debug = self.frame.copy()
+        for p in self.lk_assest_points:
+            cv2.circle(debug, tuple(p[0]), 2, (255,0,0), -1)
+        self.controls.show("lk assest points", debug/256.0)
+        # -----
+        H1, status = cv2.findHomography(self.lk_assest_points, numpy.array(p1_good),cv2.RANSAC, 2.0)
+        table_points = cv2.perspectiveTransform(self.ref_table_points.reshape(-1,1,2), H1)
+        return table_points
+        
     def track_table(self, frame):
         """Return the four corners of the table as a tuple, in the following order:
           * red defence;
@@ -179,7 +213,7 @@ class TableTracker:
         if self.prev is not None and self.prev.table_points is not None:
             lk_assest_table_points = self.lk_assest()
         lk_track_table_points = None
-        if self.prev is not None and self.prev.table_points is not None and self.prev.optical_flow_points is not None:
+        if self.prev is not None and self.prev.table_points is not None and self.prev.lk_track_points is not None:
             lk_track_table_points = self.lk_track()
         # ---- UPDATE ----
         trackVar = 0.5
@@ -190,8 +224,8 @@ class TableTracker:
         if lk_track_table_points is not None:
             self.table_points = lk_track_table_points + gain * (lk_assest_table_points - lk_track_table_points)
         # ---- RECOMPUTE LK POINTS ----
-        if self.optical_flow_points is None or len(self.optical_flow_points) < 10:
-            self.optical_flow_points = self.get_lk_points(self.frame, self.table_points, self.optical_flow_points)
+        if self.lk_track_points is None or len(self.lk_track_points) < 10:
+            self.lk_track_points = self.get_lk_points(self.frame, self.table_points, self.lk_track_points)   
         # ---- DEBUG ----
         debug_frame = frame.copy()
         cv2.polylines(debug_frame,[numpy.int32(self.table_points)],True,(0,255,0),3)
