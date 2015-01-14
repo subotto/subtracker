@@ -7,8 +7,7 @@ Find spots (relevant points) of a frame.
 
 USAGE
 Call SpotsFinder.find_spots giving in input a numpy 2D-array with the ballness of the frame.
-The output is a list of tuples (b,i,j) where b is the ballness and (i,j) are the coordinates of the pixel.
-The list in output is sorted by ballness (descending).
+The output is a list of Spot objects (see spotstracker.py) sorted by ballness (descending).
 """
 
 import numpy
