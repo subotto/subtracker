@@ -133,34 +133,63 @@ class TableTracker:
         mask = cv2.warpPerspective(self.ref_lk_mask, H, (320, 240))
         return cv2.goodFeaturesToTrack(img_gray, mask=mask, **feature_params)
 
-    def lk_assest(self, track=False):
+    def draw_frame_with_points(self, frame, points, title):
+        debug = frame.copy()
+        for p in points:
+            cv2.circle(debug, tuple(p[0]), 2, (255, 0, 0), -1)
+        self.controls.show(title, debug / 256.0)
+
+    def lk_track(self):
+        p0 = numpy.array(self.prev.lk_track_points)
+        begin_frame = self.prev.frame
+        end_frame = self.frame
+
+        begin_points, end_points = self.lk_flow(p0=p0, begin_frame=begin_frame, end_frame=end_frame)
+        self.lk_track_points = end_points
+
+        self.draw_frame_with_points(end_frame, end_points, "track points")
+
+        begin_ref = numpy.array(begin_points)
+        end_ref = numpy.array(end_points)
+        return self.project_along(begin_ref, end_ref, self.prev.table_points.reshape(-1, 1, 2))
+
+    def lk_assest(self):
+        # If we have to few assest points, we recompute them (FIXME:
+        # magic constants)
+        if self.lk_assest_points is None or len(self.lk_assest_points) < 10:
+            self.lk_assest_points = self.get_lk_points(self.ref_image, self.ref_table_points, self.lk_assest_points)
+
+        # Warp reference frame to put in the same position as the
+        # previously known corner points (FIXME: magic constants)
+        detection_settings = self.settings.detection_settings
+        H = cv2.getPerspectiveTransform(detection_settings.ref_table_points.reshape(-1, 1, 2), self.prev.table_points)
+        warped_ref_image = cv2.warpPerspective(self.ref_image, H, (320, 240))
+        self.controls.show("warped", warped_ref_image / 256.0)
+        p0 = cv2.perspectiveTransform(self.lk_assest_points, H)
+
+        begin_frame = warped_ref_image
+        end_frame = self.frame
+
+        begin_points, end_points = self.lk_flow(p0=p0, begin_frame=begin_frame, end_frame=end_frame)
+        self.lk_assest_points = cv2.perspectiveTransform(numpy.array(end_points), numpy.linalg.inv(H))
+
+        self.draw_frame_with_points(end_frame, end_points, "assest points")
+
+        begin_ref = self.lk_assest_points
+        end_ref = numpy.array(end_points)
+        return self.project_along(begin_ref, end_ref, self.ref_table_points.reshape(-1, 1, 2))
+
+    def lk_flow(self, p0, begin_frame, end_frame):
+        """Run LK flow from begin_frame to end_frame along points in p0; also,
+        selects the points that are considered to be more trustworthy
+        for this flow. Returns such points both in the beginning end
+        ending reference.
+
+        """
         # FIXME: take this from settings
         lk_params = {"winSize": (15, 15),
                      "maxLevel": 2,
                      "criteria": (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03)}
-
-        if not track:
-            # If we have to few assest points, we recompute them
-            # (FIXME: magic constants)
-            if self.lk_assest_points is None or len(self.lk_assest_points) < 10:
-                self.lk_assest_points = self.get_lk_points(self.ref_image, self.ref_table_points, self.lk_assest_points)
-
-            # Warp reference frame to put in the same position as the
-            # previously known corner points (FIXME: magic constants)
-            detection_settings = self.settings.detection_settings
-            H = cv2.getPerspectiveTransform(detection_settings.ref_table_points.reshape(-1, 1, 2), self.prev.table_points)
-            warped_ref_image = cv2.warpPerspective(self.ref_image, H, (320, 240))
-            self.controls.show("warped", warped_ref_image / 256.0)
-            p0 = cv2.perspectiveTransform(self.lk_assest_points, H)
-
-        else:
-            p0 = numpy.array(self.prev.lk_track_points)
-
-        if not track:
-            begin_frame = warped_ref_image
-        else:
-            begin_frame = self.prev.frame
-        end_frame = self.frame
 
         # Flow assest points forward; then flow them backward, so we
         # can check whether they match
@@ -176,34 +205,17 @@ class TableTracker:
                 p0_good.append(p0[k])
                 p1_good.append(p1[k])
 
-        if not track:
-            computed_points = cv2.perspectiveTransform(numpy.array(p1_good), numpy.linalg.inv(H))
-            self.lk_assest_points = computed_points
-        else:
-            computed_points = p1_good
-            self.lk_track_points = computed_points
+        return p0_good, p1_good
 
-        # DEBUG
-        debug = self.frame.copy()
-        for p in computed_points:
-            cv2.circle(debug, tuple(p[0]), 2, (255, 0, 0), -1)
-        self.controls.show("lk %s points" % ("track" if track else "assest"), debug / 256.0)
+    def project_along(self, begin_ref, end_ref, points):
+        """Project the points in points along the homography that is obtained
+        as the RANSAC-best one that projects the swarm begin_ref to
+        end_ref.
 
-        if not track:
-            begin_homography = self.lk_assest_points
-            end_homography = numpy.array(p1_good)
-            begin_table_points = self.ref_table_points
-        else:
-            begin_homography = numpy.array(p0_good)
-            end_homography = numpy.array(p1_good)
-            begin_table_points = self.prev.table_points
-
-        # FIXME: later we need to reconstruct the transformation, so
-        # we should better not throw it out
-        H1, status = cv2.findHomography(begin_homography, end_homography, cv2.RANSAC, 2.0)
-        table_points = cv2.perspectiveTransform(begin_table_points.reshape(-1, 1, 2), H1)
-
-        return table_points
+        """
+        # FIXME: magic constants and unchecked status
+        H1, status = cv2.findHomography(begin_ref, end_ref, cv2.RANSAC, 2.0)
+        return cv2.perspectiveTransform(points, H1)
 
     def track_table(self, frame):
         """Return the four corners of the table as a tuple, in the following order:
@@ -238,7 +250,7 @@ class TableTracker:
             if self.prev.table_points is not None:
                 lk_assest_table_points = self.lk_assest()
                 if self.prev.lk_track_points is not None:
-                    lk_track_table_points = self.lk_assest(track=True)
+                    lk_track_table_points = self.lk_track()
 
         # If we have results from both "assest" and "track", then we
         # blend them together, estimating their variance (FIXME: magic
