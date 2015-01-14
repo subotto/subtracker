@@ -18,6 +18,8 @@ from transformation import pixels_to_rectangle, rectangle_to_region
 logger = logging.getLogger("context")
 timings_logger = logging.getLogger("timings")
 
+from tablell import analyze_table_background
+
 class FrameSettings:
 
     def __init__(self, controls):
@@ -78,6 +80,8 @@ class FrameAnalysis:
     def do_compute_ball_density(self):
         self.tic("compute ball density")
         self.table_bg_estimation = estimate_table_background(self.prev_table_bg_estimation, self.table_frame, self.frame_settings.table_bg_settings, self.controls.subpanel("tablebg"))
+        self.table_bg_analysis = analyze_table_background(self.table_bg_estimation, self.table_frame, self.controls.subpanel("tablebg"))
+
         # TODO
         self.ball_density = None
         self.toc("compute ball density")
