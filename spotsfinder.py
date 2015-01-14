@@ -12,6 +12,7 @@ The list in output is sorted by ballness (descending).
 """
 
 import numpy
+from spotstracker import Spot
 
 
 class SpotsFinderSettings:
@@ -26,7 +27,7 @@ class SpotsFinder:
     def __init__(self, settings=SpotsFinderSettings()):
         self.settings = settings
     
-    def find_spots(self, ballness):
+    def find_spots(self, ballness, frame_num=None, time=None):
         """
         Given the ballness of all the pixel of a frame, returns the best pixels.
         """
@@ -49,8 +50,12 @@ class SpotsFinder:
                         local_maxima.append((b,i,j))
         
         local_maxima.sort(reverse=True)
-        return local_maxima[:self.settings.num_spots]
-
+        best_pixels = local_maxima[:self.settings.num_spots]
+        
+        # FIXME: do the right change of reference (pixels -> meters)
+        best_spots = [Spot(point=numpy.array((float(i)/320, float(j)/240)), weight=b, frame_num=frame_num, time=time) for (b,i,j) in best_pixels]
+        
+        return best_spots
 
 
 
