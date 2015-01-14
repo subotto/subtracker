@@ -210,7 +210,7 @@ class WindowDisplay:
         self.namespace = namespace
         self.window = window
 
-        self.name = " ".join(namespace + (window.name,))
+        self.name = "/".join(namespace + (window.name,))
 
         self.last_image = None
         self.contrast_pos = WindowDisplay.initial_pos
