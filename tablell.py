@@ -59,8 +59,9 @@ def analyze_table_background(bg_estimation, warped_frame, controls):
 
     controls.show("ball_ll", analysis.ball_ll)
 
-    analysis.ballness = analysis.ball_ll - analysis.background_ll
+    combined_ll = analysis.ball_ll - analysis.background_ll
 
+    analysis.ballness = cv2.blur(combined_ll, (3,3))
     controls.show("ballness", analysis.ballness)
 
     return analysis

@@ -280,6 +280,7 @@ class ControlPanel:
     # them!
     key_map = {
         "h": ("help", ),
+        "f": ("show", "frame"),
         "t": ("show", "table tracking"),
         "g": ("show", "tablebg")
     }
@@ -294,11 +295,14 @@ class ControlPanel:
         getattr(self, action[0])(*action[1:])
 
     def create_frame_controls(self):
-        status = self.controls.subpanel("frame analysis").create_status()
+        subpanel = self.controls.subpanel("frame analysis")
+        status = subpanel.create_status()
+        status.window("frame")
         self.display.child("frame analysis").read(status)
         return status
 
     def on_new_analysis(self, analysis):
+        analysis.controls.show("frame", analysis.frame)
         self.display.child("frame analysis").update(analysis.controls)
 
     def unbound_key(self, key):
