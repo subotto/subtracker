@@ -38,6 +38,21 @@ class TableTrackingSettings:
         self.following_settings = TableFollowingSettings()
 
 
+def get_feature_detector(detector_name):
+    if detector_name == 'sift':
+        return cv2.SIFT(), cv2.NORM_L2
+    elif detector_name == 'surf':
+        return cv2.SURF(800), cv2.NORM_L2
+    elif detector_name == 'usurf':
+        return cv2.SURF(800, upright=True), cv2.NORM_L2
+    elif detector_name == 'orb':
+        return cv2.ORB(400), cv2.NORM_HAMMING
+    elif detector_name == 'akaze':
+        return cv2.AKAZE(), cv2.NORM_HAMMING
+    elif detector_name == 'brisk':
+        return cv2.BRISK(), cv2.NORM_HAMMING
+
+
 class TableTracker:
 
     def __init__(self, prev_table_tracker, settings, controls):
@@ -59,42 +74,19 @@ class TableTracker:
             self.lk_assest_points = None
             self.load_ref()
 
-    def get_feature_detector(self, detector_name):
-        detector = None
-        norm = None
-        if detector_name == 'sift':
-            detector = cv2.SIFT()
-            norm = cv2.NORM_L2
-        elif detector_name == 'surf':
-            detector = cv2.SURF(800)
-            norm = cv2.NORM_L2
-        elif detector_name == 'usurf':
-            detector = cv2.SURF(800, upright=True)
-            norm = cv2.NORM_L2
-        elif detector_name == 'orb':
-            detector = cv2.ORB(400)
-            norm = cv2.NORM_HAMMING
-        elif detector_name == 'akaze':
-            detector = cv2.AKAZE()
-            norm = cv2.NORM_HAMMING
-        elif detector_name == 'brisk':
-            detector = cv2.BRISK()
-            norm = cv2.NORM_HAMMING
-        return detector, norm
-
     def load_ref(self):
+        """Load reference images and compute features on them.
+
+        """
         detection_settings = self.settings.detection_settings
         self.ref_image = cv2.imread(detection_settings.ref_image_path)
         self.ref_mask = cv2.imread(detection_settings.ref_mask_path)
-        self.ref_lk_mask = cv2.imread(
-            detection_settings.ref_lk_mask_path, cv2.IMREAD_GRAYSCALE)
+        self.ref_lk_mask = cv2.imread(detection_settings.ref_lk_mask_path, cv2.IMREAD_GRAYSCALE)
 
         self.ref_table_points = detection_settings.ref_table_points
 
-        detector, norm = self.get_feature_detector(
-            detection_settings.detector_name)
-        self.ref_kp, self.ref_des = detector.detectAndCompute(
-            self.ref_image, self.ref_mask)
+        detector, norm = get_feature_detector(detection_settings.detector_name)
+        self.ref_kp, self.ref_des = detector.detectAndCompute(self.ref_image, self.ref_mask)
 
     def filter_matches(self, kp1, kp2, matches, ratio=0.75):
         mkp1, mkp2 = [], []
@@ -110,28 +102,26 @@ class TableTracker:
 
     def match_features(self):
         detection_settings = self.settings.detection_settings
-        detector, norm = self.get_feature_detector(
-            detection_settings.detector_name)
+        detector, norm = get_feature_detector(detection_settings.detector_name)
 
         kp, des = detector.detectAndCompute(self.frame, None)
 
         bf = cv2.BFMatcher(norm)
 
         matches = bf.knnMatch(self.ref_des, trainDescriptors=des, k=2)
-        p1, p2, kp_pairs = self.filter_matches(
-            self.ref_kp, kp, matches, ratio=detection_settings.match_filter_ratio)
-        M, mask = cv2.findHomography(
-            p1, p2, cv2.RANSAC, detection_settings.match_ransac_threshold)
-        table_points = cv2.perspectiveTransform(
-            detection_settings.ref_table_points.reshape(-1, 1, 2), M).reshape(-1, 2)
+        p1, p2, kp_pairs = self.filter_matches(self.ref_kp, kp, matches, ratio=detection_settings.match_filter_ratio)
+        M, mask = cv2.findHomography(p1, p2, cv2.RANSAC, detection_settings.match_ransac_threshold)
+        table_points = cv2.perspectiveTransform(detection_settings.ref_table_points.reshape(-1, 1, 2), M).reshape(-1, 2)
+
         return table_points
 
     def get_lk_points(self, img, table_points, old_lk_points):
-        # FIXME use old_lk_points
-        feature_params = dict(maxCorners=1000,
-                              qualityLevel=0.01,
-                              minDistance=8,
-                              blockSize=19)
+        # FIXME use old_lk_points (for what? What is supposed to be
+        # there? What this method is supposed to compute?)
+        feature_params = {maxCorners: 1000,
+                          qualityLevel: 0.01,
+                          minDistance: 8,
+                          blockSize: 19}
 
         if table_points is None:
             return None
@@ -174,44 +164,50 @@ class TableTracker:
         return table_points
 
     def lk_assest(self):
-        lk_params = dict(winSize=(15, 15),
-                         maxLevel = 2,
-                         criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
+        # FIXME: take this from settings
+        lk_params = { winSize: (15, 15),
+                      maxLevel: 2,
+                      criteria: (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03)}
 
+        # If we have to few assest points, recompute them (FIXME:
+        # magic constants)
         if self.lk_assest_points is None or len(self.lk_assest_points) < 10:
-            self.lk_assest_points = self.get_lk_points(
-                self.ref_image, self.ref_table_points, self.lk_assest_points)
+            self.lk_assest_points = self.get_lk_points(self.ref_image, self.ref_table_points, self.lk_assest_points)
 
+        # Warp reference frame to put in the same position as the
+        # previously known corner points (FIXME: magic constants)
         detection_settings = self.settings.detection_settings
-        H = cv2.getPerspectiveTransform(
-            detection_settings.ref_table_points.reshape(-1, 1, 2), self.prev.table_points)
+        H = cv2.getPerspectiveTransform(detection_settings.ref_table_points.reshape(-1, 1, 2), self.prev.table_points)
         warped_ref_image = cv2.warpPerspective(self.ref_image, H, (320, 240))
         self.controls.show("warped", warped_ref_image / 256.0)
         p0 = cv2.perspectiveTransform(self.lk_assest_points, H)
 
-        # Flow p0 forward
-        p1, st, err = cv2.calcOpticalFlowPyrLK(
-            warped_ref_image, self.frame, p0, None, **lk_params)
-        # Flow p1 backward to check if it coincides with p0
-        p0r, st, err = cv2.calcOpticalFlowPyrLK(
-            self.frame, warped_ref_image, p1, None, **lk_params)
+        # Flow assest points forward; then flow them backward, so we
+        # can check whether they match
+        p1, st, err = cv2.calcOpticalFlowPyrLK(warped_ref_image, self.frame, p0, None, **lk_params)
+        p0r, st, err = cv2.calcOpticalFlowPyrLK(self.frame, warped_ref_image, p1, None, **lk_params)
+
+        # Retain points only if backflow was able to bring them in the
+        # original place (except a certain error, which, BTW, is a
+        # FIXME: magic constants)
         p0_good, p1_good = [], []
         for k in range(len(p0)):
-            if numpy.linalg.norm(p0[k] - p0r[k]) < 1:
+            if numpy.linalg.norm(p0[k] - p0r[k]) < 1.0:
                 p0_good.append(p0[k])
                 p1_good.append(p1[k])
-        self.lk_assest_points = cv2.perspectiveTransform(
-            numpy.array(p1_good), numpy.linalg.inv(H))
+        self.lk_assest_points = cv2.perspectiveTransform(numpy.array(p1_good), numpy.linalg.inv(H))
+
         # DEBUG
         debug = self.frame.copy()
         for p in self.lk_assest_points:
             cv2.circle(debug, tuple(p[0]), 2, (255, 0, 0), -1)
         self.controls.show("lk assest points", debug / 256.0)
-        # -----
-        H1, status = cv2.findHomography(
-            self.lk_assest_points, numpy.array(p1_good), cv2.RANSAC, 2.0)
-        table_points = cv2.perspectiveTransform(
-            self.ref_table_points.reshape(-1, 1, 2), H1)
+
+        # FIXME: later we need to reconstruct the transformation, so
+        # we should better not throw it out
+        H1, status = cv2.findHomography(self.lk_assest_points, numpy.array(p1_good), cv2.RANSAC, 2.0)
+        table_points = cv2.perspectiveTransform(self.ref_table_points.reshape(-1, 1, 2), H1)
+
         return table_points
 
     def track_table(self, frame):
@@ -227,15 +223,18 @@ class TableTracker:
         """
         self.frame = frame
         self.table_points = None
+
         # ---- COMPUTE NEW TALBLE POINTS -----
         if self.prev is None:
             self.table_points = self.match_features()
         lk_assest_table_points = None
+        # FIXME: why we check for self.prev is not None here?
         if self.prev is not None and self.prev.table_points is not None:
             lk_assest_table_points = self.lk_assest()
         lk_track_table_points = None
         if self.prev is not None and self.prev.table_points is not None and self.prev.lk_track_points is not None:
             lk_track_table_points = self.lk_track()
+
         # ---- UPDATE ----
         trackVar = 0.5
         assestVar = 0.5
@@ -245,10 +244,12 @@ class TableTracker:
         if lk_track_table_points is not None:
             self.table_points = lk_track_table_points + gain * \
                 (lk_assest_table_points - lk_track_table_points)
+
         # ---- RECOMPUTE LK POINTS ----
         if self.lk_track_points is None or len(self.lk_track_points) < 10:
             self.lk_track_points = self.get_lk_points(
                 self.frame, self.table_points, self.lk_track_points)
+
         # ---- DEBUG ----
         debug_frame = frame.copy()
         cv2.polylines(
