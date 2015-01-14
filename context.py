@@ -14,6 +14,7 @@ from tabletracker import TableTracker, TableTrackingSettings
 from spotstracker import SpotsTracker, Spot, Layer
 from tablebg import TableBackgroundEstimationSettings, estimate_table_background
 from transformation import pixels_to_rectangle, rectangle_to_region
+from spotsfinder import SpotsFinder, SpotsFinderSettings
 
 logger = logging.getLogger("context")
 timings_logger = logging.getLogger("timings")
@@ -25,6 +26,7 @@ class FrameSettings:
     def __init__(self, controls):
         self.table_tracking_settings = TableTrackingSettings()
         self.table_bg_settings = TableBackgroundEstimationSettings(controls.subpanel("tablebg"))
+        self.spots_finder_settings = SpotsFinderSettings()
 
         # FIXME: choose reasonable size
         self.table_frame_size = (300, 200)
@@ -47,6 +49,10 @@ class FrameAnalysis:
         self.prev_table_bg_estimation = prev_frame_analysis.table_bg_estimation if prev_frame_analysis is not None else None
         self.table_bg_estimation = None
 
+        # Spot finder
+        self.spots_finder = SpotsFinder(frame_settings.spots_finder_settings);
+
+        
         # Computed data
         self.table_transform = None
         self.table_frame = None
@@ -81,11 +87,13 @@ class FrameAnalysis:
         self.tic("compute ball density")
         self.table_bg_estimation = estimate_table_background(self.prev_table_bg_estimation, self.table_frame, self.frame_settings.table_bg_settings, self.controls.subpanel("tablebg"))
         self.table_bg_analysis = analyze_table_background(self.table_bg_estimation, self.table_frame, self.controls.subpanel("tablebg"))
-
-        # TODO
-        self.ball_density = None
+        # FIXME: the ball analysis is done in the analyze_table_background
+        self.ball_density = self.table_bg_analysis.ballness
         self.toc("compute ball density")
 
+    def find_spots(self):
+        self.spots = self.spots_finder.find_spots(self.ball_density)
+        
     def get_csv_line(self):
         line = "%.5f" % (self.playback_time)
         if self.ball_pos:
@@ -139,12 +147,13 @@ class SubtrackerContext:
         # TODO
         frame_analysis.do_table_tracking()
         frame_analysis.do_compute_ball_density()
+        frame_analysis.find_spots()
 
         # Pass the frame to the spots tracker
         # TODO
         self.tracking_frames.append(frame_analysis)
         #logger.debug(repr((frame_analysis.frame_num, frame_analysis.timestamp)))
-        spots = [Spot(point, weight) for point, weight in []]
+        spots = frame_analysis.spots
         layer = Layer(spots, frame_analysis.frame_num, frame_analysis.timestamp)
         ready_info = self.spots_tracker.push_back_and_get_info(layer)
         for ready_frame_num, ready_position in ready_info:

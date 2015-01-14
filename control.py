@@ -2,8 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import math
-import cv2
 import logging
+
+import numpy
+import cv2
 
 logger = logging.getLogger("control")
 
@@ -282,7 +284,8 @@ class ControlPanel:
         "h": ("help", ),
         "f": ("show", "frame"),
         "t": ("show", "table tracking"),
-        "g": ("show", "tablebg")
+        "g": ("show", "tablebg"),
+        "b": ("show", "ball")
     }
 
     def __init__(self):
@@ -298,11 +301,18 @@ class ControlPanel:
         subpanel = self.controls.subpanel("frame analysis")
         status = subpanel.create_status()
         status.window("frame")
+        status.window("ball")
         self.display.child("frame analysis").read(status)
         return status
 
     def on_new_analysis(self, analysis):
         analysis.controls.show("frame", analysis.frame)
+
+        ball = numpy.zeros_like(analysis.frame)
+        if analysis.ball_pos is not None:
+            cv2.circle(ball, (160 + ball_pos[0]/100, 120 + ball_pos[1]/100), 4, (100, 100, 100))
+        analysis.controls.show("ball", ball)
+        
         self.display.child("frame analysis").update(analysis.controls)
 
     def unbound_key(self, key):
