@@ -201,8 +201,8 @@ class WindowDisplay:
     The visualization of a window with OpenCV.
     """
 
-    initial_pos = 300
-    max_pos = 600
+    initial_pos = 500
+    max_pos = 1000
 
     def __init__(self, namespace, window):
         self.namespace = namespace
@@ -248,7 +248,7 @@ class WindowDisplay:
 
     def trackbar_pos_to_brightness(self, pos):
         diff = pos - WindowDisplay.initial_pos
-        return math.copysign(math.pow(10, abs(diff/100.0) - 1.0), diff)
+        return math.copysign(math.pow(10, abs(diff/100.0) - 3.0), diff)
 
     def process_trackbar_pos(self):
         self.brightness = self.trackbar_pos_to_brightness(self.brightness_pos)
