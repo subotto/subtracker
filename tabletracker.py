@@ -118,10 +118,10 @@ class TableTracker:
     def get_lk_points(self, img, table_points, old_lk_points):
         # FIXME use old_lk_points (for what? What is supposed to be
         # there? What this method is supposed to compute?)
-        feature_params = {maxCorners: 1000,
-                          qualityLevel: 0.01,
-                          minDistance: 8,
-                          blockSize: 19}
+        feature_params = {"maxCorners": 1000,
+                          "qualityLevel": 0.01,
+                          "minDistance": 8,
+                          "blockSize": 19}
 
         if table_points is None:
             return None
@@ -135,9 +135,11 @@ class TableTracker:
         return cv2.goodFeaturesToTrack(img_gray, mask=mask, **feature_params)
 
     def lk_track(self):
-        lk_params = dict(winSize=(15, 15),
-                         maxLevel = 2,
-                         criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
+        # FIXME: take this from settings
+        lk_params = {"winSize": (15, 15),
+                     "maxLevel": 2,
+                     "criteria": (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03)}
+
         p0 = numpy.array(self.prev.lk_track_points)
         # Flow p0 forward
         p1, st, err = cv2.calcOpticalFlowPyrLK(
@@ -165,11 +167,11 @@ class TableTracker:
 
     def lk_assest(self):
         # FIXME: take this from settings
-        lk_params = { winSize: (15, 15),
-                      maxLevel: 2,
-                      criteria: (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03)}
+        lk_params = {"winSize": (15, 15),
+                     "maxLevel": 2,
+                     "criteria": (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03)}
 
-        # If we have to few assest points, recompute them (FIXME:
+        # If we have to few assest points, we recompute them (FIXME:
         # magic constants)
         if self.lk_assest_points is None or len(self.lk_assest_points) < 10:
             self.lk_assest_points = self.get_lk_points(self.ref_image, self.ref_table_points, self.lk_assest_points)
@@ -224,39 +226,51 @@ class TableTracker:
         self.frame = frame
         self.table_points = None
 
-        # ---- COMPUTE NEW TALBLE POINTS -----
+        lk_assest_table_points = None
+        lk_track_table_points = None
+
+        # On first frame, we have nothing better than feature matching
+        # to initialize everything.
         if self.prev is None:
             self.table_points = self.match_features()
-        lk_assest_table_points = None
-        # FIXME: why we check for self.prev is not None here?
-        if self.prev is not None and self.prev.table_points is not None:
-            lk_assest_table_points = self.lk_assest()
-        lk_track_table_points = None
-        if self.prev is not None and self.prev.table_points is not None and self.prev.lk_track_points is not None:
-            lk_track_table_points = self.lk_track()
 
-        # ---- UPDATE ----
-        trackVar = 0.5
-        assestVar = 0.5
-        gain = trackVar / (trackVar + assestVar)
-        lk_assest_table_points = lk_track_table_points if lk_assest_table_points is None else lk_assest_table_points
-        lk_track_table_points = lk_assest_table_points if lk_track_table_points is None else lk_track_table_points
-        if lk_track_table_points is not None:
-            self.table_points = lk_track_table_points + gain * \
-                (lk_assest_table_points - lk_track_table_points)
+        # Otherwise we try to evolve the previously known situation;
+        # two different measurements are performed: the first
+        # ("assest") implements an optical flow from a copy of the
+        # reference frame warped according to the previous frame to
+        # the current frame; the second ("track") implements an
+        # optical flow from the previous frame to the current one.
+        else:
+            # FIXME: how can the following if fail?
+            if self.prev.table_points is not None:
+                lk_assest_table_points = self.lk_assest()
+                if self.prev.lk_track_points is not None:
+                    lk_track_table_points = self.lk_track()
 
-        # ---- RECOMPUTE LK POINTS ----
+        # If we have results from both "assest" and "track", then we
+        # blend them together, estimating their variance (FIXME: magic
+        # constants)
+        if lk_track_table_points is not None or lk_track_table_points is not None:
+            if lk_assest_table_points is None:
+                self.table_points = lk_track_table_points
+            elif lk_track_table_points is None:
+                self.table_points = lk_assest_table_points
+            else:
+                trackVar = 0.5
+                assestVar = 0.5
+                gain = trackVar / (trackVar + assestVar)
+                self.table_points = lk_track_table_points + gain * \
+                                    (lk_assest_table_points - lk_track_table_points)
+
+        # If we have to few trakc points, we recompute them (FIXME:
+        # magic constants)
         if self.lk_track_points is None or len(self.lk_track_points) < 10:
-            self.lk_track_points = self.get_lk_points(
-                self.frame, self.table_points, self.lk_track_points)
+            self.lk_track_points = self.get_lk_points(self.frame, self.table_points, self.lk_track_points)
 
-        # ---- DEBUG ----
+        # Debug feedback
         debug_frame = frame.copy()
         cv2.polylines(
             debug_frame, [numpy.int32(self.table_points)], True, (0, 0, 255), 1)
-        # test controls are working
-        # coeff = self.controls.trackbar("coeff", initial_value = 0.02,
-        # min_value = 0.01, max_value = 1.0).value
         self.controls.show("table points", debug_frame / 256.0)
 
         # After the computation, forget the reference to previous
