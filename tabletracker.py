@@ -33,12 +33,16 @@ class TableFollowingSettings:
 
 class TableTrackingSettings:
 
-    def __init__(self):
+    def __init__(self, undistort_camera, camera_matrix, dist_coeffs):
         self.detect_every_frames = 120
         self.near_transform_alpha = 0.25
 
         self.detection_settings = TableDetectionSettings()
         self.following_settings = TableFollowingSettings()
+
+        self.undistort_camera = undistort_camera
+        self.camera_matrix = camera_matrix
+        self.dist_coeffs = dist_coeffs
 
 
 def get_feature_detector(detector_name):
@@ -85,6 +89,11 @@ class TableTracker:
         self.ref_image = cv2.imread(detection_settings.ref_image_path)
         self.ref_mask = cv2.imread(detection_settings.ref_mask_path)
         self.ref_lk_mask = cv2.imread(detection_settings.ref_lk_mask_path, cv2.IMREAD_GRAYSCALE)
+
+        if self.settings.undistort_camera:
+            self.ref_image = cv2.undistort(self.ref_image, self.settings.camera_matrix, self.settings.dist_coeffs)
+            self.ref_mask = cv2.undistort(self.ref_mask, self.settings.camera_matrix, self.settings.dist_coeffs)
+            self.ref_lk_mask = cv2.undistort(self.ref_lk_mask, self.settings.camera_matrix, self.settings.dist_coeffs)
 
         self.ref_table_points = detection_settings.ref_table_points
 

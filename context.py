@@ -24,7 +24,13 @@ from tablell import analyze_table_background
 class FrameSettings:
 
     def __init__(self, controls):
-        self.table_tracking_settings = TableTrackingSettings()
+        self.undistort_camera = False
+        self.camera_matrix = 0.5 * numpy.array([[570.90904176, 0.0, 323.13943952],
+                                                [0.0, 571.35644421, 235.63979261],
+                                                [0.0, 0.0, 2.0]])
+        self.dist_coeffs = numpy.array([-0.11404253, -1.12713651, 0.01861635, 0.01261057, 4.57405365])
+
+        self.table_tracking_settings = TableTrackingSettings(self.undistort_camera, self.camera_matrix, self.dist_coeffs)
         self.table_bg_settings = TableBackgroundEstimationSettings(controls.subpanel("tablebg"))
         self.spots_finder_settings = SpotsFinderSettings()
 
@@ -52,7 +58,6 @@ class FrameAnalysis:
         # Spot finder
         self.spots_finder = SpotsFinder(frame_settings.spots_finder_settings);
 
-        
         # Computed data
         self.table_transform = None
         self.table_frame = None
@@ -67,6 +72,13 @@ class FrameAnalysis:
 
         # Record beginning of processing of this frame
         self.tic("lifetime")
+
+    def do_undistort_frame(self):
+        if self.frame_settings.undistort_camera:
+            self.tic("undistort frame")
+            self.frame = cv2.undistort(self.frame, self.frame_settings.camera_matrix, self.frame_settings.dist_coeffs)
+            self.controls.subpanel("table tracking").show("undistorted", self.frame / 256.0)
+            self.toc("undistort frame")
 
     def do_table_tracking(self):
         self.tic("table tracking")
@@ -96,7 +108,7 @@ class FrameAnalysis:
         
     def get_csv_line(self):
         line = "%.5f" % (self.playback_time)
-        if self.ball_pos:
+        if self.ball_pos is not None:
             line += ",%.5f,%.5f" % (self.ball_pos[0], self.ball_pos[1])
         else:
             line += ",,"
@@ -145,6 +157,7 @@ class SubtrackerContext:
 
         # Do all sort of nice things to the frame
         # TODO
+        frame_analysis.do_undistort_frame()
         frame_analysis.do_table_tracking()
         frame_analysis.do_compute_ball_density()
         frame_analysis.find_spots()

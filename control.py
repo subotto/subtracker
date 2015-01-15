@@ -310,7 +310,7 @@ class ControlPanel:
 
         ball = numpy.zeros_like(analysis.frame)
         if analysis.ball_pos is not None:
-            cv2.circle(ball, (160 + ball_pos[0]/100, 120 + ball_pos[1]/100), 4, (100, 100, 100))
+            cv2.circle(ball, (int(160 + analysis.ball_pos[0]/100), int(120 + analysis.ball_pos[1]/100)), 4, (100, 100, 100))
         analysis.controls.show("ball", ball)
         
         self.display.child("frame analysis").update(analysis.controls)
