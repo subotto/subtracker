@@ -198,7 +198,7 @@ class TableTracker:
         begin_points, end_points = self.lk_flow(p0=p0, begin_frame=begin_frame, end_frame=end_frame)
         #begin_points = p0.copy()
         #end_points = p0.copy()
-        self.lk_assest_points = cv2.perspectiveTransform(numpy.array(end_points), numpy.linalg.inv(H))
+        self.lk_assest_points = cv2.perspectiveTransform(numpy.array(begin_points), numpy.linalg.inv(H))
 
         self.draw_frame_with_points(begin_frame, p0, "assest points before", begin_points)
         self.draw_frame_with_points(end_frame, end_points, "assest points after", end_points)
@@ -289,8 +289,8 @@ class TableTracker:
             elif lk_track_table_points is None:
                 self.table_points = lk_assest_table_points
             else:
-                trackVar = 0.5
-                assestVar = 0.5
+                trackVar = 0.3
+                assestVar = 0.7
                 gain = trackVar / (trackVar + assestVar)
                 self.table_points = lk_track_table_points + gain * \
                                     (lk_assest_table_points - lk_track_table_points)
