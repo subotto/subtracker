@@ -4,6 +4,9 @@
 import copy
 import numpy
 import cv2
+import logging
+
+logger = logging.getLogger("table tracker")
 
 
 class TableDetectionSettings:
@@ -89,6 +92,19 @@ class TableTracker:
         self.ref_kp, self.ref_des = detector.detectAndCompute(self.ref_image, self.ref_mask)
 
     def filter_matches(self, kp1, kp2, matches, ratio=0.75):
+        """Filter feature matching in order to sort out dubious matches.
+
+        A query feature is considered dubious if it matches at least
+        two training features and the distance ration between the
+        first and second match is not at least the specified one. In
+        case this happens, eliminate completely that query feature.
+
+        It returns a tuple (p1, p2, kp_pairs); p1 is an array of the
+        query features that did not result dubious. p2 is the array
+        that contains the corresponding best training
+        features. kp_pairs is just a zipping of the two lists.
+
+        """
         mkp1, mkp2 = [], []
         for m in matches:
             if len(m) == 1 or (len(m) == 2 and m[0].distance < m[1].distance * ratio):
@@ -110,6 +126,9 @@ class TableTracker:
 
         matches = bf.knnMatch(self.ref_des, trainDescriptors=des, k=2)
         p1, p2, kp_pairs = self.filter_matches(self.ref_kp, kp, matches, ratio=detection_settings.match_filter_ratio)
+        #logger.info("\n%r", numpy.vsplit(p1, p1.shape[0]))
+        #self.draw_frame_with_points(self.ref_image, numpy.vsplit(p1, p1.shape[0]), "match before")
+        #self.draw_frame_with_points(self.frame, numpy.vsplit(p2, p2.shape[0]), "match after")
         M, mask = cv2.findHomography(p1, p2, cv2.RANSAC, detection_settings.match_ransac_threshold)
         table_points = cv2.perspectiveTransform(detection_settings.ref_table_points.reshape(-1, 1, 2), M).reshape(-1, 2)
 
@@ -133,10 +152,13 @@ class TableTracker:
         mask = cv2.warpPerspective(self.ref_lk_mask, H, (320, 240))
         return cv2.goodFeaturesToTrack(img_gray, mask=mask, **feature_params)
 
-    def draw_frame_with_points(self, frame, points, title):
+    def draw_frame_with_points(self, frame, points, title, points2=None):
         debug = frame.copy()
         for p in points:
             cv2.circle(debug, tuple(p[0]), 2, (255, 0, 0), -1)
+        if points2 is not None:
+            for p in points2:
+                cv2.circle(debug, tuple(p[0]), 2, (0, 0, 255), -1)
         self.controls.show(title, debug / 256.0)
 
     def lk_track(self):
@@ -147,7 +169,8 @@ class TableTracker:
         begin_points, end_points = self.lk_flow(p0=p0, begin_frame=begin_frame, end_frame=end_frame)
         self.lk_track_points = end_points
 
-        self.draw_frame_with_points(end_frame, end_points, "track points")
+        #self.draw_frame_with_points(begin_frame, p0, "track points before", begin_points)
+        #self.draw_frame_with_points(end_frame, end_points, "track points after", end_points)
 
         begin_ref = numpy.array(begin_points)
         end_ref = numpy.array(end_points)
@@ -163,6 +186,7 @@ class TableTracker:
         # previously known corner points (FIXME: magic constants)
         detection_settings = self.settings.detection_settings
         H = cv2.getPerspectiveTransform(detection_settings.ref_table_points.reshape(-1, 1, 2), self.prev.table_points)
+        logger.info("\n%r\n%r", self.prev.table_points, H)
         warped_ref_image = cv2.warpPerspective(self.ref_image, H, (320, 240))
         self.controls.show("warped", warped_ref_image / 256.0)
         p0 = cv2.perspectiveTransform(self.lk_assest_points, H)
@@ -170,10 +194,14 @@ class TableTracker:
         begin_frame = warped_ref_image
         end_frame = self.frame
 
+        #numpy.savez("dump", p0=p0, begin_frame=begin_frame, end_frame=end_frame)
         begin_points, end_points = self.lk_flow(p0=p0, begin_frame=begin_frame, end_frame=end_frame)
+        #begin_points = p0.copy()
+        #end_points = p0.copy()
         self.lk_assest_points = cv2.perspectiveTransform(numpy.array(end_points), numpy.linalg.inv(H))
 
-        self.draw_frame_with_points(end_frame, end_points, "assest points")
+        self.draw_frame_with_points(begin_frame, p0, "assest points before", begin_points)
+        self.draw_frame_with_points(end_frame, end_points, "assest points after", end_points)
 
         begin_ref = self.lk_assest_points
         end_ref = numpy.array(end_points)
