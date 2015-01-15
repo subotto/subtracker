@@ -126,9 +126,6 @@ class TableTracker:
 
         matches = bf.knnMatch(self.ref_des, trainDescriptors=des, k=2)
         p1, p2, kp_pairs = self.filter_matches(self.ref_kp, kp, matches, ratio=detection_settings.match_filter_ratio)
-        #logger.info("\n%r", numpy.vsplit(p1, p1.shape[0]))
-        #self.draw_frame_with_points(self.ref_image, numpy.vsplit(p1, p1.shape[0]), "match before")
-        #self.draw_frame_with_points(self.frame, numpy.vsplit(p2, p2.shape[0]), "match after")
         M, mask = cv2.findHomography(p1, p2, cv2.RANSAC, detection_settings.match_ransac_threshold)
         table_points = cv2.perspectiveTransform(detection_settings.ref_table_points.reshape(-1, 1, 2), M).reshape(-1, 2)
 
@@ -186,7 +183,6 @@ class TableTracker:
         # previously known corner points (FIXME: magic constants)
         detection_settings = self.settings.detection_settings
         H = cv2.getPerspectiveTransform(detection_settings.ref_table_points.reshape(-1, 1, 2), self.prev.table_points)
-        logger.info("\n%r\n%r", self.prev.table_points, H)
         warped_ref_image = cv2.warpPerspective(self.ref_image, H, (320, 240))
         self.controls.show("warped", warped_ref_image / 256.0)
         p0 = cv2.perspectiveTransform(self.lk_assest_points, H)
@@ -194,14 +190,11 @@ class TableTracker:
         begin_frame = warped_ref_image
         end_frame = self.frame
 
-        #numpy.savez("dump", p0=p0, begin_frame=begin_frame, end_frame=end_frame)
         begin_points, end_points = self.lk_flow(p0=p0, begin_frame=begin_frame, end_frame=end_frame)
-        #begin_points = p0.copy()
-        #end_points = p0.copy()
         self.lk_assest_points = cv2.perspectiveTransform(numpy.array(begin_points), numpy.linalg.inv(H))
 
-        self.draw_frame_with_points(begin_frame, p0, "assest points before", begin_points)
-        self.draw_frame_with_points(end_frame, end_points, "assest points after", end_points)
+        #self.draw_frame_with_points(begin_frame, p0, "assest points before", begin_points)
+        #self.draw_frame_with_points(end_frame, end_points, "assest points after", end_points)
 
         begin_ref = self.lk_assest_points
         end_ref = numpy.array(end_points)
