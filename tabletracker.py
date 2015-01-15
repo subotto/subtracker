@@ -19,7 +19,7 @@ class TableDetectionSettings:
         self.ref_mask_path = "data/ref_mask.png"
         self.ref_lk_mask_path = "data/ref_lk_mask.png"
         self.ref_table_points = numpy.float32(
-            [[252, 72], [67, 67], [58, 183], [253, 186]])
+            [[252, 70], [67, 65], [58, 183], [253, 186]])
 
         self.detector_name = "brisk"
 
