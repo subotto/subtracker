@@ -96,3 +96,13 @@ def region_to_rectangle(corners):
     #logger.info("%r", corners)
     #logger.info("%r", RECTANGLE_POINTS)
     return cv2.getPerspectiveTransform(corners, RECTANGLE_POINTS)
+
+def apply_projectivity(projectivity, point):
+    """
+    Returns the transformed point.
+    The projectivity must be a 3x3 matrix. Both input and output points are 2-dimensional.
+    """
+    return numpy.dot(projectivity, numpy.array([point[0], point[1], 1.0]))[:2]
+
+
+
