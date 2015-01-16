@@ -48,6 +48,9 @@ class Settings:
         self.occlusion_mean_diameter = 0.05 # 5cm
         self.occlusion_mean_duration = 2 # 2sec
         
+        self.foosmen_color_mean = np.float32(metrics.FOOSMEN_COLORS)
+        self.foosmen_color_variance = 0.1 ** 2 * np.eye(3)
+        
         # use the last 4 bits in integer pixel coordinates for decimals (sub-pixel)
         self.shift = 4
 
@@ -80,7 +83,10 @@ class BlockAnalysis:
         
         self.frame_background_mean = np.empty((f, h, w, ch), dtype=np.float32)
         self.frame_background_deviation = np.empty((f, h, w, ch), dtype=np.float32)
-        self.frame_background_nll = np.empty((f, h, w), dtype=np.float32)
+        self.frame_background_ll = np.empty((f, h, w), dtype=np.float32)
+        
+        teams = 2
+        self.frame_foosmen_ll = np.empty((teams, f, h, w), dtype=np.float32)
 
 def capture(block, cap):
     for f in xrange(settings.frame_num):
@@ -91,7 +97,7 @@ def capture(block, cap):
 def track_table(block):
     prev_tracker = None
     for f in xrange(block.settings.frame_num):
-        tracker = TableTracker(prev_tracker, TableTrackingSettings(), controls)
+        tracker = TableTracker(prev_tracker, TableTrackingSettings(False, None, None), controls)
         prev_tracker = tracker
         block.frame_table_corners[f] = tracker.track_table(block.frame[f]).reshape(4, 2)
         block.frame_transform[f] = cv2.getPerspectiveTransform(block.settings.table_corners, block.frame_table_corners[f])
@@ -117,11 +123,11 @@ def sample_background(block):
             cv2.INTER_AREA)
 
 def initialize_occlusion_mask(block):
-    f, bw, bh, ch = block.background_sample.shape    
+    f, bw, bh, ch = block.background_sample.shape
     block.background_occlusion_mask[:] = np.ones((f, bw, bh, 1), dtype=np.float32)
 
 def estimate_background_mean(block):
-    block.background_mean[:] = np.average(block.background_sample, 0)
+    block.background_mean[:] = np.sum(block.background_sample * block.background_occlusion_mask, 0) / np.sum(block.background_occlusion_mask, 0)
 
 def subtract_background_mean(block):
     for f in xrange(block.settings.frame_num):
@@ -136,17 +142,30 @@ def subtract_background_mean(block):
 def estimate_background_color_variance(block):
     block.background_color_variance[:] = np.tensordot(block.frame_background_deviation, block.frame_background_deviation, ((0,1,2),(0,1,2))) / np.sum(block.frame_table_mask)
 
-def compute_background_nll(block):
+def gaussian_log_pdf(k, deviation, sigma):
+    sigma_inv = np.linalg.inv(sigma)
+    
+    return -0.5 * (
+            2*np.pi*k +
+            np.linalg.det(sigma) +
+            np.einsum("...i,...ij,...j", deviation, sigma_inv, deviation))
+
+def compute_background_ll(block):
     k = block.settings.channels
     deviation = block.frame_background_deviation
     sigma = block.background_color_variance[:]
-    sigma_inv = np.linalg.inv(sigma)
     
     # PDF of multivariate normal distribution (see Wikipedia)
-    block.frame_background_nll[:] = 0.5 * (
-        2*np.pi*k +
-        np.linalg.det(sigma) +
-        np.einsum("...i,...ij,...j", deviation, sigma_inv, deviation))
+    block.frame_background_ll[:] = gaussian_log_pdf(k, deviation, sigma)
+
+def compute_foosmen_ll(block):
+    k = block.settings.channels
+    
+    for team in xrange(2):
+        mean = block.settings.foosmen_color_mean[team]
+        deviation = block.frame_32f - mean
+        sigma = block.settings.foosmen_color_variance
+        block.frame_foosmen_ll[team] = gaussian_log_pdf(k, deviation, sigma)
 
 def analyze_block(settings, cap):
     block = BlockAnalysis(settings)
@@ -156,10 +175,12 @@ def analyze_block(settings, cap):
     generate_frame_table_mask(block)
     compute_frame_to_background_transform(block)
     sample_background(block)
+    initialize_occlusion_mask(block)
     estimate_background_mean(block)
     subtract_background_mean(block)
     estimate_background_color_variance(block)
-    compute_background_nll(block)
+    compute_background_ll(block)
+    compute_foosmen_ll(block)
 
     #block.background_outlier_mask[:,:,:,0] = sp.ndimage.filters.uniform_filter(np.sum(deviation ** 2, 3))
     #block.background_mean[:] = np.sum(block.background_sample * block.background_outlier_mask, 0) / np.sum(block.background_outlier_mask, 0)
@@ -175,6 +196,8 @@ def show(name, image):
 settings = Settings()
 cap = cv2.VideoCapture("data/video.mp4")
 
+show("foosmen_colors", settings.foosmen_color_mean)
+
 def move_to_block(index):
     property_pos_frames = 1 # OpenCV magic number
     cap.set(property_pos_frames, settings.frame_num * index)
@@ -183,6 +206,7 @@ f = 0
 block_index = 2
 while True:
     move_to_block(block_index)
+    
     block = analyze_block(settings, cap)
 
     show("background_mean", block.background_mean)
@@ -197,7 +221,9 @@ while True:
         show("background_sample", block.background_sample[f])
         show("frame_background_mean", block.frame_background_mean[f])
         show("frame_background_deviation", block.frame_background_deviation[f] ** 2 * 50)
-        show("frame_background_nll", block.frame_background_nll[f] / 50)
+        show("frame_background_ll", -block.frame_background_ll[f] / 30)
+        show("frame_foosmen_ll (red)", 1.0 + block.frame_foosmen_ll[0][f] / 30)
+        show("frame_foosmen_ll (blue)", 1.0 + block.frame_foosmen_ll[1][f] / 30)
 
         key_code = cv2.waitKey()    
         key = chr(key_code & 255)
