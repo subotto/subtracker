@@ -30,6 +30,22 @@ def pixel_corners(width, height):
                         (width - 0.5, -0.5),
                         (width - 0.5, height - 0.5)], dtype=numpy.float32);
 
+def scale(x, y):
+    """Returns a 3x3 projecective matrix that scales x and y axes with the given factors"""
+    return numpy.float32([
+        [x, 0, 0],
+        [0, y, 0],
+        [0, 0, 1]
+    ])
+
+def translate(dx, dy):
+    """Returns a 3x3 projecective matrix that translates along the given vector"""
+    return numpy.float32([
+        [1, 0,dx],
+        [0, 1,dy],
+        [0, 0, 1]
+    ])
+
 def pixels_to_rectangle(width, height):
     """Returns a 3x3 projective matrix that maps an image with given size
     to a rectangle, in a way such that the boundary of the rectangle
