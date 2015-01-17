@@ -3,14 +3,17 @@
 
 import numpy
 import random
+from scipy import ndimage
+import copy
 
 import metrics
+import transformation
 
 
 class ParticleFilterSettings:
     
     def __init__(self):
-        num_particles = 10
+        self.num_particles = 10
 
 
 class ModelSettings:
@@ -44,14 +47,18 @@ class Particle:
         self.velocity = velocity
     
     
+    def __repr__(self):
+        return '<Particle weight=%.2f position=%s velocity=%s>' % (self.weight, self.position.__repr__(), self.velocity.__repr__())
+    
+    
     def random_init(self, model_settings):
         """
         Initialize position and velocity randomly, according to the prior given in the settings.
         """
-        x_position = random.uniform(self.model_settings.xmin, self.model_settings.xmax)
-        y_position = random.uniform(self.model_settings.ymin, self.model_settings.ymax)
+        x_position = random.uniform(model_settings.xmin, model_settings.xmax)
+        y_position = random.uniform(model_settings.ymin, model_settings.ymax)
         self.position = numpy.array([x_position, y_position])
-        self.velocity = numpy.random.multivariate_normal(0.0, self.model_settings.velocity_covariance)
+        self.velocity = numpy.random.multivariate_normal(numpy.zeros(2), model_settings.velocity_covariance)
     
     
     def is_present(self):
@@ -76,19 +83,19 @@ class Particle:
                 # The ball remains in the field
                 
                 # Update position
-                self.position += self.velocity * timedelta + numpy.random.multivariate_normal(0.0, model_settings.position_error_covariance)
+                self.position += self.velocity * timedelta + numpy.random.multivariate_normal(numpy.zeros(2), model_settings.position_error_covariance)
                 
                 # Update velocity
                 if random.random() < model_settings.hit_probability_per_second * timedelta:
                     # The ball is hit, so velocity is sampled again
-                    self.velocity = numpy.random.multivariate_normal(0.0, model_settings.velocity_covariance)
+                    self.velocity = numpy.random.multivariate_normal(numpy.zeros(2), model_settings.velocity_covariance)
                 else:
                     # The ball is not hit
-                    self.velocity += numpy.random.multivariate_normal(0.0, model_settings.velocity_error_covariance)
+                    self.velocity += numpy.random.multivariate_normal(numpy.zeros(2), model_settings.velocity_error_covariance)
         
         else:
             # The ball is absent
-            if random.random() < numpy.exp(-timedelta/model_settings.abg_absence_time):
+            if random.random() < numpy.exp(-timedelta/model_settings.avg_absence_time):
                 # The ball remains absent
                 pass
             
@@ -97,12 +104,15 @@ class Particle:
                 self.random_init(model_settings)
     
     
-    def update_weight(self, ballness, model_settings):
+    def update_weight(self, likelihood, transform, model_settings):
         """
         Update the importance weight, according to what is observed.
         """
-        # TODO: implement
-        pass
+        if self.is_present():
+            transformed_point = transformation.apply_projectivity(transform, self.position).reshape((2,1))
+            self.weight = ndimage.map_coordinates(likelihood, transformed_point)[0] # Points outside the image get likelihood=0.0
+        else:
+            self.weight = 1 - model_settings.presence_probability
 
 
 class ParticleFilter:
@@ -118,7 +128,8 @@ class ParticleFilter:
     
     
     def process_frame(self, ballness, new_time):
-        pass
+        self.do_sampling_step(ballness, new_time)
+        self.do_selection_step()
     
     
     def spawn_particles(self):
@@ -144,10 +155,24 @@ class ParticleFilter:
         Importance sampling step of Bootstrap Filter.
         See http://www.cs.ubc.ca/%7Earnaud/doucet_defreitas_gordon_smcbookintro.ps (page 11).
         """
+        likelihood = numpy.exp(ballness)
+        (w, h) = likelihood.shape
+        transform = numpy.dot(transformation.rectangle_to_pixels(w, h), transformation.scale(1.0/metrics.FIELD_WIDTH, 1.0/metrics.FIELD_HEIGHT))
+        
         for particle in self.particles:
-            particle.evolve(new_time - self.time, self.model_settings)
-            particle.update_weight(ballness, self.model_settings)
+            # Evolve particles
+            if self.time is None:
+                timedelta = 0.0
+            else:
+                timedelta = new_time - self.time
+            particle.evolve(timedelta, self.model_settings)
             
+            # Update weights
+            particle.update_weight(likelihood, transform, self.model_settings)
+        
+        print self.particles
+        
+        # Normalize weights
         weights_sum = sum([particle.weight for particle in self.particles])
         for particle in self.particles:
             particle.weight /= weights_sum
@@ -158,7 +183,24 @@ class ParticleFilter:
         Selection step of Bootstrap Filter.
         See http://www.cs.ubc.ca/%7Earnaud/doucet_defreitas_gordon_smcbookintro.ps (page 11).
         """
-        # TODO
-        pass
+        n = self.settings.num_particles # This might have changed
+        
+        # Find resample indices
+        indices = []
+        prefix_sums = [0.0] + [sum([q.weight for (i,q) in enumerate(self.particles) if i<=j]) for j in xrange(len(self.particles))]
+        u0 = random.random()
+        for i in xrange(n):
+            u = (u0+i)/n
+            j = 0
+            while u > prefix_sums[j]:
+                j += 1
+            indices.append(j-1)
+        
+        # Do resample
+        self.particles = [copy.deepcopy(self.particles[i]) for i in indices]
+        
+        # Initialize new weights
+        for particle in self.particles:
+            particle.weight = 1.0/float(n)
 
 
