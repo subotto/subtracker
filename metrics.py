@@ -1,34 +1,44 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-# Distance values are in meters
-FIELD_WIDTH = 1.135
-FIELD_HEIGHT = 0.7
+from collections import namedtuple
 
-BALL_DIAMETER = 0.035
+TEAMS = 2
 
-ROD_DIAMETER = 0.015
-ROD_HEIGHT = 0.085
-ROD_DISTANCE = 0.15
-ROD_COLORS = ['red', 'blue']
+Rod = namedtuple("Rod", ("location_x", "men"))
+Foosman = namedtuple("Foosman", ("location_y"))
 
-# number of men, distance between men, displacent factor (multiply by ROD_DISTANCE)
-ROD_CONFIGURATION = [(1,  0.0, -3.5),
-                     (2, 0.24, -2.5),
-                     (5, 0.12, -0.5),
-                     (3, 0.21, +1.5)]
-ROD_NUMBER = len(ROD_CONFIGURATION)
+class Metrics:
+    
+    def __init__(self):
+        # all length measures are in meters
+    
+        self.ground_size = (1.135, 0.7)
+        self.ball_diameter = 0.035
 
-FOOSMAN_WIDTH = 0.03
-FOOSMAN_HEAD_HEIGHT = 0.02
-FOOSMAN_FEET_HEIGHT = 0.08
+        self.rod_diameter = 0.015
+        self.rod_location_z = 0.085
 
-# Colors (BGR)
-BALL_COLOR = (0.85, 0.85, 0.85)
-FIELD_COLOR = (0.2, 0.7, 0.2)
-ROD_COLOR = (0.6, 0.6, 0.6)
-FOOSMEN_COLORS = [(0.10, 0.05, 0.65),
-                  (0.50, 0.05, 0.25)]
+        self.rod_distance = d = 0.15
 
-# Private for viewer
-CYLINDER_FACTOR = 10.0
+        self.max_men_num = 5
+        self.rods = [
+            Rod(-3.5 * d, [Foosman(0.0)]),
+            Rod(-2.5 * d, [Foosman(-0.12), Foosman(+0.12)]),
+            Rod(-0.5 * d, [Foosman(-0.24), Foosman(-0.12), Foosman(0.0), Foosman(+0.12), Foosman(+0.24)]),
+            Rod(+1.5 * d, [Foosman(-0.21), Foosman(0.0), Foosman(+0.21)]),
+        ]
+        
+        self.foosman_width = 0.03
+        self.foosman_head_height = 0.02
+        self.foosman_feet_height = 0.08
+
+        # Colors (BGR)
+        self.ball_color = (0.85, 0.85, 0.85)
+        self.field_color = (0.2, 0.7, 0.2)
+        self.rod_color = (0.6, 0.6, 0.6)
+        self.foosmen_color = [
+            (0.10, 0.05, 0.65),
+            (0.50, 0.05, 0.25),
+        ]
+

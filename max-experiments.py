@@ -6,60 +6,67 @@ import cv2
 from transformation import *
 from control import ControlGroup, ControlGroupStatus
 from tabletracker import TableTracker, TableTrackingSettings
-import metrics
+from metrics import Metrics, TEAMS
 
 controls = ControlGroupStatus(ControlGroup())
 
 class Settings:
 
     def __init__(self):
+        self.metrics = Metrics()
+    
         self.frame_rate = 120
         self.frame_num = 60
         self.frame_size = (240, 320)
         self.channels = 3
 
-        sh = metrics.FIELD_HEIGHT/2
-        sw = metrics.FIELD_WIDTH/2
+        w, h = self.metrics.ground_size
+        
         self.table_corners = np.float32([
-            (-sw, -sh),
-            (+sw, -sh),
-            (+sw, +sh),
-            (-sw, +sh),
+            (-w/2, -h/2),
+            (+w/2, -h/2),
+            (+w/2, +h/2),
+            (-w/2, +h/2),
         ])
         
         # estimate background a margin beyond the end of the table
         margin = 0.05
-        bsw = sw + margin
-        bsh = sh + margin
+        bw = w + 2*margin
+        bh = h + 2*margin
                
         r = 0.005 # meters
         
-        self.background_resolution = (int(2*bsw/r), int(2*bsh/r))
-        self.background_transform = rectangle_to_pixels(*self.background_resolution).dot(scale(1/bsw, 1/bsh))
+        self.background_resolution = (int(bw/r), int(bh/r))
+        self.background_transform = rectangle_to_pixels(*self.background_resolution).dot(scale(2/bw, 2/bh))
         
         self.occlusion_mean_diameter = 0.05 # 5cm
         self.occlusion_mean_duration = 2 # 2sec
         
-        self.foosmen_color_mean = np.float32(metrics.FOOSMEN_COLORS)
-        self.foosmen_color_variance = 0.1 ** 2 * np.eye(3)
+        self.foosmen_color_mean = np.float32(self.metrics.foosmen_color)
+        self.foosmen_color_variance = 0.15 ** 2 * np.eye(3)
 
         self.foosmen_overlay_size = (3, 3) # hard-coded in pixels (FIXME?)
         
-        teams = 2
-        rods = 4
-        self.rod_transform = np.empty((teams, rods, 3, 3), dtype=np.float32)
+        rods = len(self.metrics.rods)
+        self.team_transform = np.empty((TEAMS, 3, 3), dtype=np.float32)
+        self.rod_transform = np.empty((TEAMS, rods, 3, 3), dtype=np.float32)
+
+        self.team_transform[0] = np.eye(3)
+        self.team_transform[1] = scale(-1, -1)
         
-        for team in xrange(teams):
-            for rod in xrange(rods):
-                team_transform = scale((+1, -1)[team], 1)
-                rod_location_factor = metrics.ROD_CONFIGURATION[rod][2]
-                rod_location_transform = translate(rod_location_factor * metrics.ROD_DISTANCE, 0)
+        for team in xrange(TEAMS):
+            for rod_i, rod in enumerate(self.metrics.rods):
+                rod_transform = translate(rod.location_x, 0)
+                self.rod_transform[team,rod_i] = self.team_transform[team].dot(rod_transform)
                 
-                self.rod_transform[team,rod] = team_transform.dot(rod_location_transform)
+        self.foosman_in_rod_transform = np.empty((rods, self.metrics.max_men_num, 3, 3), dtype=np.float32)
+        for rod_i, rod in enumerate(self.metrics.rods):
+            for man_i, man in enumerate(rod.men):
+                self.foosman_in_rod_transform[rod_i, man_i] = translate(0, man.location_y)
         
-        r = 0.01 # meters
-        self.foosmen_location_resolution = (1, int(2*sh/r))
-        self.foosmen_location_transform = rectangle_to_pixels(*self.foosmen_location_resolution).dot(scale(1/(4*r), 1/sh))
+        r = 0.002 # meters
+        self.rod_translation_map_resolution = int(h/r)
+        self.rod_translation_map_transform = rectangle_to_pixels(1, self.rod_translation_map_resolution).dot(scale(1/(4*r), 2/h))
         
         # use the last 4 bits in integer pixel coordinates for decimals (sub-pixel)
         self.shift = 4
@@ -94,28 +101,29 @@ class BlockAnalysis:
         
         # ll := log likelihood
         # llr := log likelihood ratio
+        # lprior = log prior probability
         
         self.frame_background_mean = np.empty((f, h, w, ch), dtype=np.float32)
         self.frame_background_deviation = np.empty((f, h, w, ch), dtype=np.float32)
         self.frame_background_pixel_ll = np.empty((f, h, w, 1), dtype=np.float32)
         
-        teams = 2
-        rods = 4
+        rods = len(self.settings.metrics.rods)
+        self.frame_foosmen_debug = np.zeros((TEAMS, rods, f, h, w, rgb), dtype=np.float32)
         
-        self.frame_foosmen_debug = np.zeros((teams, rods, f, h, w, rgb), dtype=np.float32)
-        
-        self.frame_foosmen_pixel_ll = np.empty((teams, f, h, w, 1), dtype=np.float32)
+        #self.frame_foosmen_pixel_lprior = np.
+        self.frame_foosmen_pixel_ll = np.empty((TEAMS, f, h, w, 1), dtype=np.float32)
         
         # ratio of likelihoods of a foosman to be located or not
         # in the center of a frame pixel, given the frame
-        self.frame_foosmen_llr = np.empty((teams, f, h, w, 1), dtype=np.float32)
+        self.frame_foosmen_llr = np.empty((TEAMS, f, h, w, 1), dtype=np.float32)
         
-        fw, fh = settings.foosmen_location_resolution
+        fw = 1
+        fh = settings.rod_translation_map_resolution
         
-        self.foosmen_location_llr = np.empty((teams, rods, f, fh, fw, 1), dtype=np.float32)
-        self.foosmen_pattern = np.empty((teams, rods, f, fh, fw, 1), dtype=np.float32)
-        self.foosmen_centered_pattern = np.empty((teams, rods, f, fh, fw, 1), dtype=np.float32)
-        self.foosmen_location_density = np.empty((teams, rods, f, fh, fw, 1), dtype=np.float32)
+        men = self.settings.metrics.max_men_num
+        
+        self.foosman_translation_llr = np.zeros((TEAMS, rods, men, f, fh, fw, 1), dtype=np.float32)
+        self.rod_translation_llr = np.zeros((TEAMS, rods, f, fh, fw, 1), dtype=np.float32)
 
 def capture(block, cap):
     for f in xrange(settings.frame_num):
@@ -211,18 +219,38 @@ def compute_foosmen_llr(block):
     foreground_ll = block.frame_foosmen_pixel_ll
     background_ll = block.frame_background_pixel_ll
     filter_size = (1, 1,) + size + (1,) # team, frame, h, w, channels
+    # FIXME: is it normalized? (if it is, then it must be rescaled back again)
     sp.ndimage.uniform_filter(foreground_ll - background_ll, filter_size, block.frame_foosmen_llr)
 
-def sample_foosmen_llr(block):
+def compute_foosman_translation_llr(block):
     frame_transform_inv = np.linalg.inv(block.frame_transform)
-    for team in xrange(2):
-        for rod in xrange(4):
-            rod_transform_inv = np.linalg.inv(block.settings.rod_transform[team,rod])
-            
-            transform = block.settings.foosmen_location_transform.dot(rod_transform_inv).dot(frame_transform_inv).transpose(1,0,2) # FIXME: document this transpose...
+    for team in xrange(TEAMS):
+        for rod_i, rod in enumerate(block.settings.metrics.rods):
+        
+            for man_i, man in enumerate(rod.men):
+                man_transform = block.settings.foosman_in_rod_transform[rod_i,man_i].dot(block.settings.rod_transform[team,rod_i])
+                man_transform_inv = np.linalg.inv(man_transform)
+                transform = block.settings.rod_translation_map_transform.dot(man_transform_inv).dot(frame_transform_inv).transpose(1,0,2) # FIXME: document this transpose...    
     
-            for f in xrange(block.settings.frame_num):
-                block.foosmen_location_llr[team,rod,f,:,:,0] = cv2.warpPerspective(block.frame_foosmen_llr[team,f], transform[f], block.settings.foosmen_location_resolution)
+                for f in xrange(block.settings.frame_num):
+                    out = block.foosman_translation_llr[team,rod_i,man_i,f,:,:,0]
+                    size = (1, block.settings.rod_translation_map_resolution)
+                    out[:] = cv2.warpPerspective(block.frame_foosmen_llr[team,f], transform[f], size)
+
+def compute_rod_translation_llr(block):
+    # coordinates 0:team 1:rod 2:man 3:frame 4:x 5:y 6:channel
+    # sum over 2:man
+    block.rod_translation_llr = np.sum(block.foosman_translation_llr, 2)
+
+def estimate_foosmen_pattern(block):
+    # Expectation-Maximization algorithm for Gaussian Mixture
+
+    # prior probability that a location sample contains a foosman
+    # assume there are 3 foosman (definitely a good approximation)
+    p = 3.0 / block.settings.foosmen_location_resolution
+
+    # Expectation step
+    block.foosmen_pattern[:] = 1 / (1 + np.exp(-block.foosmen_location_llr - np.log(p)))
 
 def analyze_block(settings, cap):
     block = BlockAnalysis(settings)
@@ -241,11 +269,10 @@ def analyze_block(settings, cap):
     draw_foosmen_debug(block)
     compute_foosmen_pixel_ll(block)
     compute_foosmen_llr(block)
-    sample_foosmen_llr(block)
+    compute_foosman_translation_llr(block)
+    compute_rod_translation_llr(block)
+    #estimate_foosmen_pattern(block)
 
-    #block.background_outlier_mask[:,:,:,0] = sp.ndimage.filters.uniform_filter(np.sum(deviation ** 2, 3))
-    #block.background_mean[:] = np.sum(block.background_sample * block.background_outlier_mask, 0) / np.sum(block.background_outlier_mask, 0)
-    
     return block
         
 import sys
@@ -267,6 +294,9 @@ f = 0
 block_index = 10
 team = 0
 rod = 0
+man = 0
+play = False
+
 while True:
     move_to_block(block_index)
     
@@ -289,23 +319,51 @@ while True:
         show("frame_foosmen_pixel_ll", 1.0 + block.frame_foosmen_pixel_ll[team,f] / 30 + block.frame_foosmen_debug[team,rod,f] * 100)
         show("frame_foosmen_llr", 1.0 + block.frame_foosmen_llr[team,f] / 30 + block.frame_foosmen_debug[team,rod,f] * 100)
         
-        show("foosmen_location_llr", cv2.resize(1.0 + block.foosmen_location_llr[team,rod,f] / 30, (30, 200)))
+        h = block.foosman_translation_llr[team,rod,man,f].shape[0]
         
-        key_code = cv2.waitKey()    
+        show("foosman_translation_llr", cv2.resize(0.2 + block.foosman_translation_llr[team,rod,man,f] / 30, (30, h)))
+        show("rod_translation_llr", cv2.resize(0.2 + block.rod_translation_llr[team,rod,f] / 50, (30, h)))
+        #show("foosmen_pattern", cv2.resize(block.foosmen_pattern[team,rod,f], (30, 200)))
+        
+        if play and f < settings.frame_num-1:
+            key_code = cv2.waitKey(10)
+            f += 1
+        else:
+            key_code = cv2.waitKey()
+            
         key = chr(key_code & 255)
 
         if key == ".":
+            play = False
             f += 1
         if key == ",":
+            play = False
             f -= 1
         if key == "q":
             sys.exit(0)
         if key == "t":
             team = (team+1) % 2
             print "Team: ", team
+        if key == "e":
+            rod = (rod-1) % 4
+            man = 0
+            print "Rod: ", rod
         if key == "r":
             rod = (rod+1) % 4
+            man = 0
             print "Rod: ", rod
+            
+        if key == "m":
+            man = (man-1) % len(settings.metrics.rods[rod].men)
+            print "Man: ", man
+        if key == "n":
+            man = (man+1) % len(settings.metrics.rods[rod].men)
+            print "Man: ", man
+            
+        if key == "j":
+            f = 0
+        if key == " ":
+            play = not play
             
         if key == "<":
             block_index -= 1
