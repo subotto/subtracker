@@ -30,14 +30,14 @@ FADING_FACTOR = 0.1
 class QueueLengthEstimator:
 
     def __init__(self):
-        self.average = None
-        self.variance = None
+        # self.average = None
+        # self.variance = None
 
         # Our first bet on average chunk size is the time between two
-        # requests
-        self.chunk_average = REQUEST_SLEEP
+        # requests (but we double it just to stay safe)
+        self.chunk_average = 2 * REQUEST_SLEEP
 
-    def parse_frames(self, frames, ref_time, last_timestamp):
+    def parse_frames(self, frames, ref_time, last_timestamp, queue_refill):
         if len(frames) == 0:
             return
         if last_timestamp is None:
@@ -53,6 +53,11 @@ class QueueLengthEstimator:
         #     for frame in frames:
         #         self.average = FADING_FACTOR * (frame['timestamp'] - ref_time) + (1.0 - FADING_FACTOR) * self.average
         #         self.variance = FADING_FACTOR * ((frame['timestamp'] - self.average) ** 2) + (1.0 - FADING_FACTOR) * self.variance
+
+        # If just before this chunk the queue was empty, then ignore
+        # this chunk, as it probably would mess up statistics
+        if queue_refill:
+            return
 
         if self.chunk_average is None:
             self.chunk_average = chunk_len
@@ -102,7 +107,8 @@ class RequestThread(threading.Thread):
 
             # Compute timing data and push data in the queue
             try:
-                self.qle.parse_frames(data['data'], ref_time, self.last_timestamp)
+                queue_refill = len(self.frames) == 0
+                self.qle.parse_frames(data['data'], ref_time, self.last_timestamp, queue_refill)
                 for frame in data['data']:
                     self.frames.append(frame)
                 if len(data['data']) > 0:
@@ -131,7 +137,7 @@ def resize(width, height):
     glMatrixMode(GL_MODELVIEW)
     glLoadIdentity()
 
-def render(time):
+def render(time, current_frame, objects):
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
@@ -141,6 +147,51 @@ def render(time):
     #gluLookAt(0.0, -0.8, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
 
     glLight(GL_LIGHT0, GL_POSITION, (0.4, 0.6, 1.2))
+
+    objects['Campo'].draw()
+
+    counters = [0, 0]
+    if current_frame is not None:
+
+        for i, rod in enumerate(ROD_CONFIGURATION):
+            foosmen_num, foosmen_dist, team = rod
+            color = ROD_COLORS[team]
+            rod_str = 'rod_%s_%d' % (color, counters[team])
+            counters[team] += 1
+            angle_str = '%s_angle' % (rod_str)
+            shift_str = '%s_shift' % (rod_str)
+
+            glPushMatrix()
+            glTranslate((i - float(ROD_NUMBER-1) / 2.0) * ROD_DISTANCE, 0.0, ROD_HEIGHT)
+
+            glPushMatrix()
+            glRotate(90.0, 1.0, 0.0, 0.0)
+            glScale(ROD_DIAMETER * CYLINDER_FACTOR, ROD_DIAMETER * CYLINDER_FACTOR, FIELD_HEIGHT * CYLINDER_FACTOR)
+            objects['Stecca'].draw()
+            glPopMatrix()
+
+            if current_frame[shift_str] is not None:
+                glTranslate(0.0, current_frame[shift_str], 0.0)
+            if current_frame[angle_str] is not None:
+                glRotate(-90.0 / math.pi * current_frame[angle_str], 0.0, 1.0, 0.0)
+
+            for j in xrange(foosmen_num):
+                glPushMatrix()
+                glTranslate(0.0, (j - float(foosmen_num - 1) / 2.0) * foosmen_dist, 0.0)
+                if team == 0:
+                    objects['Omino_rosso'].draw()
+                else:
+                    objects['Omino_blu'].draw()
+                glPopMatrix()
+            glPopMatrix()
+
+        if current_frame['ball_x'] is not None and current_frame['ball_y'] is not None:
+            glPushMatrix()
+            glTranslate(current_frame['ball_x'],
+                        current_frame['ball_y'],
+                        0.0)
+            objects['Pallina'].draw()
+            glPopMatrix()
 
 class FramePicker:
 
@@ -273,54 +324,7 @@ def main():
             buffering = True
             current_frame = new_frame
 
-        render(frame / fps)
-
-        objects['Campo'].draw()
-
-        counters = [0, 0]
-        if current_frame is not None:
-
-            for i, rod in enumerate(ROD_CONFIGURATION):
-                foosmen_num, foosmen_dist, team = rod
-                color = ROD_COLORS[team]
-                rod_str = 'rod_%s_%d' % (color, counters[team])
-                counters[team] += 1
-                angle_str = '%s_angle' % (rod_str)
-                shift_str = '%s_shift' % (rod_str)
-
-                glPushMatrix()
-                glTranslate((i - float(ROD_NUMBER-1) / 2.0) * ROD_DISTANCE, 0.0, ROD_HEIGHT)
-
-                glPushMatrix()
-                glRotate(90.0, 1.0, 0.0, 0.0)
-                glScale(ROD_DIAMETER * CYLINDER_FACTOR, ROD_DIAMETER * CYLINDER_FACTOR, FIELD_HEIGHT * CYLINDER_FACTOR)
-                objects['Stecca'].draw()
-                glPopMatrix()
-
-                if current_frame[shift_str] is not None:
-                    glTranslate(0.0, current_frame[shift_str], 0.0)
-                if current_frame[angle_str] is not None:
-                    glRotate(-90.0 / math.pi * current_frame[angle_str], 0.0, 1.0, 0.0)
-
-                for j in xrange(foosmen_num):
-                    glPushMatrix()
-                    glTranslate(0.0, (j - float(foosmen_num - 1) / 2.0) * foosmen_dist, 0.0)
-                    if team == 0:
-                        objects['Omino_rosso'].draw()
-                    else:
-                        objects['Omino_blu'].draw()
-                    glPopMatrix()
-                glPopMatrix()
-
-            if current_frame['ball_x'] is not None and current_frame['ball_y'] is not None:
-                glPushMatrix()
-                glTranslate(current_frame['ball_x'],
-                            current_frame['ball_y'],
-                            0.0)
-                objects['Pallina'].draw()
-                glPopMatrix()
-
-            #print time_delta, current_frame['ball_x'], current_frame['ball_y']
+        render(frame / fps, current_frame, objects)
 
         pygame.display.flip()
         clock.tick(fps)
