@@ -120,10 +120,17 @@ class RequestThread(threading.Thread):
 
             print "Last timestamp: %f" % (self.last_timestamp)
 
-def resize(width, height):
+def resize(width, height, fs_width, fs_height, fullscreen):
 
     # Update pygame
-    pygame.display.set_mode((width, height), pygame.OPENGL | pygame.DOUBLEBUF | pygame.HWSURFACE | pygame.RESIZABLE)
+    flags = pygame.OPENGL | pygame.DOUBLEBUF | pygame.HWSURFACE
+    if fullscreen:
+        flags |= pygame.FULLSCREEN
+        width = fs_width
+        height = fs_height
+    else:
+        flags |= pygame.RESIZABLE
+    pygame.display.set_mode((width, height), flags)
 
     # Use new viewport
     glViewport(0, 0, width, height)
@@ -290,8 +297,18 @@ def main():
 
     # Initialize pygame stuff
     pygame.init()
+    fullscreen_modes = pygame.display.list_modes()
+    if fullscreen_modes != -1 and len(fullscreen_modes) > 0:
+        fs_width = fullscreen_modes[0][0]
+        fs_height = fullscreen_modes[0][1]
+    else:
+        fs_width = None
+        fs_height = None
     clock = pygame.time.Clock()
-    resize(640, 480)
+    fullscreen = False
+    width = 640
+    height = 480
+    resize(width, height, fs_width, fs_height, fullscreen)
     pygame.display.set_caption('Subotto tracker viewer')
 
     # Initialize OpenGL stuff
@@ -313,10 +330,24 @@ def main():
         for event in pygame.event.get():
 
             if event.type == pygame.locals.QUIT:
-                sys.exit(1)
+                sys.exit(0)
 
-            if event.type == pygame.locals.VIDEORESIZE:
-                resize(event.w, event.h)
+            elif event.type == pygame.locals.KEYDOWN:
+                if event.key == pygame.locals.K_q:
+                    sys.exit(0)
+                if event.key == pygame.locals.K_f:
+                    # Disabled, because at the moment it causes
+                    # crashes on my computer (although the faults is
+                    # probably on something in my system)
+                    continue
+                    if fs_width is not None:
+                        fullscreen = not fullscreen
+                        resize(width, height, fs_width, fs_height, fullscreen)
+
+            elif event.type == pygame.locals.VIDEORESIZE:
+                width = event.w
+                height = event.h
+                resize(width, height, fs_width, fs_height, fullscreen)
 
         new_frame = picker.pick_frame()
         buffering = False
