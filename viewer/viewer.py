@@ -2,13 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import sys
-import os
 import math
 import threading
 import urllib2
 import time
 import json
-import Queue
+import collections
 
 import pygame
 import pygame.locals
@@ -17,193 +16,103 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 
 from metrics import *
+from objlib import read_obj
+
+from monotonic_time import monotonic_time
 
 #REQUEST_URL = 'http://uz.sns.it/24ore/tracking.json?last_timestamp=%(last_timestamp)f&convert_units=0'
 REQUEST_URL = 'http://localhost:8000/?last_timestamp=%(last_timestamp)f&convert_units=0'
 REQUEST_TIMEOUT = 2.0
 REQUEST_SLEEP = 0.5
 
-def open_resource(x):
-    return open(os.path.join(os.path.dirname(__file__), x))
+FADING_FACTOR = 0.1
 
-def my_int(x):
-    if x is None or x == '':
-        return -1
-    else:
-        return int(x)
+class QueueLengthEstimator:
+
+    def __init__(self):
+        self.average = None
+        self.variance = None
+
+        # Our first bet on average chunk size is the time between two
+        # requests
+        self.chunk_average = REQUEST_SLEEP
+
+    def parse_frames(self, frames, ref_time, last_timestamp):
+        if len(frames) == 0:
+            return
+        if last_timestamp is None:
+            last_timestamp = frames[0]['timestamp']
+        chunk_len = frames[-1]['timestamp'] - last_timestamp
+
+        # if self.average is None:
+        #     for frame in frames:
+        #         self.average = (frame['timestamp'] - ref_time) / float(len(frames))
+        #     for frame in frames:
+        #         self.variance = (frame['timestamp'] - self.average) / float(len(frames))
+        # else:
+        #     for frame in frames:
+        #         self.average = FADING_FACTOR * (frame['timestamp'] - ref_time) + (1.0 - FADING_FACTOR) * self.average
+        #         self.variance = FADING_FACTOR * ((frame['timestamp'] - self.average) ** 2) + (1.0 - FADING_FACTOR) * self.variance
+
+        if self.chunk_average is None:
+            self.chunk_average = chunk_len
+        else:
+            self.chunk_average = FADING_FACTOR * (chunk_len) + (1.0 - FADING_FACTOR) * self.chunk_average
+
+    def get_length_estimate(self):
+        if self.chunk_average is None:
+            return 2.0
+        return 2.0 * self.chunk_average
 
 class RequestThread(threading.Thread):
 
     def __init__(self):
         threading.Thread.__init__(self)
         self.stop = False
-        self.last_timestamp = 0.0
+        self.last_timestamp = None
         self.daemon = True
-        self.frames = Queue.Queue()
+        self.frames = collections.deque()
+        self.qle = QueueLengthEstimator()
 
     def run(self):
+        first_time = True
         while not self.stop:
+
+            # Wait for some time (but not the first time)
+            if not first_time:
+                time.sleep(REQUEST_SLEEP)
+            else:
+                first_time = False
+
+            # Perform the HTTP request
             try:
-                response = urllib2.urlopen(REQUEST_URL % {'last_timestamp': self.last_timestamp}, timeout=REQUEST_TIMEOUT)
+                response = urllib2.urlopen(REQUEST_URL % {'last_timestamp': self.last_timestamp if self.last_timestamp is not None else 0.0},
+                                           timeout=REQUEST_TIMEOUT)
+                ref_time = monotonic_time()
             except urllib2.URLError:
                 print "Request failed or timed out"
                 continue
-            data = json.load(response)
-            for frame in data['data']:
-                self.frames.put(frame)
-            if len(data['data']) > 0:
-                self.last_timestamp = data['data'][-1]['timestamp']
-            print self.last_timestamp
-            time.sleep(REQUEST_SLEEP)
 
-class ObjObject:
-
-    def __init__(self):
-        self.name = None
-        self.vertices = []
-        self.normals = []
-        self.uv_vertices = []
-        self.faces = []
-        self.materials = []
-
-    def draw(self):
-        glBegin(GL_TRIANGLES)
-        for face in self.faces:
-            if face[0] == 'f':
-                for vertex in face[1:]:
-                    glNormal(*self.normals[vertex[2]-1])
-                    glVertex(*self.vertices[vertex[0]-1])
-            elif face[0] == 'usemtl':
-                face[1].set()
-            elif face[0] == 's':
-                glEnd()
-                if face[1]:
-                    glShadeModel(GL_SMOOTH)
-                else:
-                    glShadeModel(GL_FLAT)
-                glBegin(GL_TRIANGLES)
-        glEnd()
-
-class ObjMaterial:
-
-    def __init__(self):
-        self.name = None
-        self.ambient = None
-        self.diffuse = None
-        self.specular = None
-        self.transparency = None
-        self.illumination_model = None
-        self.diffuse_texture = None
-
-    def set(self):
-        glMaterial(GL_FRONT, GL_AMBIENT, self.ambient + (1.0,))
-        glMaterial(GL_FRONT, GL_DIFFUSE, self.diffuse + (1.0,))
-        glMaterial(GL_FRONT, GL_SPECULAR, self.specular)
-
-def read_mtl(filename):
-
-    materials = []
-    cur_material = None
-
-    with open_resource(filename) as fin:
-        for line in fin:
-            line = line.strip()
-            if line == '' or line[0] == '#':
+            # Load JSON data
+            try:
+                data = json.load(response)
+            except:
+                print "Could not parse JSON"
                 continue
-            tokens = line.split(' ')
-            command = tokens[0]
-            params = tokens[1:]
 
-            if command == 'newmtl':
-                assert len(params) == 1
-                if cur_material is not None:
-                    materials.append(cur_material)
-                cur_material = ObjMaterial()
-                cur_material.name = params[0]
-            elif command == 'Ka':
-                assert len(params) == 3
-                cur_material.ambient = tuple([float(x) for x in params])
-            elif command == 'Kd':
-                assert len(params) == 3
-                cur_material.diffuse = tuple([float(x) for x in params])
-            elif command == 'Ks':
-                assert len(params) == 3
-                cur_material.specular = tuple([float(x) for x in params])
-            elif command == 'd':
-                assert len(params) == 1
-                cur_material.illumination_model = float(params[0])
-            elif command == 'map_Kd':
-                assert len(params) == 1
-                cur_material.diffuse_texture = params[0]
-
-    if cur_material is not None:
-        materials.append(cur_material)
-
-    return materials
-
-def read_obj(filename):
-
-    objects = {}
-    cur_object = None
-    materials = {}
-
-    offsets = [0, 0, 0]
-
-    with open_resource(filename) as fin:
-        for line in fin:
-            line = line.strip()
-            if line == '' or line[0] == '#':
+            # Compute timing data and push data in the queue
+            try:
+                self.qle.parse_frames(data['data'], ref_time, self.last_timestamp)
+                for frame in data['data']:
+                    self.frames.append(frame)
+                if len(data['data']) > 0:
+                    self.last_timestamp = data['data'][-1]['timestamp']
+            except:
+                print "Malformed JSON data"
+                raise
                 continue
-            tokens = line.split(' ')
-            command = tokens[0]
-            params = tokens[1:]
 
-            if command == 'o':
-                assert len(params) == 1
-                if cur_object is not None:
-                    objects[cur_object.name] = cur_object
-                    offsets[0] += len(cur_object.vertices)
-                    offsets[1] += len(cur_object.uv_vertices)
-                    offsets[2] += len(cur_object.normals)
-                cur_object = ObjObject()
-                cur_object.name = params[0]
-            elif command == 'v':
-                assert len(params) == 3
-                cur_object.vertices.append(tuple([float(x) for x in params]))
-            elif command == 'vt':
-                assert len(params) == 2
-                cur_object.uv_vertices.append(tuple([float(x) for x in params]))
-            elif command == 'vn':
-                assert len(params) == 3
-                cur_object.normals.append(tuple([float(x) for x in params]))
-            elif command == 'f':
-                assert len(params) == 3
-                face = []
-                for param in params:
-                    elems = [my_int(x) - offsets[i] for i, x in enumerate(param.split('/'))]
-                    assert len(elems) == 3
-                    face.append(tuple(elems))
-                cur_object.faces.append(tuple(['f'] + face))
-            elif command == 'usemtl':
-                assert len(params) == 1
-                cur_object.faces.append(('usemtl', materials[params[0]]))
-            elif command == 's':
-                assert len(params) == 1
-                if params[0] == 'off':
-                    cur_object.faces.append(('s', False))
-                elif params[0] == '1':
-                    cur_object.faces.append(('s', True))
-                else:
-                    assert False
-            elif command == 'mtllib':
-                assert len(params) == 1
-                for material in read_mtl(*params):
-                    materials[material.name] = material
-
-    if cur_object is not None:
-        objects[cur_object.name] = cur_object
-
-    return objects
+            print "Last timestamp: %f" % (self.last_timestamp)
 
 def resize(width, height):
 
@@ -233,61 +142,99 @@ def render(time):
 
     glLight(GL_LIGHT0, GL_POSITION, (0.4, 0.6, 1.2))
 
-MAX_LATENESS = 0.5
+class FramePicker:
 
-time_delta = None
-current_frame = None
+    WARP_COEFF = 0.1
+    MAX_WARP_OFFSET = 0.2
+    MAX_SKIP = 1.0
 
-def update_timing(frames):
-    global time_delta, current_frame
+    def __init__(self, queue, qle):
+        self.queue = queue
+        self.qle = qle
 
-    now = time.time()
+        # Frame time is the timestamp of the frame that is being
+        # played now (i.e., in the time reference of the server); it
+        # can be None, meaning that playback is paused at the moment
+        self.frame_time = None
 
-    if time_delta is not None:
-        actual_time = now - time_delta
-    empty_queue = False
-    while True:
-        try:
-            frame = frames.get(block=False)
-        except Queue.Empty:
-            empty_queue = True
-            break
+        # Real time is the current system (monotonic) time, used to
+        # estimate how much time was spent between a call of
+        # pick_frame() and another
+        self.real_time = None
+
+    def pick_frame(self):
+        # Measure how much time was elapsed
+        new_time = monotonic_time()
+        if self.real_time is None:
+            self.real_time = new_time
+        elapsed = new_time - self.real_time
+        self.real_time = new_time
+
+        # Estimate the target queue length, compare it with the actual
+        # length and decide the time warping factor (FIXME: actual_len
+        # is slightly wrong, it implicitly discards one frame)
+        target_len = self.qle.get_length_estimate()
+        if len(self.queue) > 0:
+            actual_len = self.queue[-1]["timestamp"] - self.queue[0]["timestamp"]
         else:
-            if time_delta is None:
-                time_delta = now - frame['timestamp']
-                actual_time = frame['timestamp']
+            actual_len = 0.0
+        warping = 1.0 + FramePicker.WARP_COEFF * float(actual_len - target_len) / target_len
+        if warping < 1.0 - FramePicker.MAX_WARP_OFFSET:
+            warping = 1.0 - FramePicker.MAX_WARP_OFFSET
+        if warping > 1.0 + FramePicker.MAX_WARP_OFFSET:
+            warping = 1.0 + FramePicker.MAX_WARP_OFFSET
 
-            # If the frame is late, drop it
-            if actual_time > frame['timestamp']:
-                continue
+        # If we have a lock, adjust the frame time and take the
+        # appropriate frame
+        if self.frame_time is not None:
+            self.frame_time += warping * elapsed
 
-            # If not, keep it and use it to draw next field
-            else:
-                current_frame = frame
-                break
-
-    # Synchronization check
-    if time_delta is not None:
-
-        # If there are no enqueued frames, do not let the time pass
-        if empty_queue:
-            #time_delta += 1/fps
-            time_delta = None
-
-        # If we're too much behind, make a time jump
+        # If not, directly aim to the appropriate queue length
         else:
-            lateness = current_frame['timestamp'] - actual_time
-            if lateness > MAX_LATENESS:
-                time_delta -= lateness
+            # If we have enough buffer, we just cut the excess part;
+            # if not, we better wait to receive some, so we leave
+            # frame_time to None
+            if actual_len >= target_len:
+                self.frame_time = self.queue[-1]["timestamp"] - target_len
 
-    print frames.qsize()
+        # Discard frames until we arrive at frame_time: if we run out
+        # of frames we temporarily suspend playback
+        if self.frame_time is not None:
+            while True:
+                try:
+                    frame = self.queue[0]
+                except IndexError:
+                    self.frame_time = None
+                    ret = None
+                    print "Queue empty!"
+                    break
 
-fps = 24.0
+                if self.frame_time < frame["timestamp"]:
+                    ret = frame
+                    break
+
+                self.queue.popleft()
+
+        else:
+            ret = None
+
+        # If the selected frame is too much in the future, make a time
+        # jump (otherwise there will be a static frame sitting on the
+        # screen for a lot of time)
+        if ret is not None and ret["timestamp"] > self.frame_time + FramePicker.MAX_SKIP:
+            self.frame_time = ret["timestamp"]
+
+        print "Queue length: %f (%d), target length: %f, warping: %f, frame time: %s, frame timestamp: %s" % (actual_len, len(self.queue), target_len, warping, self.frame_time, ret["timestamp"] if ret is not None else None)
+
+        return ret
+
+fps = 30.0
 
 def main():
 
-    # Spawn request thread
+    # Spawn request thread and setup frame picker
     thread = RequestThread()
+    picker = FramePicker(thread.frames, thread.qle)
     thread.start()
 
     # Initialize pygame stuff
@@ -306,6 +253,7 @@ def main():
     glLight(GL_LIGHT0, GL_AMBIENT, (0.1, 0.1, 0.1))
 
     objects = read_obj('omino.obj')
+    current_frame = None
 
     frame = 0
     while True:
@@ -319,7 +267,11 @@ def main():
             if event.type == pygame.locals.VIDEORESIZE:
                 resize(event.w, event.h)
 
-        update_timing(thread.frames)
+        new_frame = picker.pick_frame()
+        buffering = False
+        if new_frame is not None:
+            buffering = True
+            current_frame = new_frame
 
         render(frame / fps)
 
@@ -372,6 +324,7 @@ def main():
 
         pygame.display.flip()
         clock.tick(fps)
+        #print clock.get_fps()
         frame += 1
 
 if __name__ == '__main__':

@@ -4,10 +4,9 @@
 import sys
 import time
 
-from data import Session, Log
+from data import Session, Log, INTERESTING_FPS
 
 COMMIT_FREQ = 2.0
-INTERESTING_FPS = 24.0
 
 def my_float(x):
     if x == '':

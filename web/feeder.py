@@ -8,9 +8,6 @@ import math
 
 FREQ = 120.0
 
-FIELDS_NUM = 18
-FIELDS_NUM = 2
-
 mode = sys.argv[1]
 if mode == 'random':
     field_num = int(sys.argv[2])

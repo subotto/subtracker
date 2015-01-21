@@ -11,6 +11,8 @@ from sqlalchemy.schema import Index
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm import session as sessionlib
 
+INTERESTING_FPS = 30.0
+
 with open(os.path.join(os.path.dirname(__file__), 'database_url')) as fdata:
     database_url = fdata.readline().strip()
 

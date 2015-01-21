@@ -9,10 +9,12 @@ import os
 
 sys.path.append(os.path.dirname(__file__))
 
-from data import Session, Log
+from data import Session, Log, INTERESTING_FPS
 
-BUFFER_LEN = 2500
+BUFFER_TIME = 30.0
+BUFFER_LEN = int(INTERESTING_FPS * BUFFER_TIME)
 SLEEP_TIME = 0.5
+MAX_QUERY_STRING_LEN = 512
 
 class LogJSONEncoder(json.JSONEncoder):
 
@@ -76,7 +78,7 @@ class Application:
         # Parse the request
         if 'QUERY_STRING' in environ and environ['QUERY_STRING'] is not None:
             query_string = environ['QUERY_STRING']
-            if len(query_string) >= 512:
+            if len(query_string) >= MAX_QUERY_STRING_LEN:
                 return self.error(environ, start_response)
             try:
                 request_tuples = [tuple(x.split('=', 1)) for x in environ['QUERY_STRING'].split('&')]
@@ -89,7 +91,7 @@ class Application:
 
         obj_response = {
             'data': self.select_records(last_timestamp, convert_units),
-            'fps': 24.0,
+            'fps': INTERESTING_FPS,
             'buffer_len': BUFFER_LEN,
             'version': 1,
             }
