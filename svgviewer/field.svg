@@ -1,0 +1,76 @@
+<svg id="dfse" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://www.w3.org/2000/svg" width="100%" viewbox="0 0 640.18 380.17" version="1.1" xmlns:cc="http://creativecommons.org/ns#" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <defs id="defs4066">
+    <linearGradient id="linearGradient4088" y2="-320.09" gradientUnits="userSpaceOnUse" x2="654.29" y1="-320.09" x1="643.83">
+      <stop id="stop3856" stop-color="#b3b3b3" offset="0"/>
+      <stop id="stop3862" stop-color="#FFF" offset="0.68649"/>
+      <stop id="stop3858" stop-color="#b3b3b3" offset="1"/>
+    </linearGradient>
+  </defs>
+  <metadata id="metadata4069">
+    <rdf:RDF>
+      <cc:Work rdf:about="">
+				<dc:format>image/svg+xml</dc:format>
+				<dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+				<dc:title/>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  
+
+  <g transform="translate(0 380.17) rotate(-90)">
+    <g id="layer1" transform="translate(-130.00189,-542.18658)">
+      <rect id="rect3050" stroke-dashoffset="0" transform="matrix(0,1,-1,0,0,0)" height="379.17" width="639.18" stroke="#000" stroke-dasharray="none" stroke-miterlimit="4" y="-509.68" x="542.69" stroke-width="1" fill="#008000"/>
+      <g id="g3962" transform="matrix(0,1.0917603,-1.0917603,0,921.21908,474.33004)" stroke-miterlimit="4" stroke-dasharray="none" stroke-width="0.91024995">
+        <path id="path3940" d="m418.57,556.29c0,28.995-23.505,52.5-52.5,52.5s-52.5-23.505-52.5-52.5,23.505-52.5,52.5-52.5,52.5,23.505,52.5,52.5z" transform="matrix(0.95956873,0,0,0.95956873,4.0685632,16.807262)" fill="#FFF"/>
+        <path id="path3942" d="m418.57,556.29c0,28.995-23.505,52.5-52.5,52.5s-52.5-23.505-52.5-52.5,23.505-52.5,52.5-52.5,52.5,23.505,52.5,52.5z" transform="matrix(0.81132075,0,0,0.81132075,58.337914,99.276244)" fill="#008000"/>
+      </g>
+      <rect id="rect3944" transform="matrix(0,1,-1,0,0,0)" height="357.67" width="10.12" y="-493.33" x="857.22" fill="#FFF"/>
+      <g id="g4766" transform="matrix(0,-1,-1,0,855.54649,1271.7825)">
+        <g id="g4768" transform="matrix(1.0025241,0,0,1.2504514,-0.61957009,-137.47639)">
+          <path id="path4770" d="m230.31,555.37c0,30.126-24.422,54.548-54.548,54.548s-54.548-24.422-54.548-54.548,24.422-54.548,54.548-54.548,54.548,24.422,54.548,54.548z" transform="matrix(1.4628994,0,0,1.1728499,-87.518857,-113.20933)" fill="#FFF"/>
+          <path id="path4772" d="m230.31,555.37c0,30.126-24.422,54.548-54.548,54.548s-54.548-24.422-54.548-54.548,24.422-54.548,54.548-54.548,54.548,24.422,54.548,54.548z" transform="matrix(1.2877751,0,0,1.0324476,-56.737853,-35.234441)" fill="#008000"/>
+        </g>
+        <rect id="rect4774" height="229.05" width="133.87" y="423.38" x="89.418" fill="#FFF"/>
+        <rect id="rect4776" height="213.66" width="125.19" y="431.07" x="89.418" fill="#008000"/>
+        <rect id="rect4778" height="155.43" width="57.462" y="459.57" x="89.418" fill="#FFF"/>
+        <rect id="rect4780" height="137.79" width="47.736" y="468.39" x="89.418" fill="#008000"/>
+      </g>
+      <rect id="rect3832" stroke-dashoffset="0" transform="matrix(0,1,-1,0,0,0)" height="26.7" width="535.47" stroke="#000" stroke-dasharray="none" stroke-miterlimit="4" y="-157.34" x="589.3" stroke-width="0.5" fill="#FFF"/>
+      <rect id="rect3830" stroke-dashoffset="0" transform="matrix(0,1,-1,0,0,0)" height="26.7" width="535.47" stroke="#000" stroke-dasharray="none" stroke-miterlimit="4" y="-509.54" x="589.3" stroke-width="0.5" fill="#FFF"/>
+      <g id="g4757" transform="matrix(0,1,-1,0,855.54649,453.10428)">
+        <g id="g4715" transform="matrix(1.0025241,0,0,1.2504514,-0.61957009,-137.47639)">
+          <path id="path3914" d="m230.31,555.37c0,30.126-24.422,54.548-54.548,54.548s-54.548-24.422-54.548-54.548,24.422-54.548,54.548-54.548,54.548,24.422,54.548,54.548z" transform="matrix(1.4628994,0,0,1.1728499,-87.518857,-113.20933)" fill="#FFF"/>
+          <path id="path3916" d="m230.31,555.37c0,30.126-24.422,54.548-54.548,54.548s-54.548-24.422-54.548-54.548,24.422-54.548,54.548-54.548,54.548,24.422,54.548,54.548z" transform="matrix(1.2877751,0,0,1.0324476,-56.737853,-35.234441)" fill="#008000"/>
+        </g>
+        <rect id="rect3904" height="229.05" width="133.87" y="423.38" x="89.418" fill="#FFF"/>
+        <rect id="rect3906" height="213.66" width="125.19" y="431.07" x="89.418" fill="#008000"/>
+        <rect id="rect3908" height="155.43" width="57.462" y="459.57" x="89.418" fill="#FFF"/>
+        <rect id="rect3910" height="137.79" width="47.736" y="468.39" x="89.418" fill="#008000"/>
+      </g>
+      <path id="path3820" stroke-linejoin="miter" d="m378.37,542.8,104.33,104.11,26.829-16.112,0-87.997z" stroke="#000" stroke-linecap="butt" stroke-miterlimit="4" stroke-dasharray="none" stroke-width="0.5" fill="#FFF"/>
+      <path id="path3824" stroke-linejoin="miter" d="m261.81,542.8-104.34,104.11-26.829-16.112,0-87.997z" stroke="#000" stroke-linecap="butt" stroke-miterlimit="4" stroke-dasharray="none" stroke-width="0.5" fill="#FFF"/>
+      <path id="path3826" stroke-linejoin="miter" d="m378.37,1181.7,104.33-104.11,26.829,16.112,0,87.998z" stroke="#000" stroke-linecap="butt" stroke-miterlimit="4" stroke-dasharray="none" stroke-width="0.5" fill="#FFF"/>
+      <path id="path3828" stroke-linejoin="miter" d="m261.81,1181.7-104.34-104.11-26.829,16.112,0,87.998z" stroke="#000" stroke-linecap="butt" stroke-miterlimit="4" stroke-dasharray="none" stroke-width="0.5" fill="#FFF"/>
+      <path id="path3960" d="m363.57,554.15c0,3.7476-2.8782,6.7857-6.4286,6.7857s-6.4286-3.0381-6.4286-6.7857,2.8782-6.7857,6.4286-6.7857,6.4286,3.0381,6.4286,6.7857z" transform="matrix(0,1.1666667,-1.1052632,0,932.56804,445.60867)" fill="#FFF"/>
+    
+    </g>
+    
+    <svg id="ball_layer">
+	</svg>
+    
+    <g id="layer2" transform="translate(-130.00189,-542.18658)">
+  
+      <rect id="rect3836" stroke-dasharray="none" transform="matrix(0,1,-1,0,0,0)" height="379.14" width="9.8592" stroke="#000" stroke-miterlimit="4" y="-509.66" x="644.13" stroke-width="0.5" fill="url(#linearGradient4088)"/>
+      <use id="use4895" xlink:href="#rect3836" transform="translate(0,85.285711)" height="1052.3622" width="744.09448" y="0" x="0"/>
+      <use id="use4897" xlink:href="#rect3836" transform="translate(0,170.57147)" height="1052.3622" width="744.09448" y="0" x="0"/>
+      <use id="use4899" xlink:href="#rect3836" transform="translate(0,255.85718)" height="1052.3622" width="744.09448" y="0" x="0"/>
+      <use id="use4901" xlink:href="#rect3836" transform="translate(0,341.14292)" height="1052.3622" width="744.09448" y="0" x="0"/>
+      <use id="use4907" xlink:href="#rect3836" transform="translate(0,426.42865)" height="1052.3622" width="744.09448" y="0" x="0"/>
+      <use id="use3241" xlink:href="#rect3836" transform="translate(0,-85.285777)" height="640.17749" width="380.17374" y="0" x="0"/>
+      <use id="use3243" xlink:href="#rect3836" transform="translate(0,511.71437)" height="640.17749" width="380.17374" y="0" x="0"/>
+    </g>
+    
+    <svg id="canvas">
+    </svg>
+  </g>
+</svg>

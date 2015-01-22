@@ -11,6 +11,9 @@ sys.path.append(os.path.dirname(__file__))
 
 from data import Session, Log, INTERESTING_FPS
 
+TEST = True
+TEST_BASEDIR = '../svgviewer'
+
 BUFFER_TIME = 30.0
 BUFFER_LEN = int(INTERESTING_FPS * BUFFER_TIME)
 SLEEP_TIME = 0.5
@@ -75,6 +78,25 @@ class Application:
         return [response]
 
     def __call__(self, environ, start_response):
+        # If TEST is enabled, we serve static files as a simple
+        # webserver; needless to say, this piece of code has more or
+        # less all the possible security bugs that one can invent, so
+        # it is good to have it disabled before going live! ;-)
+        if TEST and environ['PATH_INFO'] != '/24ore/tracking.json':
+            try:
+                with open(os.path.join(TEST_BASEDIR, environ['PATH_INFO'][1:])) as fin:
+                    content = fin.read()
+            except:
+                content = '404 File not found'
+                status = '404 File not found'
+                #import traceback
+                #traceback.print_exc()
+            else:
+                status = '200 OK'
+            response_headers = [('Content-Length', str(len(content)))]
+            start_response(status, response_headers)
+            return [content]
+
         # Parse the request
         if 'QUERY_STRING' in environ and environ['QUERY_STRING'] is not None:
             query_string = environ['QUERY_STRING']
