@@ -454,8 +454,6 @@ function stop_svg() {
 }
 
 function init_field() {
-    $("#field_div").load("field.svg");
-
 		draw = SVG('canvas').size(380.17, 640.18);
 		ball_layer = SVG('ball_layer').size(380.17, 640.18);
 		
@@ -475,6 +473,5 @@ function init_field() {
 			  table.draw();
 		});
 
-    //start_svg();
-
+    start_svg();
 }
