@@ -1,0 +1,72 @@
+
+While each programs internally stores data in its own favorite format,
+it is important that a standard format is established for exchanging
+data related to the Subotto. It is then decided that:
+
+ * Time is always expressed as a floating number indicating a number
+   of seconds starting from the UNIX epoch.
+
+ * Table coordinates are always expressed as floating numbers
+   indicating a number of meters. The X axis is parallel to the long
+   side of the table and pointing towards to blue goal. The Y axis is
+   parallel to the short side of the table and pointing towards the
+   blue players. The origin (0.0, 0.0) coincides with the geometrical
+   centroid of the table.
+
+ * Foosmen offset is always expressed as a floating point number
+   indicating a number of meters. The offset coordinate increases when
+   the rod is moved towards the blue players (independently of whether
+   we are considering a red or blue rod). The offset origin 0.0
+   coincides with the rod being in the midpoint of the positions it
+   can assume.
+
+ * Foosmen angle is always expressed as a floating point number
+   indicating a number of radians. The angle coordinate increases when
+   the rod is rotated so that the foot of the foosmen are moved
+   towards the blue goal (independently of whether we are considering
+   a red or blue rod). The angle origin 0.0 coincides with the rod
+   being perfectly vertical.
+
+
+When enumerating the rods of a single player (red or blue), then they
+are numbered from 0 to 3 with the following meaning:
+ * 0: goalkeeper;
+ * 1: defence;
+ * 2: midfield;
+ * 3: attack.
+
+
+When enumerating all of the rods, then they are numbered from 0 to 7
+with the following meaning:
+ * 0: red goalkeeper;
+ * 1: red defence;
+ * 2: blue attack;
+ * 3: red midfield;
+ * 4: blue midfield;
+ * 5: red attack;
+ * 6: blue defence;
+ * 7: blue goalkeeper.
+
+
+When using positional notation to qualify fields (for instance in a
+CSV file) it is assumed that the order is as follows:
+
+ *  0: timestamp;
+ *  1: ball X;
+ *  2: ball Y;
+ *  3: red goalkeeper shift;
+ *  4: red goalkeeper angle;
+ *  5: red defence shift;
+ *  6: red defence angle;
+ *  7: red midfield shift;
+ *  8: red midfield angle;
+ *  9: red attack shift;
+ * 10: red attack angle;
+ * 11: blue goalkeeper shift;
+ * 12: blue goalkeeper angle;
+ * 13: blue defence shift;
+ * 14: blue defence angle;
+ * 15: blue midfield shift;
+ * 16: blue midfield angle;
+ * 17: blue attack shift;
+ * 18: blue attack angle.
