@@ -28,7 +28,7 @@ while True:
         angle_radius = math.pi / 2.0
         out = ["%.6f" % (now)]
         out += [str(x) for x in [ball_radius * math.cos(omega), ball_radius * math.sin(omega)]]
-        for i in xrange(8):
+        for j in xrange(8):
             out += [str(x) for x in [shift_radius * math.sin(omega), angle_radius * math.cos(omega)]]
         print ",".join(out)
 
@@ -39,6 +39,5 @@ while True:
     time.sleep(1.0 / FREQ)
     i += 1
     if i % int(FREQ) == 0:
-        now = time.time()
         print >> sys.stderr, "Did %d samples in %f seconds; average: %f samp/s" % (i, now - start_time, float(i) / (now - start_time))
         sys.stderr.flush()
