@@ -23,8 +23,14 @@ while True:
 
     elif mode == 'circle':
         omega = now
-        radius = 0.3
-        print ",".join(["%.6f" % (now)] + [str(x) for x in [radius * math.cos(omega), radius * math.sin(omega)]])
+        ball_radius = 0.3
+        shift_radius = 0.1
+        angle_radius = math.pi / 2.0
+        out = ["%.6f" % (now)]
+        out += [str(x) for x in [ball_radius * math.cos(omega), ball_radius * math.sin(omega)]]
+        for i in xrange(8):
+            out += [str(x) for x in [shift_radius * math.sin(omega), angle_radius * math.cos(omega)]]
+        print ",".join(out)
 
     elif mode == 'null':
         print "%.6f" % (now)
