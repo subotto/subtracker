@@ -102,7 +102,7 @@ function create_player(draw, color) {
 		player.fill=player.group.path('',true);
 
 		player.path.attr({ fill: 'none' , stroke: '#000', 'stroke-width': 2})
-		player.fill.attr({stroke: 'none'}); //'fill-opacity': 0.85,
+		player.fill.attr({stroke: 'none', 'fill-opacity': 0.85,});
 		if (color==0) {
 				player.fill.attr('fill','#f00');
 		}
@@ -444,7 +444,7 @@ var frame_picker = {
             this.frame_time = ret.timestamp;
         }
 
-        $("#time").html("".concat("Queue length: ", actual_len, " (", frames.length, "), target length: ", target_len, ", warping: ", warping, ", frame time: ", this.frame_time, ", frame timestamp: ", ret === null ? null : ret));
+        $("#time").html("".concat("Queue length: ", actual_len, " (", frames.length, "), target length: ", target_len, ", warping: ", warping, ", frame time: ", this.frame_time, ", frame timestamp: ", ret === null ? null : ret.timestamp));
 
         return ret;
     }
