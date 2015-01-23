@@ -25,9 +25,11 @@ REQUEST_URL = 'http://localhost:8000/24ore/tracking.json?last_timestamp=%(last_t
 REQUEST_TIMEOUT = 2.0
 REQUEST_SLEEP = 0.5
 
-FADING_FACTOR = 0.1
+FPS = 30.0
 
 class QueueLengthEstimator:
+
+    FADING_FACTOR = 0.1
 
     def __init__(self):
         # self.average = None
@@ -35,7 +37,7 @@ class QueueLengthEstimator:
 
         # Our first bet on average chunk size is the time between two
         # requests (but we double it just to stay safe)
-        self.chunk_average = 2 * REQUEST_SLEEP
+        self.chunk_average = 4.0 * REQUEST_SLEEP
 
     def parse_frames(self, frames, ref_time, last_timestamp, queue_refill):
         if len(frames) == 0:
@@ -51,8 +53,8 @@ class QueueLengthEstimator:
         #         self.variance = (frame['timestamp'] - self.average) / float(len(frames))
         # else:
         #     for frame in frames:
-        #         self.average = FADING_FACTOR * (frame['timestamp'] - ref_time) + (1.0 - FADING_FACTOR) * self.average
-        #         self.variance = FADING_FACTOR * ((frame['timestamp'] - self.average) ** 2) + (1.0 - FADING_FACTOR) * self.variance
+        #         self.average = QueueLengthEstimator.FADING_FACTOR * (frame['timestamp'] - ref_time) + (1.0 - QueueLengthEstimator.FADING_FACTOR) * self.average
+        #         self.variance = QueueLengthEstimator.FADING_FACTOR * ((frame['timestamp'] - self.average) ** 2) + (1.0 - QueueLengthEstimator.FADING_FACTOR) * self.variance
 
         # If just before this chunk the queue was empty, then ignore
         # this chunk, as it probably would mess up statistics
@@ -62,7 +64,7 @@ class QueueLengthEstimator:
         if self.chunk_average is None:
             self.chunk_average = chunk_len
         else:
-            self.chunk_average = FADING_FACTOR * (chunk_len) + (1.0 - FADING_FACTOR) * self.chunk_average
+            self.chunk_average = QueueLengthEstimator.FADING_FACTOR * chunk_len + (1.0 - QueueLengthEstimator.FADING_FACTOR) * self.chunk_average
 
     def get_length_estimate(self):
         if self.chunk_average is None:
@@ -202,7 +204,7 @@ def render(time, current_frame, objects):
 
 class FramePicker:
 
-    WARP_COEFF = 0.1
+    WARP_COEFF = 0.3
     MAX_WARP_OFFSET = 0.2
     MAX_SKIP = 1.0
 
@@ -257,13 +259,13 @@ class FramePicker:
 
         # Discard frames until we arrive at frame_time: if we run out
         # of frames we temporarily suspend playback
+        ret = None
         if self.frame_time is not None:
             while True:
                 try:
                     frame = self.queue[0]
                 except IndexError:
                     self.frame_time = None
-                    ret = None
                     print "Queue empty!"
                     break
 
@@ -272,9 +274,6 @@ class FramePicker:
                     break
 
                 self.queue.popleft()
-
-        else:
-            ret = None
 
         # If the selected frame is too much in the future, make a time
         # jump (otherwise there will be a static frame sitting on the
@@ -285,8 +284,6 @@ class FramePicker:
         print "Queue length: %f (%d), target length: %f, warping: %f, frame time: %s, frame timestamp: %s" % (actual_len, len(self.queue), target_len, warping, self.frame_time, ret["timestamp"] if ret is not None else None)
 
         return ret
-
-fps = 30.0
 
 def main():
 
@@ -355,10 +352,10 @@ def main():
             buffering = True
             current_frame = new_frame
 
-        render(frame / fps, current_frame, objects)
+        render(frame / FPS, current_frame, objects)
 
         pygame.display.flip()
-        clock.tick(fps)
+        clock.tick(FPS)
         #print clock.get_fps()
         frame += 1
 

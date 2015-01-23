@@ -1,11 +1,14 @@
 
+var REQUEST_URL = "/24ore/tracking.json";
+var REQUEST_TIMEOUT = 2.0;
+var REQUEST_SLEEP = 0.5;
+
+var FPS = 30.0;
+
 var field_width=380;
 var field_height=640;
-var fps = 10.0;
-var request_url = "/24ore/tracking.json";
 var draw;
 var table;
-var time_delta=-1;
 var frames=[];
 var stop = false;
 var update_everything_handle = null;
@@ -227,7 +230,7 @@ function create_ball_track(draw) {
 		}
 
 
-		if (ball_track.positions.length > fps*2) {
+		if (ball_track.positions.length > FPS*2) {
 			ball_track.positions.shift();
 		}
 			
@@ -345,75 +348,125 @@ function print_frames() {
     $("#frames_div").html(repr_frames());
 }
 
-function addNewFrames(response) {
-    if (fps != response.fps) {
-        fps = response.fps;
-        stop_svg();
-        start_svg();
-    }
-    /*if (response.data.length > 0)
-      debug("Adding frames!");
-      else
-      debug("No new frames to add.");*/
-    updating_frames = false;
-		frames=frames.concat(response.data);
-    if (frames.length > 0) {
-        last_timestamp=frames[frames.length-1].timestamp;
-    }
-		if (time_delta<0 && frames[0].timestamp !== undefined) {
-				time_delta=(new Date().getTime())/1000 - frames[0].timestamp;
-				//debug(time_delta);
-		}
-}
-
 function update_everything() {
     if (stop) return;
-    var current_time = (new Date().getTime())/1000;
-		var actual_time=current_time - time_delta;
 
-    //print_frames();
-
-		//debug("current_time=" + current_time + " actual_time = " + actual_time);
-		//debug(repr_frames());
-		// Rimuove i frame vecchi
-		for (var i=0;i<frames.length;++i) {
-				if (frames[i].timestamp >= actual_time)
-					  break;
-		}
-		frames=frames.slice(i);
-
-    function max(a, b) { if (a > b) return a; else return b; }
-
-    // If the buffer is too long, trim it a bit
-    var max_length = 20.0 * fps;
-    if (frames.length > max_length) {
-        time_delta -= (frames.length - max_length) / fps;
-    }
-    var good_length = 10.0 * fps;
-    if (frames.length > good_length) {
-        time_delta -= max(0.1, 0.005 * (frames.length - good_length)) / fps;
-    }
-
-    //debug(repr_frames());
-		//debug("removed " + i + " frames");
-
-    // Tentative synchronization code
-		if (frames.length==0) {
-        time_delta += 1/fps;
-        return;
-    } else {
-        // If we're too much behind, make a time jump
-        var lateness = frames[0].timestamp - actual_time;
-        if (lateness > 0.5) time_delta -= lateness;
-    }
-
-		var frame=frames[0];
-		//debug("displaying t="+frame.timestamp+" length="+frames.length+" actual_time="+actual_time);
-
-	  $("#time").html("Time: "+time_delta);
+    var frame = frame_picker.pick_frame();
 
     display_frame(frame);
     //print_frames();
+}
+
+// A copy of QueueLengthEstimator in viewer.py
+var queue_length_estimator = {
+
+    FADING_FACTOR: 0.1,
+
+    chunk_average: 2.0 * REQUEST_SLEEP,
+
+    parse_frames: function(frames, ref_time, last_timestamp, queue_refill) {
+        if (frames.length == 0) {
+            return;
+        }
+        if (last_timestamp === null) {
+            last_timestamp = frames[frames.length - 1].timestamp;
+        }
+        chunk_len = frames[frames.length - 1].timestamp - frames[0].timestamp;
+
+        if (queue_refill) {
+            return;
+        }
+
+        if (this.chunk_average === null) {
+            this.chunk_average = chunk_len;
+        } else {
+            this.chunk_average = this.FADING_FACTOR * chunk_len + (1.0 - this.FADING_FACTOR) * this.chunk_average;
+        }
+    },
+
+    get_length_estimate: function() {
+        return 4.0 * this.chunk_average;
+    }
+}
+
+// A copy of FramePicker in viewer.py
+var frame_picker = {
+
+    WARP_COEFF: 0.3,
+    MAX_WARP_OFFSET: 0.2,
+    MAX_SKIP: 1.0,
+
+    frame_time: null,
+    real_time: null,
+
+    pick_frame: function () {
+        var new_time = performance.now() / 1000.0;
+        if (this.real_time === null) {
+            this.real_time = new_time;
+        }
+        var elapsed = new_time - this.real_time;
+        this.real_time = new_time;
+
+        target_len = queue_length_estimator.get_length_estimate();
+        if (frames.length > 0) {
+            actual_len = frames[frames.length - 1].timestamp - frames[0].timestamp;
+        } else {
+            actual_len = 0.0;
+        }
+        var warping = 1.0 + this.WARP_COEFF * (actual_len - target_len) / target_len;
+        if (warping < 1.0 - this.MAX_WARP_OFFSET) {
+            warping = 1.0 - this.MAX_WARP_OFFSET;
+        }
+        if (warping > 1.0 + this.MAX_WARP_OFFSET) {
+            warping = 1.0 + this.MAX_WARP_OFFSET;
+        }
+
+        if (this.frame_time !== null) {
+            this.frame_time += elapsed * warping;
+        } else {
+            if (actual_len >= target_len) {
+                this.frame_time = frames[frames.length - 1].timestamp - target_len;
+            }
+        }
+
+        var ret = null;
+        if (this.frame_time !== null) {
+		        for (var i = 0; i < frames.length; i++) {
+				        if (this.frame_time < frames[i].timestamp) {
+                    ret = frames[i];
+					          break;
+                }
+            }
+		        frames = frames.slice(i);
+		    }
+
+        if (ret !== null && ret.timestamp > this.frame_time + this.MAX_SKIP) {
+            this.frame_time = ret.timestamp;
+        }
+
+        $("#time").html("".concat("Queue length: ", actual_len, " (", frames.length, "), target length: ", target_len, ", warping: ", warping, ", frame time: ", this.frame_time, ", frame timestamp: ", ret === null ? null : ret));
+
+        return ret;
+    }
+}
+
+function receive_frames(response) {
+    ref_time = performance.now();
+
+    if (FPS != response.fps) {
+        FPS = response.fps;
+        stop_svg();
+        start_svg();
+    }
+
+    var queue_refill = frames.length == 0;
+    queue_length_estimator.parse_frames(response.data, ref_time, last_timestamp, queue_refill);
+		frames = frames.concat(response.data);
+    if (frames.length > 0) {
+        last_timestamp = frames[frames.length - 1].timestamp;
+    }
+
+    updating_frames = false;
 }
 
 function request_new_frames(){
@@ -421,21 +474,21 @@ function request_new_frames(){
     if (updating_frames) return;
     updating_frames = true;
 		if (last_timestamp != null) {
-				$.getJSON(request_url, {'last_timestamp' : last_timestamp.toFixed(6)},
-					        addNewFrames);
+				$.getJSON(REQUEST_URL, {'last_timestamp' : last_timestamp.toFixed(6)},
+					        receive_frames);
 		} else {
-				$.getJSON(request_url, {'last_timestamp' : "0"},
-					        addNewFrames);
+				$.getJSON(REQUEST_URL, {'last_timestamp' : "0"},
+					        receive_frames);
 		}
 }
 
 function start_svg() {
 
     if (update_everything_handle == null) {
-        update_everything_handle = setInterval(update_everything, 1000/fps);
+        update_everything_handle = setInterval(update_everything, 1000 / FPS);
     }
     if (request_new_frames_handle == null) {
-        request_new_frames_handle = setInterval(request_new_frames, 1000/2);
+        request_new_frames_handle = setInterval(request_new_frames, 1000 * REQUEST_SLEEP);
     }
 
 }

@@ -14,6 +14,7 @@
 
   <script src="js/jquery.js"></script>
   <script src="js/svg.js"></script>
+  <script src="js/collections.min.js"></script>
   <script src="js/field.js"></script>
 
 </head>
@@ -23,12 +24,11 @@
   <!--<input type="range" id="angle_slider" min="-314" max="314"><span id="angle_value"></span>-->
   <!--<div id="canvas" style="width:380px; height: 640px; background: green;"></div>-->
 
+  <div id="time"></div>
   <div id="debug_div"></div>
   <div id="frames_div"></div>
 
   <div id="field_div"></div>
-
-  <div id="time"></div>
 
   <script>
     $("#field_div").load("field.svg", complete=init_field);
