@@ -3,380 +3,528 @@ import scipy as sp
 import scipy.ndimage
 import cv2
 
-from transformation import *
+import transformation
 from control import ControlGroup, ControlGroupStatus
 from tabletracker import TableTracker, TableTrackingSettings
-from metrics import Metrics, TEAMS
+from table import Table
 
-controls = ControlGroupStatus(ControlGroup())
+class Block:
 
-class Settings:
+    def __init__(self, table):
+        self.frames = 600
 
-    def __init__(self):
-        self.metrics = Metrics()
+        self.table = table
+        self.video = Video(self)
+        self.camera = CameraAnalysis(self)
+        self.rectification = Rectification(self)
+        self.background = BackgroundAnalysis(self)
+        self.team_foosmen = [FoosmenSetAnalysis(self, t) for t in self.table.teams]
+        self.rods = [RodAnalysis(self, r) for r in self.table.rods]
+        self.occlusion = OcclusionAnalysis(self)
+        
+class Video:
+
+    def __init__(self, block):
+        f = block.frames
+
+        self.frame_size = w, h = 320, 240
+        self.channels = ch = 3
+        self.image = np.empty((f, h, w, ch), np.uint8)
+        self.image_f = np.empty((f, h, w, ch), np.float32)
+
+class CameraAnalysis:
+
+    def __init__(self, block):
+        f = block.frames
+        w, h = block.video.frame_size
+        
+        self.transform = np.empty((f, 3, 3))
+        self.resolution = np.empty((f, h, w), np.float32)
+
+class Rectification:
+
+    def __init__(self, block):
+        self.resolution = 80 # pixel/meter
+        self.surface_size = (1.4, 0.8)
+        self.image_size, self.transform = image_size_transform(self.surface_size, self.resolution)
+        
+        f = block.frames
+        w, h = self.image_size
+        self.channels = ch = block.video.channels
+        
+        self.image = np.empty((f, h, w, ch), np.float32)
+        self.camera_resolution = np.empty((f, h, w), np.float32)
+
+class BackgroundAnalysis:
+
+    def __init__(self, block):
+        f = block.frames
+        w, h = block.rectification.image_size
+        ch = block.rectification.channels
+        
+        self.mean = np.empty((h, w, ch), np.float32)
+        self.color_variance = np.empty((ch, ch), np.float32)
+        self.deviation = np.empty((f, h, w, ch), np.float32)
+        
+        self.ll = np.empty((f, h, w), np.float32)
+        self.visible_ll = np.empty((f, h, w), np.float32)
+
+class FoosmenSetAnalysis:
+
+    def __init__(self, block, team):
+        self.team = team
     
-        self.frame_rate = 120
-        self.frame_num = 60
-        self.frame_size = (240, 320)
-        self.channels = 3
-
-        w, h = self.metrics.ground_size
-        
-        self.table_corners = np.float32([
-            (-w/2, -h/2),
-            (+w/2, -h/2),
-            (+w/2, +h/2),
-            (-w/2, +h/2),
-        ])
-        
-        # estimate background a margin beyond the end of the table
-        margin = 0.05
-        bw = w + 2*margin
-        bh = h + 2*margin
-               
-        r = 0.005 # meters
-        
-        self.background_resolution = (int(bw/r), int(bh/r))
-        self.background_transform = rectangle_to_pixels(*self.background_resolution).dot(scale(2/bw, 2/bh))
-        
-        self.occlusion_mean_diameter = 0.05 # 5cm
-        self.occlusion_mean_duration = 2 # 2sec
-        
-        self.foosmen_color_mean = np.float32(self.metrics.foosmen_color)
-        self.foosmen_color_variance = 0.15 ** 2 * np.eye(3)
-
-        self.foosmen_overlay_size = (3, 3) # hard-coded in pixels (FIXME?)
-        
-        rods = len(self.metrics.rods)
-        self.team_transform = np.empty((TEAMS, 3, 3), dtype=np.float32)
-        self.rod_transform = np.empty((TEAMS, rods, 3, 3), dtype=np.float32)
-
-        self.team_transform[0] = np.eye(3)
-        self.team_transform[1] = scale(-1, -1)
-        
-        for team in xrange(TEAMS):
-            for rod_i, rod in enumerate(self.metrics.rods):
-                rod_transform = translate(rod.location_x, 0)
-                self.rod_transform[team,rod_i] = self.team_transform[team].dot(rod_transform)
-                
-        self.foosman_in_rod_transform = np.empty((rods, self.metrics.max_men_num, 3, 3), dtype=np.float32)
-        for rod_i, rod in enumerate(self.metrics.rods):
-            for man_i, man in enumerate(rod.men):
-                self.foosman_in_rod_transform[rod_i, man_i] = translate(0, man.location_y)
-        
-        r = 0.002 # meters
-        self.rod_translation_map_resolution = int(h/r)
-        self.rod_translation_map_transform = rectangle_to_pixels(1, self.rod_translation_map_resolution).dot(scale(1/(4*r), 2/h))
-        
-        # use the last 4 bits in integer pixel coordinates for decimals (sub-pixel)
-        self.shift = 4
-
-
-class BlockAnalysis:
+        # As our model approximates the shape of foosmen as a rectangle
+        # of a fixed size, we assume that only a random part of the pixels in
+        # this rectangle are actually coming from the foosmen.
+        self.opaque_p = 0.2
+        self.transparent_p = (1-self.opaque_p)
     
-    def __init__(self, settings):
-        self.settings = settings    
-    
-        f = settings.frame_num
-        h, w = settings.frame_size
-        ch = settings.channels
-        rgb = 3
-    
-        self.frame = np.empty((f, h, w, ch), dtype=np.uint8)
-        self.frame_32f = np.empty((f, h, w, ch), dtype=np.float32)
+        f = block.frames
+        w, h = block.rectification.image_size
+        ch = block.rectification.channels
         
-        self.frame_table_corners = np.empty((f, 4, 2), dtype=np.float32)
-        self.frame_transform = np.empty((f, 3, 3), dtype=np.float32)
-        self.frame_table_mask_u8 = np.zeros((f, h, w, ch), dtype=np.uint8)
-        self.frame_table_mask = np.zeros((f, h, w, ch), dtype=np.float32)
-    
-        bw, bh = settings.background_resolution
-        
-        self.frame_to_background_transform = np.empty((f, 3, 3), dtype=np.float32)
-        self.background_sample = np.empty((f, bh, bw, ch), dtype=np.float32)
-        
-        self.background_mean = np.empty((bh, bw, ch), dtype=np.float32)
-        self.background_occlusion_mask = np.empty((f, bh, bw, 1), dtype=np.float32)
-        self.background_color_variance = np.empty((3, 3), dtype=np.float32)
-        
-        # ll := log likelihood
-        # llr := log likelihood ratio
-        # lprior = log prior probability
-        
-        self.frame_background_mean = np.empty((f, h, w, ch), dtype=np.float32)
-        self.frame_background_deviation = np.empty((f, h, w, ch), dtype=np.float32)
-        self.frame_background_pixel_ll = np.empty((f, h, w, 1), dtype=np.float32)
-        
-        rods = len(self.settings.metrics.rods)
-        self.frame_foosmen_debug = np.zeros((TEAMS, rods, f, h, w, rgb), dtype=np.float32)
-        
-        #self.frame_foosmen_pixel_lprior = np.
-        self.frame_foosmen_pixel_ll = np.empty((TEAMS, f, h, w, 1), dtype=np.float32)
-        
-        # ratio of likelihoods of a foosman to be located or not
-        # in the center of a frame pixel, given the frame
-        self.frame_foosmen_llr = np.empty((TEAMS, f, h, w, 1), dtype=np.float32)
-        
-        fw = 1
-        fh = settings.rod_translation_map_resolution
-        
-        men = self.settings.metrics.max_men_num
-        
-        self.foosman_translation_llr = np.zeros((TEAMS, rods, men, f, fh, fw, 1), dtype=np.float32)
-        self.rod_translation_llr = np.zeros((TEAMS, rods, f, fh, fw, 1), dtype=np.float32)
+        self.mean = team.foosmen.color
+        self.variance = 0.1 ** 2 * np.eye(3, dtype=np.float32) + 0.05 ** 2 * np.ones((3,3), dtype=np.float32)
 
+        self.deviation = np.empty((f, h, w, ch), np.float32)
+        self.visible_ll = np.empty((f, h, w), np.float32)
+        self.ll = np.empty((f, h, w), np.float32)
+        
+        self.llr = np.empty((f, h, w), np.float32)
+        
+        self.silhouette_size = (2*block.table.foosmen.feet_height, block.table.foosmen.width)
+        self.silhouette_area = self.silhouette_size[0] * self.silhouette_size[1]
+        
+        self.filter_size = tuple(int(s * block.rectification.resolution) for s in self.silhouette_size)
+        self.location_llr = np.empty((f, h, w), np.float32)
+
+class RodAnalysis:
+
+    def __init__(self, block, rod):
+        self.rod = rod
+    
+        tm = rod.type.translation_max
+        self.translation_resolution = tr = 200 # pixel/meter
+        
+        # Center location moves only along the Y axis,
+        # but we approximate this by allowing a small horizontal movement
+        # so that transform matrices are not singular and units of measurement
+        # make sense more easily
+        self.location_delta_width = 0.01
+        
+        self.translation_size = h = int(2*tm*tr)
+        
+        # Transforms the translations into the center location
+        self.translation_location_transform = get_image_transform((self.location_delta_width, 2*tm), (1, h))
+        
+        self.foosmen = [FoosmanAnalysis(block, self, m) for m in rod.foosmen]
+
+        f = block.frames
+        self.translation_llr = np.empty((f, h))
+        self.translation_pd = np.empty((f, h))
+
+class FoosmanAnalysis:
+
+    def __init__(self, block, rod_analysis, foosman):
+        f = block.frames
+        h = rod_analysis.translation_size
+        
+        self.translation_llr = np.empty((f, h))
+
+class OcclusionAnalysis:
+
+    def __init__(self, block):
+        self.opaque_p = 0.1
+        self.transparent_p = (1 - self.opaque_p)
+
+        f = block.frames
+        w, h = block.rectification.image_size
+        
+        self.visible_ll = np.empty((f, h, w), np.float32)
+        self.ll = np.empty((f, h, w), np.float32)
+
+from time import time
+
+def timing(f):
+    def decorated(*args, **kwargs):
+        t = time()
+        res = f(*args, **kwargs)
+        print "%3.6f time (%s)" % (time() - t, f.__name__)
+        return res
+    return decorated
+
+@timing
 def capture(block, cap):
-    for f in xrange(settings.frame_num):
-        if not cap.read(block.frame[f])[0]:
+    for f in xrange(block.frames):
+        if not cap.read(block.video.image[f])[0]:
             return
-    block.frame_32f[:] = block.frame / 255.0
+    block.video.image_f[:] = block.video.image / 255.0
 
+@timing
 def track_table(block):
+    table_corners = get_rectangle_corners(block.table.ground.size)
+    
+    controls = ControlGroupStatus(ControlGroup())
     prev_tracker = None
-    for f in xrange(block.settings.frame_num):
+    for f in xrange(block.frames):
         tracker = TableTracker(prev_tracker, TableTrackingSettings(False, None, None), controls)
         prev_tracker = tracker
-        block.frame_table_corners[f] = tracker.track_table(block.frame[f]).reshape(4, 2)
-        block.frame_transform[f] = cv2.getPerspectiveTransform(block.settings.table_corners, block.frame_table_corners[f])
+        corners = tracker.track_table(block.video.image[f])
+        block.camera.transform[f] = cv2.getPerspectiveTransform(table_corners, corners)
 
-def generate_frame_table_mask(block):
-    shift = block.settings.shift
-    corners = np.int32(block.frame_table_corners * 2**shift)
-    for f in xrange(block.settings.frame_num):
-        cv2.fillConvexPoly(block.frame_table_mask_u8[f], corners[f], (255,) * settings.channels, cv2.CV_AA, shift)
-    block.frame_table_mask[:] = block.frame_table_mask_u8 / 255.0
+@timing
+def compute_resolution(block):
+    f = block.frames
+    w, h = block.video.frame_size
+    
+    # We compute the resolution at 4 points, and then interpolate.
+    # This are the projective coordinates of 4 points at 1/4 and 3/4
+    # of the full width and height, respectively. They were chosen as
+    # they are correctly mapped by resizing a 2x2 image using OpenCV
+    x = np.array([
+        [(1*h/4, 1*w/4, 1), (3*h/4, 1*w/4, 1)],
+        [(1*h/4, 3*w/4, 1), (3*h/4, 3*w/4, 1)],
+    ])
+    
+    # Compute the differential of the perspective transform
+    A = np.linalg.inv(block.camera.transform)
+    Axy = A[...,:-1,:]
+    Az = A[...,-1,:]
+    term1 = np.einsum("...k,...yxk,...ij->...yxij", Az,  x, Axy)
+    term2 = np.einsum("...ik,...yxk,...j->...yxij", Axy,  x, Az)
+    z = np.einsum("...i,...yxi->...yx", Az,  x)
+    differential = (term1 - term2) / (z**2)[...,np.newaxis,np.newaxis]
+    
+    # Determinant of differential gives the signed area
+    # (in meters**2) covered by each pixel
+    pixel_area = np.linalg.det(differential[...,0:2,0:2])
 
-def compute_frame_to_background_transform(block):
-    frame_transform_inv = np.linalg.inv(block.frame_transform)
-    block.frame_to_background_transform = settings.background_transform.dot(frame_transform_inv).transpose(1,0,2)
+    # Resolution is the inverse of area.    
+    # The sign is negative due to different coordinate systems
+    # i.e.: pixel Y axis goes up to down,
+    # while world Y axis goes down to up.
+    # We want a positive sign for computations.
+    resolution = -1/pixel_area
+    
+    # Use OpenCV resize to do the interpolation
+    for f in xrange(block.frames):
+        block.camera.resolution[f] = cv2.resize(resolution[f], block.video.frame_size, None, cv2.INTER_AREA)
 
-def sample_background(block):
-    for f in xrange(block.settings.frame_num):
-        cv2.warpPerspective(
-            block.frame_32f[f],
-            block.frame_to_background_transform[f],
-            block.settings.background_resolution,
-            block.background_sample[f],
-            cv2.INTER_AREA)
+@timing
+def rectify(block):
+    rec = block.rectification
+    transform = np.einsum("...ij,...jk", rec.transform, np.linalg.inv(block.camera.transform))
+    for f in xrange(block.frames):
+        rec.image[f] = cv2.warpPerspective(block.video.image_f[f], transform[f], rec.image_size)
+        rec.camera_resolution[f] = cv2.warpPerspective(block.camera.resolution[f], transform[f], rec.image_size)
 
-def initialize_occlusion_mask(block):
-    f, bw, bh, ch = block.background_sample.shape
-    block.background_occlusion_mask[:] = np.ones((f, bw, bh, 1), dtype=np.float32)
+@timing
+def estimate_background(block):
+    rec = block.rectification
+    bg = block.background
+    bg.mean[:] = np.average(rec.image, 0)
+    bg.color_variance[:] = np.cov(rec.image.reshape(-1, rec.channels), rowvar=False)
 
-def estimate_background_mean(block):
-    block.background_mean[:] = np.sum(block.background_sample * block.background_occlusion_mask, 0) / np.sum(block.background_occlusion_mask, 0)
+@timing
+def compute_background_visible_ll(block):
+    rec = block.rectification
+    bg = block.background
+    bg.deviation[:] = rec.image - bg.mean
+    # ll is expressed in [meters^-2]
+    bg.visible_ll[:] = gaussian_log_pdf(bg.deviation, bg.color_variance)
 
-def subtract_background_mean(block):
-    for f in xrange(block.settings.frame_num):
-        cv2.warpPerspective(
-            block.background_mean,
-            block.frame_to_background_transform[f],
-            block.settings.frame_size[::-1],
-            block.frame_background_mean[f],
-            cv2.WARP_INVERSE_MAP | cv2.INTER_AREA)    
-    block.frame_background_deviation[:] = (block.frame_32f - block.frame_background_mean) * block.frame_table_mask
+@timing
+def compute_foosmen_visible_ll(block):
+    rec = block.rectification
+    for i, team in enumerate(block.table.teams):
+        foosmen = block.team_foosmen[i]
+        
+        foosmen.deviation[:] = rec.image - team.foosmen.color
+        foosmen.visible_ll[:] = gaussian_log_pdf(foosmen.deviation, foosmen.variance)
 
-def estimate_background_color_variance(block):
-    block.background_color_variance[:] = np.tensordot(block.frame_background_deviation, block.frame_background_deviation, ((0,1,2),(0,1,2))) / np.sum(block.frame_table_mask)
+@timing
+def compute_occlusion_visible_ll(block):
+    # TODO: estimate the likelihood correctly
+    
+    # The density of the uniform probability on the color space is 1
+    block.occlusion.visible_ll[:] = np.log(1)
 
-def gaussian_log_pdf(k, deviation, sigma):
+@timing
+def compute_background_ll(block):
+    term1 = np.log(block.occlusion.opaque_p) + block.occlusion.visible_ll
+    term2 = np.log(block.occlusion.transparent_p) + block.background.visible_ll
+    
+    block.background.ll[:] = np.log(np.exp(term1) + np.exp(term2))
+
+@timing
+def compute_foosmen_ll(block):
+    rec = block.rectification
+    for i, team in enumerate(block.table.teams):
+        foosmen = block.team_foosmen[i]
+        
+        term1 = np.log(block.occlusion.opaque_p) + block.occlusion.visible_ll
+        term2 = np.log(block.occlusion.transparent_p) + np.log(foosmen.opaque_p) + foosmen.visible_ll
+        term3 = np.log(block.occlusion.transparent_p) + np.log(foosmen.transparent_p) + block.background.visible_ll
+        
+        foosmen.ll[:] = np.log(np.exp(term1) + np.exp(term2) + np.exp(term3))
+
+@timing
+def compute_foosmen_llr(block):
+    for i, team in enumerate(block.table.teams):
+        foosmen = block.team_foosmen[i]
+        foosmen.llr[:] = foosmen.ll - block.background.ll
+
+@timing
+def compute_foosmen_location_llr(block):
+    for i, team in enumerate(block.table.teams):
+        foosmen = block.team_foosmen[i]
+        llr_density = foosmen.llr * block.rectification.camera_resolution
+        
+        # W, H => F, H, W
+        filter_size = (1,) + foosmen.filter_size[::-1]
+        foosmen.location_llr[:] = sp.ndimage.uniform_filter(llr_density, filter_size) * foosmen.silhouette_area
+
+@timing
+def compute_foosmen_translation_llr(block):
+    for i, rod in enumerate(block.table.rods):
+        rod_analysis = block.rods[i]
+        team_foosmen = block.team_foosmen[rod.team.index]
+        
+        h = rod_analysis.translation_size
+        
+        for k, foosman in enumerate(rod.foosmen):
+            foosman_analysis = rod_analysis.foosmen[foosman.index]
+            transform = np.einsum("...ij,...jk,...kl",
+                block.rectification.transform,
+                foosman.transform,
+                np.linalg.inv(rod_analysis.translation_location_transform))
+        
+            for f in xrange(block.frames):
+                llr = team_foosmen.location_llr[f]
+                foosman_analysis.translation_llr[f,...,np.newaxis] = cv2.warpPerspective(llr, transform, (1, h), None, cv2.WARP_INVERSE_MAP)
+
+@timing
+def compute_rod_translation_llr(block):
+    for i, rod in enumerate(block.table.rods):
+        rod_analysis = block.rods[i]
+        rod_analysis.translation_llr[:] = sum(f.translation_llr for f in rod_analysis.foosmen)
+
+@timing
+def compute_rod_translation_pd(block):
+    for i, rod in enumerate(block.table.rods):
+        rod_analysis = block.rods[i]
+        
+        maximum = np.max(rod_analysis.translation_llr, -1, keepdims=True)
+        exp = np.exp(rod_analysis.translation_llr - maximum)
+        total = np.sum(exp, -1, keepdims=True)
+        
+        rod_analysis.translation_pd[:] = exp / total
+
+def analyze(block):
+    track_table(block)
+    compute_resolution(block)
+    rectify(block)
+    
+    estimate_background(block)
+    
+    compute_background_visible_ll(block)
+    compute_foosmen_visible_ll(block)
+    compute_occlusion_visible_ll(block)
+    
+    compute_background_ll(block)
+    compute_foosmen_ll(block)
+    #compute_occlusion_ll(block)
+
+    compute_foosmen_llr(block)
+    compute_foosmen_location_llr(block)
+    compute_foosmen_translation_llr(block)
+
+    compute_rod_translation_llr(block)
+    compute_rod_translation_pd(block)
+
+def gaussian_log_pdf(deviation, sigma):
+    if not isinstance(deviation, np.ndarray):
+        # make it a vector of length 1
+        deviation = np.array([deviation])
+
+    if not isinstance(sigma, np.ndarray):
+        # make it a 1x1 matrix
+        sigma = np.array([[sigma]])
+    
+    k = sigma.shape[-1]
+    assert sigma.shape[-2] == k
     sigma_inv = np.linalg.inv(sigma)
     
     return -0.5 * (
-            2*np.pi*k +
-            np.linalg.det(sigma) +
+            k * np.log(2*np.pi) +
+            np.log(np.linalg.det(sigma)) +
             np.einsum("...i,...ij,...j", deviation, sigma_inv, deviation))
 
-def compute_background_pixel_ll(block):
-    k = block.settings.channels
-    deviation = block.frame_background_deviation
-    sigma = block.background_color_variance[:]
+def get_image_corners(size):
+    w, h = size
+    return np.float32([
+        ( -0.5, h-0.5),
+        (w-0.5, h-0.5),
+        (w-0.5,  -0.5),
+        ( -0.5,  -0.5),
+    ], dtype=np.float32)
+                        
+def get_rectangle_corners(size, origin = None):
+    w, h = size
+
+    if origin is None:
+        origin = w/2.0, h/2.0
+
+    x, y = origin
+    return np.float32([
+        ( -x,  -y),
+        (w-x,  -y),
+        (w-x, h-y),
+        ( -x, h-y),
+    ])
     
-    block.frame_background_pixel_ll[:,:,:,0] = gaussian_log_pdf(k, deviation, sigma)
-
-def draw_foosmen_debug(block):
-    for f in xrange(block.settings.frame_num):
-        for team in range(2):
-            for rod in range(4):
-                out = block.frame_foosmen_debug[team,rod,f]
-                color = ((0,0,1), (1,0,0))[team]
-                transform = block.frame_transform[f].dot(block.settings.rod_transform[team,rod])
-                p1 = tuple(int(x) for x in transform.dot((0, -0.3, 1))[:2])
-                p2 = tuple(int(x) for x in transform.dot((0, +0.3, 1))[:2])
-                cv2.line(out, p1, p2, color, 2, cv2.CV_AA)
-
-def compute_foosmen_pixel_ll(block):
-    k = block.settings.channels
+def get_image_transform(surface_size, image_size, origin = None):
+    image_corners = get_image_corners(image_size)
+    surface_corners = get_rectangle_corners(surface_size, origin)
+    return cv2.getPerspectiveTransform(surface_corners, image_corners)
     
-    for team in xrange(2):
-        mean = block.settings.foosmen_color_mean[team]
-        deviation = block.frame_32f - mean
-        sigma = block.settings.foosmen_color_variance
-        block.frame_foosmen_pixel_ll[team,:,:,:,0] = gaussian_log_pdf(k, deviation, sigma)
+def image_size_transform(surface_size, resolution, origin = None):
+    if not isinstance(resolution, tuple):
+        resolution = resolution, resolution
 
-def compute_foosmen_llr(block):
-    size = block.settings.foosmen_overlay_size
-    foreground_ll = block.frame_foosmen_pixel_ll
-    background_ll = block.frame_background_pixel_ll
-    filter_size = (1, 1,) + size + (1,) # team, frame, h, w, channels
-    # FIXME: is it normalized? (if it is, then it must be rescaled back again)
-    sp.ndimage.uniform_filter(foreground_ll - background_ll, filter_size, block.frame_foosmen_llr)
-
-def compute_foosman_translation_llr(block):
-    frame_transform_inv = np.linalg.inv(block.frame_transform)
-    for team in xrange(TEAMS):
-        for rod_i, rod in enumerate(block.settings.metrics.rods):
-        
-            for man_i, man in enumerate(rod.men):
-                man_transform = block.settings.foosman_in_rod_transform[rod_i,man_i].dot(block.settings.rod_transform[team,rod_i])
-                man_transform_inv = np.linalg.inv(man_transform)
-                transform = block.settings.rod_translation_map_transform.dot(man_transform_inv).dot(frame_transform_inv).transpose(1,0,2) # FIXME: document this transpose...    
+    image_size = tuple(int(surface_size[i]*resolution[i]) for i in (0,1))
     
-                for f in xrange(block.settings.frame_num):
-                    out = block.foosman_translation_llr[team,rod_i,man_i,f,:,:,0]
-                    size = (1, block.settings.rod_translation_map_resolution)
-                    out[:] = cv2.warpPerspective(block.frame_foosmen_llr[team,f], transform[f], size)
+    return image_size, get_image_transform(surface_size, image_size, origin)
 
-def compute_rod_translation_llr(block):
-    # coordinates 0:team 1:rod 2:man 3:frame 4:x 5:y 6:channel
-    # sum over 2:man
-    block.rod_translation_llr = np.sum(block.foosman_translation_llr, 2)
+images = {}
+def show(name, image, contrast=1.0, brightness=1.0):
+    def on_change(*args):
+        c = cv2.getTrackbarPos("contrast", name)
+        b = cv2.getTrackbarPos("brightness", name)
+        image = images[name]
+        cv2.imshow(name, image * 10 ** ((c-1000) / 100.0) + (b-1000)/100.0)
 
-def estimate_foosmen_pattern(block):
-    # Expectation-Maximization algorithm for Gaussian Mixture
+    if cv2.getTrackbarPos("contrast", name) == -1:
+        cv2.namedWindow(name, cv2.WINDOW_NORMAL)
+        cv2.createTrackbar("contrast", name, int(1000 * contrast), 2000, on_change)
+        cv2.createTrackbar("brightness", name, int(1000 * brightness), 2000, on_change)
+    images[name] = image
+    on_change()
 
-    # prior probability that a location sample contains a foosman
-    # assume there are 3 foosman (definitely a good approximation)
-    p = 3.0 / block.settings.foosmen_location_resolution
-
-    # Expectation step
-    block.foosmen_pattern[:] = 1 / (1 + np.exp(-block.foosmen_location_llr - np.log(p)))
-
-def analyze_block(settings, cap):
-    block = BlockAnalysis(settings)
-
-    capture(block, cap)
-    track_table(block)
-    generate_frame_table_mask(block)
-    compute_frame_to_background_transform(block)
-    sample_background(block)
-    initialize_occlusion_mask(block)
-    estimate_background_mean(block)
-    subtract_background_mean(block)
-    estimate_background_color_variance(block)
-    compute_background_pixel_ll(block)
-    
-    draw_foosmen_debug(block)
-    compute_foosmen_pixel_ll(block)
-    compute_foosmen_llr(block)
-    compute_foosman_translation_llr(block)
-    compute_rod_translation_llr(block)
-    #estimate_foosmen_pattern(block)
-
-    return block
-        
 import sys
 
-def show(name, image):
-    cv2.namedWindow(name, cv2.WINDOW_NORMAL)
-    cv2.imshow(name, image)
-
-settings = Settings()
-cap = cv2.VideoCapture("data/video.mp4")
-
-show("foosmen_colors", settings.foosmen_color_mean)
-
-def move_to_block(index):
+def move_to_block(index, cap):
     property_pos_frames = 1 # OpenCV magic number
-    cap.set(property_pos_frames, settings.frame_num * index)
+    frames = 1200
+    cap.set(property_pos_frames, frames * index)
 
-f = 0
-block_index = 10
-team = 0
-rod = 0
-man = 0
-play = False
+def run():
+    cap = cv2.VideoCapture("data/video.mp4")
 
-while True:
-    move_to_block(block_index)
+    f = 0
+    block_index = 10
     
-    block = analyze_block(settings, cap)
-
-    show("background_mean", block.background_mean)
-
-    print "Block: ", block_index
+    table = Table()
+    team = 0
+    rod = 0
+    man = 0
+    play = False
 
     while True:
-        print "Frame: ", f
-            
-        show("frame", block.frame[f])
-        show("frame_table_mask", block.frame_table_mask[f])
-        show("background_sample", block.background_sample[f])
-        show("frame_background_mean", block.frame_background_mean[f])
-        show("frame_background_deviation", block.frame_background_deviation[f] ** 2 * 50)
-        show("frame_background_pixel_ll", -block.frame_background_pixel_ll[f] / 30)
+        move_to_block(block_index, cap)
         
-        show("frame_foosmen_pixel_ll", 1.0 + block.frame_foosmen_pixel_ll[team,f] / 30 + block.frame_foosmen_debug[team,rod,f] * 100)
-        show("frame_foosmen_llr", 1.0 + block.frame_foosmen_llr[team,f] / 30 + block.frame_foosmen_debug[team,rod,f] * 100)
-        
-        h = block.foosman_translation_llr[team,rod,man,f].shape[0]
-        
-        show("foosman_translation_llr", cv2.resize(0.2 + block.foosman_translation_llr[team,rod,man,f] / 30, (30, h)))
-        show("rod_translation_llr", cv2.resize(0.2 + block.rod_translation_llr[team,rod,f] / 50, (30, h)))
-        #show("foosmen_pattern", cv2.resize(block.foosmen_pattern[team,rod,f], (30, 200)))
-        
-        if play and f < settings.frame_num-1:
-            key_code = cv2.waitKey(10)
-            f += 1
-        else:
-            key_code = cv2.waitKey()
-            
-        key = chr(key_code & 255)
+        block = Block(table)
+        capture(block, cap)
+        analyze(block)
 
-        if key == ".":
-            play = False
-            f += 1
-        if key == ",":
-            play = False
-            f -= 1
-        if key == "q":
-            sys.exit(0)
-        if key == "t":
-            team = (team+1) % 2
-            print "Team: ", team
-        if key == "e":
-            rod = (rod-1) % 4
-            man = 0
-            print "Rod: ", rod
-        if key == "r":
-            rod = (rod+1) % 4
-            man = 0
-            print "Rod: ", rod
+        print "Block: ", block_index
+
+        while True:
+            print "Frame: ", f
+                
+            print "Resolution at center: ", block.camera.resolution[f,160,120]
             
-        if key == "m":
-            man = (man-1) % len(settings.metrics.rods[rod].men)
-            print "Man: ", man
-        if key == "n":
-            man = (man+1) % len(settings.metrics.rods[rod].men)
-            print "Man: ", man
+            show("foosmen.color", np.array([[block.table.teams[team].foosmen.color]]))
             
-        if key == "j":
-            f = 0
-        if key == " ":
-            play = not play
+            show("video.image", block.video.image_f[f])
+            show("camera.resolution", block.camera.resolution[f])
+            show("rectification.image", block.rectification.image[f])
+            show("background.mean", block.background.mean)
+            show("background.deviation", block.background.deviation[f] ** 2)
             
-        if key == "<":
-            block_index -= 1
-            f = settings.frame_num - 1
-            break
-        if key == ">":
-            block_index += 1
-            f = 0
-            break
+            show("background.visible_ll", block.background.visible_ll[f])
+            show("team_foosmen.visible_ll", block.team_foosmen[team].visible_ll[f])
+            show("occlusion.visible_ll", block.occlusion.visible_ll[f])
             
-        if f >= settings.frame_num:
-            f = settings.frame_num - 1
-        if f < 0:
-            f = 0
-        
+            show("background.ll", block.background.ll[f])
+            show("team_foosmen.ll", block.team_foosmen[team].ll[f])
+            #show("occlusion.ll", block.occlusion.ll[f])
+
+            show("team_foosmen.llr", block.team_foosmen[team].llr[f])
+            show("team_foosmen.location_llr", block.team_foosmen[team].location_llr[f])
+            
+            rod_index = block.table.teams[team].rods[rod].index
+            rod_analysis = block.rods[rod_index]
+            foosman_analysis = rod_analysis.foosmen[man]
+            show("foosman.translation_llr", cv2.resize(foosman_analysis.translation_llr[f,...,np.newaxis], (10, rod_analysis.translation_size)))
+            show("rod.translation_llr", cv2.resize(rod_analysis.translation_llr[f,...,np.newaxis], (10, rod_analysis.translation_size)))
+            show("rod.translation_pd", cv2.resize(rod_analysis.translation_pd[f,...,np.newaxis], (10, rod_analysis.translation_size)))
+            
+            if play:
+                key_code = cv2.waitKey(10)
+                f = (f+1) % block.frames
+            else:
+                key_code = cv2.waitKey()
+                
+            key = chr(key_code & 255)
+
+            if key == ".":
+                play = False
+                f += 1
+            if key == ",":
+                play = False
+                f -= 1
+            if key == "q":
+                sys.exit(0)
+            if key == "t":
+                team = (team+1) % 2
+                print "Team: ", team
+            if key == "e":
+                rod = (rod-1) % 4
+                man = 0
+                print "Rod: ", rod
+            if key == "r":
+                rod = (rod+1) % 4
+                man = 0
+                print "Rod: ", rod
+                
+            if key == "m":
+                man = (man-1) % len(block.table.rods.types[rod].foosmen)
+                print "Man: ", man
+            if key == "n":
+                man = (man+1) % len(block.table.rods.types[rod].foosmen)
+                print "Man: ", man
+                
+            if key == "j":
+                f = 0
+            if key == " ":
+                play = not play
+                
+            if key == "<":
+                block_index -= 1
+                f = block.frames - 1
+                break
+            if key == ">":
+                block_index += 1
+                f = 0
+                break
+                
+            if f >= block.frames:
+                f = block.frames - 1
+            if f < 0:
+                f = 0
+            
+if __name__ == "__main__":
+    run()
 

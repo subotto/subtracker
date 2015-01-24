@@ -28,7 +28,7 @@ data related to the Subotto. It is then decided that:
    being perfectly vertical.
 
 
-When enumerating the rods of a single player (red or blue), then they
+When enumerating the rods of a single team (red or blue), then they
 are numbered from 0 to 3 with the following meaning:
  * 0: goalkeeper;
  * 1: defence;
