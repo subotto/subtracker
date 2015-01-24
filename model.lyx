@@ -76,24 +76,20 @@
 
 \end_layout
 
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\d}{\mathrm{d}}
+\end_inset
+
+
+\end_layout
+
 \begin_layout Section
 Notazione
 \end_layout
 
 \begin_layout Subsection
 General
-\family roman
-\series medium
-\shape up
-\size normal
-\emph off
-\bar no
-\strikeout off
-\uuline off
-\uwave off
-\noun off
-\color none
-f
 \end_layout
 
 \begin_layout Itemize
@@ -277,15 +273,15 @@ ball
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $M^{h}$
+\begin_inset Formula $M^{k}$
 \end_inset
 
- a 
+ the 
 \emph on
 foosman
 \emph default
- of the team 
-\begin_inset Formula $h$
+ 
+\begin_inset Formula $k$
 \end_inset
 
 
@@ -324,10 +320,7 @@ We employ two statistical models: the dynamics model and the generative
 
  (possibly with their first derivatives), and does not take into account
  the video and the camera.
-\end_layout
-
-\begin_layout Standard
-The generative model is a simple statistical model that explains the color
+ The generative model is a simple statistical model that explains the color
  of each pixel in the video, given the table parameters.
  Both models include random error terms, which should account for sensor
  errors, uncertainty (such as the actions of the players), and errors due
@@ -617,6 +610,18 @@ O_{nij}\bot O_{ni'j'},\Lambda
 
 \end_layout
 
+\begin_layout Standard
+We define:
+\begin_inset Formula 
+\[
+p_{V}=(1-p_{O})=\p(V_{nij})
+\]
+
+\end_inset
+
+
+\end_layout
+
 \begin_layout Subsubsection
 Foosmen silhouette modelling
 \end_layout
@@ -636,7 +641,7 @@ near
 
 \begin_layout Standard
 Let 
-\begin_inset Formula $\widetilde{M}_{k|\Lambda}$
+\begin_inset Formula $\widetilde{M}_{|\Lambda}^{k}$
 \end_inset
 
  be a rectangle of fixed size centered in the location of the foosman 
@@ -657,16 +662,24 @@ Let
 \end_inset
 
  corresponds to a location inside this rectangle.
- We assume
+ We assume:
 \begin_inset Formula 
 \[
-\p(M_{nij}^{k}|V_{nij},\Lambda,\theta)=p_{M|\widetilde{M}}\cdot\p(\widetilde{M}_{nij}^{k}|\Lambda,\theta)
+\p(M_{nij}^{k}|\widetilde{M}_{nij}^{k},V_{nij},\Lambda,\theta)=\p(M_{nij}^{k}|\widetilde{M}_{nij}^{k}V_{nij})=p_{M|\widetilde{M}V}
+\]
+
+\end_inset
+
+and 
+\begin_inset Formula 
+\[
+\p(G_{nij}|\widetilde{M}_{nij}^{k},V_{nij},\Lambda,\theta)=\p(G_{nij}|\widetilde{M}_{nij}^{k}V_{nij})=1-p_{M|\widetilde{M}V}=p_{G|\widetilde{M}V}
 \]
 
 \end_inset
 
 where 
-\begin_inset Formula $p_{M|\widetilde{M}}=\p(M_{nij}^{k}|\widetilde{M}_{ijk}^{k})$
+\begin_inset Formula $p_{M|\widetilde{M}V}$
 \end_inset
 
  is a constant.
@@ -689,11 +702,63 @@ where
 \end_layout
 
 \begin_layout Subsection
-Estimating the likelihood
+Estimating the rod shift
 \end_layout
 
 \begin_layout Standard
-TBD.
+We want to compute:
+\begin_inset Formula 
+\[
+\p(s_{k}|I)=\frac{\p(s_{k})\p(I|s_{k})}{\p(I)}=\frac{\p(s_{k})\p(I|s_{k})}{\int\d s_{k}\p(s_{k})\p(I|s_{k})}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+First we have:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\p(I|s_{k})=\prod_{n}\p(I_{n}|s_{k}(t_{n}))
+\]
+
+\end_inset
+
+
+\begin_inset Formula 
+\begin{eqnarray*}
+\mathcal{L}\left(s_{k}(t_{n})\right)=\p(I_{n}|s_{k}(t_{n})) & = & \prod_{ij\in\widetilde{M}_{|s_{k}}^{k}}\p(I_{nij}|s_{k}(t_{n}))\cdot\prod_{ij\notin\widetilde{M}_{|s_{k}}^{k}}\p(I_{nij}|s_{k}(t_{n}))\\
+ & = & \prod_{ij\in\widetilde{M}_{|s_{k}}^{k}}\p(I_{nij}|\widetilde{M}_{nij}^{k})\cdot\prod_{ij\notin\widetilde{M}_{|s_{k}}^{k}}\p(I_{nij}|\overline{\widetilde{M}_{nij}^{k}})\\
+ & = & \prod_{ij\in\widetilde{M}_{|s_{k}}^{k}}\p(I_{nij}|\widetilde{M}_{nij}^{k})\cdot\frac{\prod_{ij}\p(I_{nij}|\overline{\widetilde{M}_{nij}^{k}})}{\prod_{ij\in\widetilde{M}_{|s_{k}}^{k}}\p(I_{nij}|\overline{\widetilde{M}_{nij}^{k}})}\\
+ & \propto & \prod_{ij\in\widetilde{M}_{|s_{k}}^{k}}\frac{\p(I_{nij}|\widetilde{M}_{nij}^{k})}{\p(I_{nij}|\overline{\widetilde{M}_{nij}^{k}})}
+\end{eqnarray*}
+
+\end_inset
+
+We have:
+\begin_inset Formula 
+\begin{eqnarray*}
+\p(I_{nij}|\widetilde{M}_{nij}) & = & \p(V_{nij})\p(I_{nij}|\widetilde{M}_{nij}^{k}V_{nij})+\p(O_{nij})\p(I_{ijk}|O_{nij})\\
+ & = & p_{V}\cdot\left[\p(M_{nij}|\widetilde{M}_{nij}^{k}V_{nij})\p(I_{nij}|G_{nij})+\p(G_{nij}|\widetilde{M}_{nij}^{k}V_{nij})\p(I_{nij}|G_{nij})\right]+p_{O}\\
+ & = & p_{V}p_{M|\widetilde{M}V}\p(I_{nij}|M_{nij}^{k})+p_{V}p_{G|\widetilde{M}V}\p(I_{nij}|G_{nij})+p_{O}
+\end{eqnarray*}
+
+\end_inset
+
+and similarly
+\begin_inset Formula 
+\[
+\p(I_{nij}|\overline{\widetilde{M}_{nij}^{k}})=p_{V}\p(I_{nij}|G_{nij})+p_{O}
+\]
+
+\end_inset
+
+
 \end_layout
 
 \end_body
