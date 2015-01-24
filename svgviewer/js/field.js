@@ -187,41 +187,43 @@ function create_rod(draw, player_number, offset, color) {
     return rod;
 }
 
-function create_ball(draw) {
-    var ball = {};
 
-    ball.x = 0;
-    ball.y = 0;
+var Ball = function (draw) {
+    this.x = 0;
+    this.y = 0;
 
-    ball.move = function(x, y) {
-        ball.path.attr({
-            fill: '#fff',
-            stroke: '#000'
-        });
-        if (x === null || y === null) {
-            ball.path.attr({
-                fill: 'none',
-                stroke: 'none'
-            });
-        }
-        ball.x = x;
-        ball.y = y;
-    };
-
-    ball.path = draw.circle(20);
-    ball.path.attr({
+    this.path = draw.circle(20);
+    this.path.attr({
         fill: 'none',
         stroke: 'none',
         'stroke-width': 2
     });
+};
 
-    ball.draw = function() {
-        ball.path.move(subx2x(ball.x) - ball.path.bbox().width / 2, suby2y(ball.y) - ball.path.bbox().height / 2);
-    };
-    ball.draw();
+Ball.prototype.draw = function () {
+    this.path.move(
+      subx2x(this.x) - this.path.bbox().width / 2,
+      suby2y(this.y) - this.path.bbox().height / 2
+    );
+};
 
-    return ball;
-}
+Ball.prototype.move = function (x, y) {
+    if (x === null || y === null) {
+        this.path.attr({
+            fill: 'none',
+            stroke: 'none'
+        });
+    } else {
+        this.path.attr({
+            fill: '#fff',
+            stroke: '#000'
+        });
+    }
+
+    this.x = x;
+    this.y = y;
+};
+
 
 function create_ball_track(draw) {
     var ball_track = {};
@@ -272,7 +274,7 @@ function create_table(draw, ball_layer) {
 
     table.ball_track = create_ball_track(ball_layer);
 
-    table.ball = create_ball(ball_layer);
+    table.ball = new Ball(ball_layer);
 
     rods_red = [];
     rods_red[0] = create_rod(draw, 1, 0, 0);
