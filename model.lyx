@@ -1,0 +1,700 @@
+#LyX 2.1 created this file. For more info see http://www.lyx.org/
+\lyxformat 474
+\begin_document
+\begin_header
+\textclass article
+\use_default_options true
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_math auto
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\use_hyperref false
+\papersize default
+\use_geometry false
+\use_package amsmath 1
+\use_package amssymb 1
+\use_package cancel 1
+\use_package esint 1
+\use_package mathdots 1
+\use_package mathtools 1
+\use_package mhchem 1
+\use_package stackrel 1
+\use_package stmaryrd 1
+\use_package undertilde 1
+\cite_engine basic
+\cite_engine_type default
+\biblio_style plain
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\justification true
+\use_refstyle 1
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\p}{\mathrm{p}}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Notazione
+\end_layout
+
+\begin_layout Subsection
+General
+\family roman
+\series medium
+\shape up
+\size normal
+\emph off
+\bar no
+\strikeout off
+\uuline off
+\uwave off
+\noun off
+\color none
+f
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $t$
+\end_inset
+
+ absolute time
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $x$
+\end_inset
+
+, 
+\begin_inset Formula $y$
+\end_inset
+
+, 
+\begin_inset Formula $z$
+\end_inset
+
+ coordinates in standard (table) reference frame
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $n$
+\end_inset
+
+ frame number
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $i$
+\end_inset
+
+, 
+\begin_inset Formula $j$
+\end_inset
+
+ pixel coordinates, integer
+\end_layout
+
+\begin_layout Standard
+Random variables and its values are indicated by the same symbol when not
+ ambiguous.
+\end_layout
+
+\begin_layout Itemize
+Standard probability and statistics notation:
+\begin_inset Formula $\p\left(X_{1}X_{2}\dots|Y_{1}Y_{2}\dots\right)$
+\end_inset
+
+, 
+\begin_inset Formula $\mathcal{L}(\theta)$
+\end_inset
+
+, ...
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $I_{nij}$
+\end_inset
+
+ pixel at coordinates 
+\begin_inset Formula $i$
+\end_inset
+
+, 
+\begin_inset Formula $j$
+\end_inset
+
+ of the frame 
+\begin_inset Formula $n$
+\end_inset
+
+ (as a random variable, or as a specific value for it)
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $I_{n}$
+\end_inset
+
+ all the pixels of frame 
+\begin_inset Formula $n$
+\end_inset
+
+ (as above)
+\end_layout
+
+\begin_layout Subsection
+Soccer table
+\end_layout
+
+\begin_layout Standard
+Parameters:
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $q(t)$
+\end_inset
+
+, 
+\begin_inset Formula $\dot{q}(t)$
+\end_inset
+
+ position and velocity of the ball at time 
+\begin_inset Formula $t$
+\end_inset
+
+ (subscript 
+\begin_inset Formula $t$
+\end_inset
+
+ omitted when not ambiguous)
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $s_{k}(t)$
+\end_inset
+
+ shift of the rod 
+\begin_inset Formula $k$
+\end_inset
+
+ at time 
+\begin_inset Formula $t$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $\alpha_{k}(t)$
+\end_inset
+
+ rotation of the rod 
+\begin_inset Formula $k$
+\end_inset
+
+ at time 
+\begin_inset Formula $t$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $\Lambda_{t}$
+\end_inset
+
+ all the above parameters, at time 
+\begin_inset Formula $t$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+General symbols:
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $G$
+\end_inset
+
+ the 
+\emph on
+ground
+\emph default
+ (area of the table, mostly green, over the ball rolls - including the areas
+ that the center of the ball cannot actually reach because of the bounces)
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $B$
+\end_inset
+
+ the 
+\emph on
+ball
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $M^{h}$
+\end_inset
+
+ a 
+\emph on
+foosman
+\emph default
+ of the team 
+\begin_inset Formula $h$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $O$
+\end_inset
+
+ an 
+\emph on
+occlusion
+\emph default
+ (any object that lays between the camera and the table).
+\end_layout
+
+\begin_layout Section
+Model
+\end_layout
+
+\begin_layout Standard
+We employ two statistical models: the dynamics model and the generative
+ model.
+ The dynamics model accounts for the evolution of the state of the table
+ in time, in particular the parameters 
+\begin_inset Formula $q$
+\end_inset
+
+, 
+\begin_inset Formula $s_{k}$
+\end_inset
+
+ and 
+\begin_inset Formula $\alpha_{k}$
+\end_inset
+
+ (possibly with their first derivatives), and does not take into account
+ the video and the camera.
+\end_layout
+
+\begin_layout Standard
+The generative model is a simple statistical model that explains the color
+ of each pixel in the video, given the table parameters.
+ Both models include random error terms, which should account for sensor
+ errors, uncertainty (such as the actions of the players), and errors due
+ to the approximation in the model itself.
+\end_layout
+
+\begin_layout Subsection
+Generative model
+\end_layout
+
+\begin_layout Standard
+We describe the probability distribution
+\begin_inset Formula 
+\[
+\p(I|\Lambda,\theta)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+that is the probability (density) of the video 
+\begin_inset Formula $I$
+\end_inset
+
+ (or any portion of it) given all the state of the table 
+\begin_inset Formula $\Lambda$
+\end_inset
+
+ at all time instants, and some additional parameters 
+\begin_inset Formula $\theta$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+When the value of a random variable is in the color space (i.e.
+ RGB), we consider it as a probability density in the continuum 
+\begin_inset Formula $[0,1]^{\{R,G,B\}}$
+\end_inset
+
+ and not as the probability of the specific value from 0 to 255.
+ However, with these variables we forget about measure units, as the total
+ measure of the color space is fixed to 
+\begin_inset Formula $1$
+\end_inset
+
+.
+ (For densities in other spaces, we always consider their units, such as
+ 
+\begin_inset Formula $\mathrm{m^{-1}}$
+\end_inset
+
+)
+\end_layout
+
+\begin_layout Standard
+Given the parameters 
+\begin_inset Formula $\Lambda$
+\end_inset
+
+ and 
+\begin_inset Formula $\theta$
+\end_inset
+
+, we can assume that different frames are independent from each other, and
+ depend only on the state of the table at the time instant of that frame:
+\begin_inset Formula 
+\[
+\mathrm{p}(I|\Lambda,\theta)=\prod_{n}\p(I_{n}|\Lambda,\theta)=\prod_{n}\p(I_{n}|\Lambda_{t(n)},\theta)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+Pixel categories
+\end_layout
+
+\begin_layout Standard
+Focusing on a single pixel 
+\begin_inset Formula $nij$
+\end_inset
+
+, the probability 
+\begin_inset Formula $\mathrm{p}(I_{nij}|\Lambda_{t(n)},\theta)$
+\end_inset
+
+ is a mixture of probabilities that depends on which of the following event
+ occurs:
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $G_{nij}$
+\end_inset
+
+ the pixel comes from the ground
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $M_{nij}^{k}$
+\end_inset
+
+ the pixel comes from a foosman
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $B_{nij}$
+\end_inset
+
+ the pixel comes from the ball
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $O_{nij}$
+\end_inset
+
+ the pixel comes from an occlusion
+\end_layout
+
+\begin_layout Standard
+We use the abbreviation:
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $V_{nij}\equiv\overline{O_{nij}}\equiv G_{nij}\cup M_{nij}\cup B_{nij}$
+\end_inset
+
+ (V from 
+\begin_inset Quotes eld
+\end_inset
+
+visible
+\begin_inset Quotes erd
+\end_inset
+
+) 
+\end_layout
+
+\begin_layout Subsubsection
+Colors
+\end_layout
+
+\begin_layout Standard
+In the case of occlusions, we do not model at all the color of the pixel,
+ so we put a uniform distribution:
+\begin_inset Formula 
+\[
+\p(I_{nij}|\Lambda_{t(n)},\theta,O_{nij})=\p(I_{nij}|O_{nij})=1
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+If the pixel comes from the ground we assume that is comes from a normal
+ distribution, whose mean depends on the location of the table 
+\begin_inset Formula $Tij$
+\end_inset
+
+ corresponding to the pixel 
+\begin_inset Formula $ij$
+\end_inset
+
+:
+\begin_inset Formula 
+\[
+I_{nij}\overset{G_{nij}}{\sim}\mathcal{N}(\mu_{G}^{Tij},\Sigma_{G})
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+that is
+\begin_inset Formula 
+\[
+\p\left(I_{ijk}=c|G_{nij}\right)=(2\pi)^{3/2}|\Sigma_{G}|^{1/2}\mathrm{exp}\left[(c-\mu_{G}^{Tij})^{T}\Sigma_{G}^{-1}(c-\mu_{G}^{Tij})\right]
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The parameters 
+\begin_inset Formula $\mu_{G}^{xy}$
+\end_inset
+
+ and 
+\begin_inset Formula $\Sigma_{G}$
+\end_inset
+
+ are included in 
+\begin_inset Formula $\theta$
+\end_inset
+
+ and are estimated by the algorithm.
+ If helpful, 
+\begin_inset Formula $\Sigma_{G}$
+\end_inset
+
+ could also depend on 
+\begin_inset Formula $Tij$
+\end_inset
+
+, with the obvious changes in the density function.
+\end_layout
+
+\begin_layout Standard
+If the pixel comes from a foosman, we have again a normal distribution,
+ but we do not change the mean with the location:
+\begin_inset Formula 
+\[
+I_{nij}\overset{M_{nij}^{k}}{\sim}\mathcal{N}(\mu_{M}^{h},\Sigma_{M}^{h})
+\]
+
+\end_inset
+
+where 
+\begin_inset Formula $h$
+\end_inset
+
+ is the team of the foosman 
+\begin_inset Formula $k$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+In all the above cases, we consider pixels in the same frame to be independent:
+\begin_inset Formula 
+\[
+I_{nij}\bot I_{ni'j'}|G_{ij}\cup M_{ij}\cup O_{ij}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The model could be improved by relaxing this assumption, for example taking
+ into account variations in the illumination which induce correlated errors
+ in different pixels.
+\end_layout
+
+\begin_layout Standard
+The pixels coming from the ball are coming from a multivariate normal distributi
+on, and are correlated.
+ TBD.
+\end_layout
+
+\begin_layout Subsubsection
+Occlusions
+\end_layout
+
+\begin_layout Standard
+In the simplest model, we assume that pixels are occluded with probability
+ 
+\begin_inset Formula 
+\[
+p_{O}=\p(O_{nij})
+\]
+
+\end_inset
+
+and independently from all the rest of parameters
+\begin_inset Formula 
+\[
+O_{nij}\bot O_{ni'j'},\Lambda
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsubsection
+Foosmen silhouette modelling
+\end_layout
+
+\begin_layout Standard
+We do not model explicitly the shape of the foosmen.
+ Instead, we assume that pixels 
+\begin_inset Quotes eld
+\end_inset
+
+near
+\begin_inset Quotes erd
+\end_inset
+
+ the center of a foosman could come from that foosman with a given probability.
+\end_layout
+
+\begin_layout Standard
+Let 
+\begin_inset Formula $\widetilde{M}_{k|\Lambda}$
+\end_inset
+
+ be a rectangle of fixed size centered in the location of the foosman 
+\begin_inset Formula $k$
+\end_inset
+
+ according to the state 
+\begin_inset Formula $\Lambda$
+\end_inset
+
+.
+ The event 
+\begin_inset Formula $\widetilde{M}_{nij}^{k}$
+\end_inset
+
+ occurs when the pixel 
+\begin_inset Formula $nij$
+\end_inset
+
+ corresponds to a location inside this rectangle.
+ We assume
+\begin_inset Formula 
+\[
+\p(M_{nij}^{k}|V_{nij},\Lambda,\theta)=p_{M|\widetilde{M}}\cdot\p(\widetilde{M}_{nij}^{k}|\Lambda,\theta)
+\]
+
+\end_inset
+
+where 
+\begin_inset Formula $p_{M|\widetilde{M}}=\p(M_{nij}^{k}|\widetilde{M}_{ijk}^{k})$
+\end_inset
+
+ is a constant.
+ The location of a foosman depends only on the shift 
+\begin_inset Formula $s_{k}$
+\end_inset
+
+.
+ By considering separately the regions above-left, above-right, below-left
+ and below-right the center, one can estimate also the rotation 
+\begin_inset Formula $\alpha_{k}$
+\end_inset
+
+, still without modelling the shape explicitly.
+ Choosing rectangular shapes and constant 
+\begin_inset Formula $p_{M|\widetilde{M}}$
+\end_inset
+
+ allows fast estimation.
+\end_layout
+
+\begin_layout Subsection
+Estimating the likelihood
+\end_layout
+
+\begin_layout Standard
+TBD.
+\end_layout
+
+\end_body
+\end_document
