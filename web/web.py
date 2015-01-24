@@ -39,11 +39,8 @@ class Worker(threading.Thread):
         self.closing = False
 
     def run(self):
-        print "   >>> New worker thread: %r" % (threading.current_thread())
         session = Session()
-        print "   >>> before get_last_id"
         last_id = Log.get_last_id(session, simulate_time=self.simulate_time)
-        print "   >>> after get_last_id"
         if last_id is None:
             last_id = 0
         last_id -= BUFFER_LEN
@@ -56,7 +53,7 @@ class Worker(threading.Thread):
             query = session.query(Log).filter(Log.id > last_id).filter(Log.interesting == True).order_by(Log.id)
             if time_delta is not None:
                 log2 = session.query(Log).filter(Log.interesting == True).filter(Log.timestamp <= monotonic_time() - time_delta).order_by(Log.timestamp.desc()).first()
-                query = query.filter(Log.id <= log2.id*)
+                query = query.filter(Log.id <= log2.id)
             new_data = query.all()
             if len(new_data) > 0:
                 last_id = new_data[-1].id

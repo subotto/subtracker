@@ -110,6 +110,8 @@ class Log(Base):
 
     @staticmethod
     def get_last_id(session, simulate_time=None):
+        # FIXME: this can be optimized (although it is not very
+        # important)
         query = session.query(Log).order_by(Log.id.desc())
         if simulate_time is not None:
             query = query.filter(Log.timestamp <= simulate_time)
