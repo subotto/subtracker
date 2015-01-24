@@ -353,7 +353,9 @@ function update_everything() {
 
     var frame = frame_picker.pick_frame();
 
-    display_frame(frame);
+    if (frame !== null) {
+        display_frame(frame);
+    }
     //print_frames();
 }
 

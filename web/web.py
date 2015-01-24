@@ -9,6 +9,8 @@ import os
 
 sys.path.append(os.path.dirname(__file__))
 
+from monotonic_time import monotonic_time
+
 from data import Session, Log, INTERESTING_FPS
 
 TEST = True
@@ -29,10 +31,12 @@ class LogJSONEncoder(json.JSONEncoder):
 
 class Application:
 
-    def __init__(self):
+    def __init__(self, simulate_time=None):
         self.buffer = []
         self.closing = False
         self.encoder = LogJSONEncoder(indent=2)
+
+        self.simulate_time = simulate_time
 
         self.thread = threading.Thread()
         self.thread.run = self.worker_run
@@ -42,13 +46,20 @@ class Application:
 
     def worker_run(self):
         session = Session()
-        last_id = Log.get_last_id(session)
+        last_id = Log.get_last_id(session, simulate_time=self.simulate_time)
         if last_id is None:
             last_id = 0
         last_id -= BUFFER_LEN
 
+        time_delta = None
+        if self.simulate_time:
+            time_delta = monotonic_time() - self.simulate_time
+
         while not self.closing:
-            new_data = session.query(Log).filter(Log.id > last_id).filter(Log.interesting == True).order_by(Log.id).all()
+            query = session.query(Log).filter(Log.id > last_id).filter(Log.interesting == True).order_by(Log.id)
+            if time_delta is not None:
+                query = query.filter(Log.timestamp <= monotonic_time() - time_delta)
+            new_data = query.all()
             if len(new_data) > 0:
                 last_id = new_data[-1].id
 
@@ -129,6 +140,10 @@ application = Application()
 if __name__ == '__main__':
     try:
         from wsgiref.simple_server import make_server
+        simulate_time = None
+        if len(sys.argv) == 2:
+            simulate_time = float(sys.argv[1])
+        application = Application(simulate_time=simulate_time)
         httpd = make_server('', 8000, application)
         httpd.serve_forever()
     except KeyboardInterrupt:

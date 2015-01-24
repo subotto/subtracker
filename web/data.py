@@ -109,8 +109,11 @@ class Log(Base):
         return log
 
     @staticmethod
-    def get_last_id(session):
-        last = session.query(Log).order_by(Log.id.desc()).first()
+    def get_last_id(session, simulate_time=None):
+        query = session.query(Log).order_by(Log.id.desc())
+        if simulate_time is not None:
+            query = query.filter(Log.timestamp <= simulate_time)
+        last = query.first()
         if last is None:
             return None
         else:
