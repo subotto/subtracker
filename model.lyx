@@ -1050,5 +1050,19 @@ We compute:
 
 \end_layout
 
+\begin_layout Standard
+\begin_inset Formula 
+\begin{eqnarray*}
+\p(M_{i}|I_{i}) & = & \int\p\left(S_{k,n}|I_{i}\right)\cdot\p\left(M_{i}|I_{i}S_{k,n}\right)\,\d S_{k,n}\\
+ & = & \int\p\left(S_{k,n}|I_{i}\right)\frac{\p\left(M_{i}|S_{k,n}\right)\p\left(I_{i}|M_{i}\right)}{\p\left(M_{i}|S_{k,n}\right)\p\left(I_{i}|M_{i}\right)+\p\left(G_{i}|S_{k,n}\right)\p\left(I_{i}|G_{i}\right)+\p\left(O_{i}\right)\p\left(I_{i}|O_{i}\right)}\,\d S_{k,n}\\
+ & = & \int\p\left(S_{k,n}|I_{i}\right)\frac{\p\left(M_{i}|S_{k,n}\right)\p\left(I_{i}|M_{i}\right)}{\p\left(M_{i}|S_{k,n}\right)\p\left(I_{i}|M_{i}\right)+\p\left(G_{i}|S_{k,n}\right)\p\left(I_{i}|G_{i}\right)+\p\left(O_{i}\right)\p\left(I_{i}|O_{i}\right)}\,\d S_{k,n}\\
+ & = & \int_{i\in A_{M}(k,S_{k,n})}\frac{\p\left(M_{i}|\widetilde{M}_{i}\right)\p\left(I_{i}|M_{i}\right)}{p_{V}\p_{M|\widetilde{M}V}\p\left(I_{i}|M_{i}\right)+p_{V}\p_{G|\widetilde{M}V}\p\left(I_{i}|G_{i}\right)+\p_{O}\p\left(I_{i}|O_{i}\right)}\,\d S_{k,n}
+\end{eqnarray*}
+
+\end_inset
+
+
+\end_layout
+
 \end_body
 \end_document

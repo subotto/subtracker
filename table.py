@@ -71,23 +71,23 @@ class RodSet(UserList):
                 -0.21,
                  0.00,
                 +0.21,
-            ], 0.12),
+            ], 0.13),
             RodType(1, "defence", -2.5 * d, [
                 -0.12,
                 +0.12,
-            ], 0.20),
+            ], 0.22),
             RodType(2, "midfield", -0.5 * d, [
                 -0.24,
                 -0.12,
                  0.00,
                 +0.12,
                 +0.24,
-            ], 0.10),
+            ], 0.12),
             RodType(3, "attack", +1.5 * d, [
                 -0.21,
                  0.0,
                 +0.21,
-            ], 0.12),
+            ], 0.13),
         ]
         
         self.types_by_name = {t.name: t for t in self.types}
@@ -126,7 +126,7 @@ class FoosmanSet:
     """
     
     def __init__(self):
-        self.width = 0.03
+        self.width = 0.05
         self.head_height = 0.02
         self.feet_height = 0.08
 
