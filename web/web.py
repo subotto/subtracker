@@ -29,24 +29,21 @@ class LogJSONEncoder(json.JSONEncoder):
         else:
             return json.JSONEncoder.defaul(self, obj)
 
-class Application:
+class Worker(threading.Thread):
 
     def __init__(self, simulate_time=None):
+        super(Worker, self).__init__()
+        self.simulate_time = simulate_time
+        self.daemon = True
         self.buffer = []
         self.closing = False
-        self.encoder = LogJSONEncoder(indent=2)
 
-        self.simulate_time = simulate_time
-
-        self.thread = threading.Thread()
-        self.thread.run = self.worker_run
-        self.thread.daemon = True
-
-        self.thread.start()
-
-    def worker_run(self):
+    def run(self):
+        print "   >>> New worker thread: %r" % (threading.current_thread())
         session = Session()
+        print "   >>> before get_last_id"
         last_id = Log.get_last_id(session, simulate_time=self.simulate_time)
+        print "   >>> after get_last_id"
         if last_id is None:
             last_id = 0
         last_id -= BUFFER_LEN
@@ -58,7 +55,8 @@ class Application:
         while not self.closing:
             query = session.query(Log).filter(Log.id > last_id).filter(Log.interesting == True).order_by(Log.id)
             if time_delta is not None:
-                query = query.filter(Log.timestamp <= monotonic_time() - time_delta)
+                log2 = session.query(Log).filter(Log.interesting == True).filter(Log.timestamp <= monotonic_time() - time_delta).order_by(Log.timestamp.desc()).first()
+                query = query.filter(Log.id <= log2.id*)
             new_data = query.all()
             if len(new_data) > 0:
                 last_id = new_data[-1].id
@@ -73,8 +71,15 @@ class Application:
         session.rollback()
         session.close()
 
+class Application:
+
+    def __init__(self, worker):
+        self.closing = False
+        self.encoder = LogJSONEncoder(indent=2)
+        self.worker = worker
+
     def select_records(self, last_timestamp, convert_units):
-        res = [x.clone() for x in self.buffer if x.timestamp > last_timestamp]
+        res = [x.clone() for x in self.worker.buffer if x.timestamp > last_timestamp]
         if convert_units == 1:
             for x in res:
                 x.convert_units()
@@ -135,16 +140,21 @@ class Application:
         start_response(status, response_headers)
         return [json_response]
 
-application = Application()
-
 if __name__ == '__main__':
     try:
         from wsgiref.simple_server import make_server
         simulate_time = None
         if len(sys.argv) == 2:
             simulate_time = float(sys.argv[1])
-        application = Application(simulate_time=simulate_time)
+        worker = Worker(simulate_time=simulate_time)
+        worker.start()
+        application = Application(worker=worker)
         httpd = make_server('', 8000, application)
         httpd.serve_forever()
     except KeyboardInterrupt:
-        application.closing = True
+        worker.closing = True
+
+else:
+    worker = Worker()
+    worker.start()
+    application = Application(worker=worker)

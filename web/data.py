@@ -27,7 +27,7 @@ class Log(Base):
 
     id = Column(Integer, primary_key=True)
     #timestamp = Column(DateTime, nullable=False)
-    timestamp = Column(Float, nullable=False)
+    timestamp = Column(Float, nullable=False, index=True)
 
     ball_x = Column(Float, nullable=True)
     ball_y = Column(Float, nullable=True)

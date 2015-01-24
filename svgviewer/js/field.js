@@ -446,7 +446,7 @@ var frame_picker = {
             this.frame_time = ret.timestamp;
         }
 
-        $("#time").html("".concat("Queue length: ", actual_len, " (", frames.length, "), target length: ", target_len, ", warping: ", warping, ", frame time: ", this.frame_time, ", frame timestamp: ", ret === null ? null : ret.timestamp));
+        $("#time").html("".concat("Queue length: ", actual_len, " (", frames.length, "), target length: ", target_len, ", warping: ", warping, ", frame time: ", this.frame_time, ", frame timestamp: ", ret === null ? null : ret.timestamp, "total latency: ", ret === null ? null : (new Date()).getTime() / 1000.0 - ret.timestamp));
 
         return ret;
     }

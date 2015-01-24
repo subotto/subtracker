@@ -281,7 +281,7 @@ class FramePicker:
         if ret is not None and ret["timestamp"] > self.frame_time + FramePicker.MAX_SKIP:
             self.frame_time = ret["timestamp"]
 
-        print "Queue length: %f (%d), target length: %f, warping: %f, frame time: %s, frame timestamp: %s" % (actual_len, len(self.queue), target_len, warping, self.frame_time, ret["timestamp"] if ret is not None else None)
+        print "Queue length: %f (%d), target length: %f, warping: %f, frame time: %s, frame timestamp: %s, total latency: %s" % (actual_len, len(self.queue), target_len, warping, self.frame_time, ret["timestamp"] if ret is not None else None, time.time() - ret["timestamp"] if ret is not None else None)
 
         return ret
 
