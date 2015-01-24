@@ -6,7 +6,7 @@ import time
 
 from data import Session, Log, INTERESTING_FPS
 
-COMMIT_FREQ = 2.0
+COMMIT_FREQ = 1.0
 
 def my_float(x):
     if x == '':
