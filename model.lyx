@@ -84,8 +84,72 @@
 
 \end_layout
 
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\L}{\mathcal{L}}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\team}{\mathsf{TEAM}}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\rods}{\mathsf{RODS}}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\rod}{\mathsf{ROD}}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\men}{\mathsf{MEN}}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\man}{\mathsf{MAN}}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\LL}{\mathrm{LL}}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\LLR}{\mathrm{LLR}}
+\end_inset
+
+
+\end_layout
+
 \begin_layout Section
-Notazione
+Notation
 \end_layout
 
 \begin_layout Subsection
@@ -97,6 +161,21 @@ General
 \end_inset
 
  absolute time
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $X$
+\end_inset
+
+, 
+\begin_inset Formula $Y$
+\end_inset
+
+, 
+\begin_inset Formula $Z$
+\end_inset
+
+ axes in standard (table) reference frame
 \end_layout
 
 \begin_layout Itemize
@@ -115,21 +194,34 @@ General
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $n$
+\begin_inset Formula $u$
 \end_inset
 
- frame number
+, 
+\begin_inset Formula $v$
+\end_inset
+
+ image coordinates in pixel,
 \end_layout
 
 \begin_layout Itemize
 \begin_inset Formula $i$
 \end_inset
 
-, 
-\begin_inset Formula $j$
+ index for a particular pixel (the index corresponds to integer coordinates
+ 
+\begin_inset Formula $u$
 \end_inset
 
- pixel coordinates, integer
+ and 
+\begin_inset Formula $v$
+\end_inset
+
+ and a frame number 
+\begin_inset Formula $n$
+\end_inset
+
+)
 \end_layout
 
 \begin_layout Standard
@@ -138,27 +230,43 @@ Random variables and its values are indicated by the same symbol when not
 \end_layout
 
 \begin_layout Itemize
-Standard probability and statistics notation:
+Standard probability and statistics notation
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
 \begin_inset Formula $\p\left(X_{1}X_{2}\dots|Y_{1}Y_{2}\dots\right)$
 \end_inset
 
-, 
-\begin_inset Formula $\mathcal{L}(\theta)$
-\end_inset
 
-, ...
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $I_{nij}$
+\begin_inset Formula $\mathcal{L}(\theta)$
 \end_inset
 
- pixel at coordinates 
+
+\end_layout
+
+\begin_layout Itemize
+...
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+\begin_inset Formula $I_{i}=I\left[n,u,v\right]$
+\end_inset
+
+ color of the pixel 
 \begin_inset Formula $i$
 \end_inset
 
+ at integer coordinates 
+\begin_inset Formula $u$
+\end_inset
+
 , 
-\begin_inset Formula $j$
+\begin_inset Formula $v$
 \end_inset
 
  of the frame 
@@ -188,11 +296,11 @@ Parameters:
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $q(t)$
+\begin_inset Formula $Q(t)$
 \end_inset
 
 , 
-\begin_inset Formula $\dot{q}(t)$
+\begin_inset Formula $\dot{Q}(t)$
 \end_inset
 
  position and velocity of the ball at time 
@@ -207,7 +315,7 @@ Parameters:
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $s_{k}(t)$
+\begin_inset Formula $S_{k}(t)$
 \end_inset
 
  shift of the rod 
@@ -222,7 +330,7 @@ Parameters:
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $\alpha_{k}(t)$
+\begin_inset Formula $R_{k}(t)$
 \end_inset
 
  rotation of the rod 
@@ -237,7 +345,7 @@ Parameters:
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $\Lambda_{t}$
+\begin_inset Formula $\Lambda(t)$
 \end_inset
 
  all the above parameters, at time 
@@ -259,8 +367,9 @@ General symbols:
 \emph on
 ground
 \emph default
- (area of the table, mostly green, over the ball rolls - including the areas
- that the center of the ball cannot actually reach because of the bounces)
+ (area of the table, mostly green, over which the ball rolls - including
+ the areas that the center of the ball cannot actually reach because of
+ the bounces)
 \end_layout
 
 \begin_layout Itemize
@@ -273,18 +382,12 @@ ball
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $M^{k}$
+\begin_inset Formula $M$
 \end_inset
 
- the 
+ a 
 \emph on
 foosman
-\emph default
- 
-\begin_inset Formula $k$
-\end_inset
-
-
 \end_layout
 
 \begin_layout Itemize
@@ -295,7 +398,55 @@ foosman
 \emph on
 occlusion
 \emph default
- (any object that lays between the camera and the table).
+ (any object that lays between the camera and the table)
+\end_layout
+
+\begin_layout Standard
+Table parts:
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $\team^{e}$
+\end_inset
+
+ the team 
+\begin_inset Formula $e$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $\rod^{k}$
+\end_inset
+
+ the rod 
+\begin_inset Formula $k$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $\man^{h}$
+\end_inset
+
+ the foosman 
+\begin_inset Formula $h$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+\begin_inset Formula $\rods(\team^{e})$
+\end_inset
+
+, 
+\begin_inset Formula $\men(\rod^{h})$
+\end_inset
+
+, ...
 \end_layout
 
 \begin_layout Section
@@ -307,15 +458,15 @@ We employ two statistical models: the dynamics model and the generative
  model.
  The dynamics model accounts for the evolution of the state of the table
  in time, in particular the parameters 
-\begin_inset Formula $q$
+\begin_inset Formula $Q$
 \end_inset
 
 , 
-\begin_inset Formula $s_{k}$
+\begin_inset Formula $S_{k}$
 \end_inset
 
  and 
-\begin_inset Formula $\alpha_{k}$
+\begin_inset Formula $R_{k}$
 \end_inset
 
  (possibly with their first derivatives), and does not take into account
@@ -366,15 +517,15 @@ When the value of a random variable is in the color space (i.e.
 \end_inset
 
  and not as the probability of the specific value from 0 to 255.
- However, with these variables we forget about measure units, as the total
- measure of the color space is fixed to 
+ However, with these variables we can forget about measure units, as the
+ total measure of the color space is fixed to 
 \begin_inset Formula $1$
 \end_inset
 
 .
  (For densities in other spaces, we always consider their units, such as
  
-\begin_inset Formula $\mathrm{m^{-1}}$
+\begin_inset Formula $\mathrm{i^{-1}}$
 \end_inset
 
 )
@@ -393,7 +544,7 @@ Given the parameters
  depend only on the state of the table at the time instant of that frame:
 \begin_inset Formula 
 \[
-\mathrm{p}(I|\Lambda,\theta)=\prod_{n}\p(I_{n}|\Lambda,\theta)=\prod_{n}\p(I_{n}|\Lambda_{t(n)},\theta)
+\mathrm{p}(I|\Lambda,\theta)=\prod_{n}\p(I_{n}|\Lambda,\theta)=\prod_{n}\p(I_{n}|\Lambda_{t_{n}},\theta)
 \]
 
 \end_inset
@@ -407,11 +558,11 @@ Pixel categories
 
 \begin_layout Standard
 Focusing on a single pixel 
-\begin_inset Formula $nij$
+\begin_inset Formula $i$
 \end_inset
 
 , the probability 
-\begin_inset Formula $\mathrm{p}(I_{nij}|\Lambda_{t(n)},\theta)$
+\begin_inset Formula $\mathrm{p}(I_{i}|\Lambda_{t_{n}},\theta)$
 \end_inset
 
  is a mixture of probabilities that depends on which of the following event
@@ -419,28 +570,28 @@ Focusing on a single pixel
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $G_{nij}$
+\begin_inset Formula $G_{i}$
 \end_inset
 
- the pixel comes from the ground
+ the pixel comes from the ground (or the metal part of the rods)
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $M_{nij}^{k}$
+\begin_inset Formula $M_{i}$
 \end_inset
 
- the pixel comes from a foosman
+ the pixel comes from the foosman
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $B_{nij}$
+\begin_inset Formula $B_{i}$
 \end_inset
 
  the pixel comes from the ball
 \end_layout
 
 \begin_layout Itemize
-\begin_inset Formula $O_{nij}$
+\begin_inset Formula $O_{i}$
 \end_inset
 
  the pixel comes from an occlusion
@@ -450,11 +601,15 @@ Focusing on a single pixel
 We use the abbreviation:
 \end_layout
 
-\begin_layout Itemize
-\begin_inset Formula $V_{nij}\equiv\overline{O_{nij}}\equiv G_{nij}\cup M_{nij}\cup B_{nij}$
+\begin_layout Standard
+\begin_inset Formula 
+\[
+V_{i}\equiv\overline{O_{i}}\equiv G_{i}\cup M_{i}\cup B_{i}
+\]
+
 \end_inset
 
- (V from 
+(V for 
 \begin_inset Quotes eld
 \end_inset
 
@@ -462,7 +617,7 @@ visible
 \begin_inset Quotes erd
 \end_inset
 
-) 
+)
 \end_layout
 
 \begin_layout Subsubsection
@@ -474,7 +629,7 @@ In the case of occlusions, we do not model at all the color of the pixel,
  so we put a uniform distribution:
 \begin_inset Formula 
 \[
-\p(I_{nij}|\Lambda_{t(n)},\theta,O_{nij})=\p(I_{nij}|O_{nij})=1
+\p(I_{i}|\Lambda_{t_{n}},\theta,O_{i})=\p(I_{i}|O_{i})=1
 \]
 
 \end_inset
@@ -485,17 +640,17 @@ In the case of occlusions, we do not model at all the color of the pixel,
 \begin_layout Standard
 If the pixel comes from the ground we assume that is comes from a normal
  distribution, whose mean depends on the location of the table 
-\begin_inset Formula $Tij$
+\begin_inset Formula $xy=Tuv$
 \end_inset
 
  corresponding to the pixel 
-\begin_inset Formula $ij$
+\begin_inset Formula $i$
 \end_inset
 
 :
 \begin_inset Formula 
 \[
-I_{nij}\overset{G_{nij}}{\sim}\mathcal{N}(\mu_{G}^{Tij},\Sigma_{G})
+I_{i}\overset{G_{i}}{\sim}\mathcal{N}(\mu_{G}^{Tuv},\Sigma_{G})
 \]
 
 \end_inset
@@ -507,7 +662,7 @@ I_{nij}\overset{G_{nij}}{\sim}\mathcal{N}(\mu_{G}^{Tij},\Sigma_{G})
 that is
 \begin_inset Formula 
 \[
-\p\left(I_{ijk}=c|G_{nij}\right)=(2\pi)^{3/2}|\Sigma_{G}|^{1/2}\mathrm{exp}\left[(c-\mu_{G}^{Tij})^{T}\Sigma_{G}^{-1}(c-\mu_{G}^{Tij})\right]
+\p\left(I_{i}=c|G_{i}\right)=(2\pi)^{3/2}|\Sigma_{G}|^{1/2}\mathrm{exp}\left[(c-\mu_{G}^{Tuv})^{T}\Sigma_{G}^{-1}(c-\mu_{G}^{Tuv})\right]
 \]
 
 \end_inset
@@ -534,38 +689,34 @@ The parameters
 \end_inset
 
  could also depend on 
-\begin_inset Formula $Tij$
+\begin_inset Formula $xy$
 \end_inset
 
 , with the obvious changes in the density function.
 \end_layout
 
 \begin_layout Standard
-If the pixel comes from a foosman, we have again a normal distribution,
- but we do not change the mean with the location:
+If the pixel comes from a foosman for team 
+\begin_inset Formula $e$
+\end_inset
+
+, we have again a normal distribution, but we do not change the mean with
+ the location:
 \begin_inset Formula 
 \[
-I_{nij}\overset{M_{nij}^{k}}{\sim}\mathcal{N}(\mu_{M}^{h},\Sigma_{M}^{h})
+I_{i}\overset{M_{i}^{e}}{\sim}\mathcal{N}(\mu_{M}^{e},\Sigma_{M}^{e})
 \]
 
 \end_inset
 
-where 
-\begin_inset Formula $h$
-\end_inset
 
- is the team of the foosman 
-\begin_inset Formula $k$
-\end_inset
-
-.
 \end_layout
 
 \begin_layout Standard
 In all the above cases, we consider pixels in the same frame to be independent:
 \begin_inset Formula 
 \[
-I_{nij}\bot I_{ni'j'}|G_{ij}\cup M_{ij}\cup O_{ij}
+I_{i}\bot I_{j}|G_{i}\cup M_{i}\cup O_{i}
 \]
 
 \end_inset
@@ -594,7 +745,7 @@ In the simplest model, we assume that pixels are occluded with probability
  
 \begin_inset Formula 
 \[
-p_{O}=\p(O_{nij})
+p_{O}=\p(O_{i})
 \]
 
 \end_inset
@@ -602,7 +753,7 @@ p_{O}=\p(O_{nij})
 and independently from all the rest of parameters
 \begin_inset Formula 
 \[
-O_{nij}\bot O_{ni'j'},\Lambda
+O_{i}\bot O_{j},\Lambda
 \]
 
 \end_inset
@@ -614,7 +765,7 @@ O_{nij}\bot O_{ni'j'},\Lambda
 We define:
 \begin_inset Formula 
 \[
-p_{V}=(1-p_{O})=\p(V_{nij})
+p_{V}=(1-p_{O})=\p(V_{i})
 \]
 
 \end_inset
@@ -641,31 +792,57 @@ near
 
 \begin_layout Standard
 Let 
-\begin_inset Formula $\widetilde{M}_{|\Lambda}^{k}$
+\begin_inset Formula $A_{M}(h,s)$
 \end_inset
 
  be a rectangle of fixed size centered in the location of the foosman 
+\begin_inset Formula $h$
+\end_inset
+
+ of the rod 
 \begin_inset Formula $k$
 \end_inset
 
- according to the state 
-\begin_inset Formula $\Lambda$
+ when it is translated by 
+\begin_inset Formula $s$
+\end_inset
+
+.
+ Let 
+\begin_inset Formula $A_{R}(k,s)$
+\end_inset
+
+ be the (disjoint) union of the rectangles for all the foosmen in the rod
+ 
+\begin_inset Formula $k$
 \end_inset
 
 .
  The event 
-\begin_inset Formula $\widetilde{M}_{nij}^{k}$
+\begin_inset Formula $\widetilde{M}_{i}$
 \end_inset
 
  occurs when the pixel 
-\begin_inset Formula $nij$
+\begin_inset Formula $i$
 \end_inset
 
- corresponds to a location inside this rectangle.
+ corresponds to a location inside 
+\begin_inset Formula $A_{R}(k,S_{k}(t_{i}))$
+\end_inset
+
+ for some rod 
+\begin_inset Formula $k$
+\end_inset
+
+, otherwise the event 
+\begin_inset Formula $\widetilde{G}_{i}$
+\end_inset
+
+ occurs.
  We assume:
 \begin_inset Formula 
 \[
-\p(M_{nij}^{k}|\widetilde{M}_{nij}^{k},V_{nij},\Lambda,\theta)=\p(M_{nij}^{k}|\widetilde{M}_{nij}^{k}V_{nij})=p_{M|\widetilde{M}V}
+\p(M_{i}|\widetilde{M}_{i},V_{i},\Lambda,\theta)=\p(M_{i}|\widetilde{M}_{i}V_{i})=p_{M|\widetilde{M}V}
 \]
 
 \end_inset
@@ -673,7 +850,7 @@ Let
 and 
 \begin_inset Formula 
 \[
-\p(G_{nij}|\widetilde{M}_{nij}^{k},V_{nij},\Lambda,\theta)=\p(G_{nij}|\widetilde{M}_{nij}^{k}V_{nij})=1-p_{M|\widetilde{M}V}=p_{G|\widetilde{M}V}
+\p(G_{i}|\widetilde{M}_{i},V_{i},\Lambda,\theta)=\p(G_{i}|\widetilde{M}_{i}V_{i})\approx1-p_{M|\widetilde{M}V}=p_{G|\widetilde{M}V}
 \]
 
 \end_inset
@@ -682,20 +859,27 @@ where
 \begin_inset Formula $p_{M|\widetilde{M}V}$
 \end_inset
 
- is a constant.
- The location of a foosman depends only on the shift 
-\begin_inset Formula $s_{k}$
+ is a constant (in this formula we disregard the possibility 
+\begin_inset Formula $B_{i}$
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+The location of a foosman depends only on the shift 
+\begin_inset Formula $S_{k}$
 \end_inset
 
 .
  By considering separately the regions above-left, above-right, below-left
  and below-right the center, one can estimate also the rotation 
-\begin_inset Formula $\alpha_{k}$
+\begin_inset Formula $R_{k}$
 \end_inset
 
 , still without modelling the shape explicitly.
  Choosing rectangular shapes and constant 
-\begin_inset Formula $p_{M|\widetilde{M}}$
+\begin_inset Formula $p_{M|\widetilde{M}V}$
 \end_inset
 
  allows fast estimation.
@@ -709,7 +893,7 @@ Estimating the rod shift
 We want to compute:
 \begin_inset Formula 
 \[
-\p(s_{k}|I)=\frac{\p(s_{k})\p(I|s_{k})}{\p(I)}=\frac{\p(s_{k})\p(I|s_{k})}{\int\d s_{k}\p(s_{k})\p(I|s_{k})}
+\p(S_{k}|I)=\frac{\p(S_{k})\p(I|S_{k})}{\p(I)}=\frac{\p(S_{k})\p(I|S_{k})}{\int\p(S_{k})\p(I|S_{k})\,\d S_{k}}
 \]
 
 \end_inset
@@ -724,28 +908,44 @@ First we have:
 \begin_layout Standard
 \begin_inset Formula 
 \[
-\p(I|s_{k})=\prod_{n}\p(I_{n}|s_{k}(t_{n}))
+\p(I|S_{k})=\prod_{n}\p(I_{n}|S_{k}(t_{n}))
 \]
 
 \end_inset
 
 
+\end_layout
+
+\begin_layout Standard
+The likelihood is:
 \begin_inset Formula 
 \begin{eqnarray*}
-\mathcal{L}\left(s_{k}(t_{n})\right)=\p(I_{n}|s_{k}(t_{n})) & = & \prod_{ij\in\widetilde{M}_{|s_{k}}^{k}}\p(I_{nij}|s_{k}(t_{n}))\cdot\prod_{ij\notin\widetilde{M}_{|s_{k}}^{k}}\p(I_{nij}|s_{k}(t_{n}))\\
- & = & \prod_{ij\in\widetilde{M}_{|s_{k}}^{k}}\p(I_{nij}|\widetilde{M}_{nij}^{k})\cdot\prod_{ij\notin\widetilde{M}_{|s_{k}}^{k}}\p(I_{nij}|\overline{\widetilde{M}_{nij}^{k}})\\
- & = & \prod_{ij\in\widetilde{M}_{|s_{k}}^{k}}\p(I_{nij}|\widetilde{M}_{nij}^{k})\cdot\frac{\prod_{ij}\p(I_{nij}|\overline{\widetilde{M}_{nij}^{k}})}{\prod_{ij\in\widetilde{M}_{|s_{k}}^{k}}\p(I_{nij}|\overline{\widetilde{M}_{nij}^{k}})}\\
- & \propto & \prod_{ij\in\widetilde{M}_{|s_{k}}^{k}}\frac{\p(I_{nij}|\widetilde{M}_{nij}^{k})}{\p(I_{nij}|\overline{\widetilde{M}_{nij}^{k}})}
+\L_{S_{k};I_{n}}\left(s\right)=\p(I_{n}|S_{k}(t_{n})=s) & = & \prod_{i\in A_{R}(k,s)}\p(I_{i}|S_{k}(t_{n}))\cdot\prod_{i\notin A_{R}(k,s)}\p(I_{i}|S_{k}(t_{n}))\\
+ & = & \prod_{i\in A_{R}(k,s)}\p(I_{i}|\widetilde{M}_{i})\cdot\prod_{i\notin A_{R}(k,s)}\p(I_{i}|\widetilde{G}_{i})\\
+ & = & \prod_{i\in A_{R}(k,s)}\p(I_{i}|\widetilde{M}_{i})\cdot\frac{\prod_{i}\p(I_{i}|\widetilde{G}_{i})}{\prod_{i\in A_{R}(k,s)}\p(I_{i}|\widetilde{G}_{i})}\\
+ & \propto & \prod_{i\in A_{R}(k,s)}\frac{\p(I_{i}|\widetilde{M}_{i})}{\p(I_{i}|\widetilde{G}_{i})}
 \end{eqnarray*}
 
 \end_inset
 
+where 
+\begin_inset Formula $h$
+\end_inset
+
+ varies over the foosmen of the rod 
+\begin_inset Formula $k$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
 We have:
 \begin_inset Formula 
 \begin{eqnarray*}
-\p(I_{nij}|\widetilde{M}_{nij}) & = & \p(V_{nij})\p(I_{nij}|\widetilde{M}_{nij}^{k}V_{nij})+\p(O_{nij})\p(I_{ijk}|O_{nij})\\
- & = & p_{V}\cdot\left[\p(M_{nij}|\widetilde{M}_{nij}^{k}V_{nij})\p(I_{nij}|G_{nij})+\p(G_{nij}|\widetilde{M}_{nij}^{k}V_{nij})\p(I_{nij}|G_{nij})\right]+p_{O}\\
- & = & p_{V}p_{M|\widetilde{M}V}\p(I_{nij}|M_{nij}^{k})+p_{V}p_{G|\widetilde{M}V}\p(I_{nij}|G_{nij})+p_{O}
+\L_{\widetilde{M}_{i};I_{i}}=\p(I_{i}|\widetilde{M}_{i}) & = & \p(V_{i})\p(I_{i}|\widetilde{M}_{i}V_{i})+\p(O_{i})\p(I_{i}|O_{i})\\
+ & \approx & p_{V}\cdot\left[\p(M_{i}|\widetilde{M}_{i}V_{i})\p(I_{i}|G_{i})+\p(G_{i}|\widetilde{M}_{i}V_{i})\p(I_{i}|G_{i})\right]+p_{O}\\
+ & = & p_{V}p_{M|\widetilde{M}V}\p(I_{i}|M_{i})+p_{V}p_{G|\widetilde{M}V}\p(I_{i}|G_{i})+p_{O}
 \end{eqnarray*}
 
 \end_inset
@@ -753,8 +953,97 @@ We have:
 and similarly
 \begin_inset Formula 
 \[
-\p(I_{nij}|\overline{\widetilde{M}_{nij}^{k}})=p_{V}\p(I_{nij}|G_{nij})+p_{O}
+\L_{\widetilde{G}_{i};I_{i}}=\p(I_{i}|\widetilde{G}_{i}^{k})\approx p_{V}\p(I_{i}|G_{i})+p_{O}
 \]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+We define:
+\begin_inset Formula 
+\begin{eqnarray*}
+\L_{M;I_{i}} & = & \p(I_{i}|M_{i})\\
+\L_{G;I_{i}} & = & \p(I_{i}|G_{i})
+\end{eqnarray*}
+
+\end_inset
+
+so we get
+\begin_inset Formula 
+\[
+\L_{\widetilde{M}_{i};I_{i}}=p_{V}p_{M|\widetilde{M}V}\L_{M;I_{i}}+p_{V}p_{G|\widetilde{M}V}\L_{G;I_{i}}+p_{O}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\L_{\widetilde{G}_{i};I_{i}}=p_{V}\L_{G;I_{i}}+p_{O}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+We compute:
+\begin_inset Formula 
+\[
+\LL_{M}[i]=\log\L_{M;I_{i}}
+\]
+
+\end_inset
+
+
+\begin_inset Formula 
+\[
+\LL_{G}[i]=\log\L_{G;I_{i}}
+\]
+
+\end_inset
+
+ 
+\begin_inset Formula 
+\[
+\LL_{\widetilde{M}}[i]=\log\left[p_{V}p_{M|\widetilde{M}V}\cdot\exp\LL_{M}[i]++p_{V}p_{G|\widetilde{M}V}\exp\LL_{G}[i]+p_{O}\right]
+\]
+
+\end_inset
+
+
+\begin_inset Formula 
+\[
+\LL_{\widetilde{G}}[i]=\log\left[p_{V}\cdot\exp\LL_{G}[i]+p_{O}\right]
+\]
+
+\end_inset
+
+ 
+\begin_inset Formula 
+\[
+\LLR_{\widetilde{M}:\widetilde{G}}[i]=\LL_{\widetilde{M}}[i]-\LL_{\widetilde{G}}[i]
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\begin{eqnarray*}
+\LLR_{S_{k}}[s] & = & \sum_{j\in A_{R}(k,s)}\LLR_{\widetilde{M}:\widetilde{G}}[j]\\
+ & = & \log\prod_{j\in A_{R}(k,s)}\frac{\p(I_{i}|\widetilde{M}_{i})}{\p(I_{i}|\widetilde{G}_{i})}\\
+ & \propto & \L_{S_{k};I_{n}}\left(s\right)
+\end{eqnarray*}
 
 \end_inset
 
