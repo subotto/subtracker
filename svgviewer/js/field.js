@@ -225,55 +225,48 @@ Ball.prototype.move = function (x, y) {
 };
 
 
-function create_ball_track(draw) {
-    var ball_track = {};
+var BallTrack = function (draw) {
+    this.positions = [];
 
-    ball_track.positions = [];
-
-    ball_track.path = draw.path('', true);
-    ball_track.path.attr({
+    this.path = draw.path('', true);
+    this.path.attr({
         fill: 'none',
         stroke: '#000',
         'stroke-width': 3
     });
+};
 
-    ball_track.draw = function() {
-        points = ball_track.positions.map(function(d) {
-            return [subx2x(d[0]), suby2y(d[1])];
-        });
+BallTrack.prototype.add_position = function (newPosition) {
+    var EPS = 0.0001;
 
-        var s = "M ";
-        for (var i = 0; i < points.length; ++i) {
-            s += points[i][0] + "," + points[i][1] + " ";
-        }
-        s += "";
+    if (Math.abs(newPosition[0]) < EPS && Math.abs(newPosition[1]) < EPS)
+        return;
 
-        ball_track.path.attr('d', s);
-    };
+    if (this.positions.length > FPS * 2)
+        this.positions.shift();
 
-    ball_track.add_position = function(position) {
+    this.positions.push(newPosition)
+};
 
-        if (Math.abs(position[0]) < 0.0001 && Math.abs(position[1]) < 0.0001) {
-            return;
-        }
+BallTrack.prototype.draw = function () {
+    var points = this.positions.map(function (d) {
+        return [subx2x(d[0]), suby2y(d[1])];
+    });
 
+    if (points.length > 0) {
+        var result = 'M ';
+        for (var i = 0; i < points.length; i++)
+            result += points[i][0] + ',' + points[i][1] + ' ';
 
-        if (ball_track.positions.length > FPS * 2) {
-            ball_track.positions.shift();
-        }
+        this.path.attr('d', result);
+    }
+};
 
-        ball_track.positions.push(position);
-    };
-
-    return ball_track;
-
-}
 
 function create_table(draw, ball_layer) {
     var table = {};
 
-    table.ball_track = create_ball_track(ball_layer);
-
+    table.ball_track = new BallTrack(ball_layer);
     table.ball = new Ball(ball_layer);
 
     rods_red = [];
