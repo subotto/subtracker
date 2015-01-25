@@ -143,49 +143,52 @@ function create_player(draw, color) {
     return player;
 }
 
-function create_rod(draw, player_number, offset, color) {
-    var rod = [];
 
-    for (var i = 0; i < player_number; i++) {
-        rod[i] = create_player(draw, color);
-        rod[i].move((-(player_number - 1) / 2.0 + i) * offset, 0);
+var Rod = function (draw, numberOfPlayers, offset, color) {
+    this.x = 0;
+    this.y = 0;
+
+    this.numberOfPlayers = numberOfPlayers;
+
+    this.players = [];
+    for (var i = 0; i < numberOfPlayers; i++) {
+        this.players[i] = create_player(draw, color);
+
+        // XXX(jacquerie): This needs a refactoring.
+        this.players[i].move((-(numberOfPlayers - 1) / 2.0 + i) * offset, 0);
     }
+};
 
-    rod.rotate = function(angle) {
-        if (angle === null) return;
-        for (var i = 0; i < player_number; i++) {
-            rod[i].rotate(angle);
-        }
-    };
+Rod.prototype.draw = function () {
+    for (var i = 0; i < this.numberOfPlayers; i++)
+        this.players[i].draw();
+};
 
-    rod.x = 0;
-    rod.y = 0;
+Rod.prototype.move = function (x, y) {
+    var dx = x - this.x,
+        dy = y - this.y;
 
-    rod.move = function(x, y) {
-        dx = x - rod.x;
-        dy = y - rod.y;
+    this.x = x;
+    this.y = y;
 
-        rod.x = x;
-        rod.y = y;
+    for (var i = 0; i < this.numberOfPlayers; i++)
+        this.players[i].move(this.players[i].x + dx, this.players[i].y + dy);
+};
 
-        for (var i = 0; i < player_number; i++) {
-            rod[i].move(rod[i].x + dx, rod[i].y + dy);
-        }
-    };
+Rod.prototype.offset = function (offset) {
+    if (offset === null)
+        return;
 
-    rod.offset = function(offset) {
-        if (offset === null) return;
-        rod.move(offset, rod.y);
-    };
+    this.move(offset, this.y);
+};
 
-    rod.draw = function() {
-        for (var i = 0; i < player_number; i++) {
-            rod[i].draw();
-        }
-    };
+Rod.prototype.rotate = function (angle) {
+    if (angle === null)
+        return;
 
-    return rod;
-}
+    for (var i = 0; i < this.numberOfPlayers; i++)
+        this.players[i].rotate(angle);
+};
 
 
 var Ball = function (draw) {
@@ -245,7 +248,7 @@ BallTrack.prototype.add_position = function (newPosition) {
     if (this.positions.length > FPS * 2)
         this.positions.shift();
 
-    this.positions.push(newPosition)
+    this.positions.push(newPosition);
 };
 
 BallTrack.prototype.draw = function () {
@@ -269,14 +272,15 @@ function create_table(draw, ball_layer) {
     table.ball_track = new BallTrack(ball_layer);
     table.ball = new Ball(ball_layer);
 
+    // XXX(jacquerie): This needs a refactoring.
     rods_red = [];
-    rods_red[0] = create_rod(draw, 1, 0, 0);
+    rods_red[0] = new Rod(draw, 1, 0, 0);
     rods_red[0].move(0, -0.9328);
-    rods_red[1] = create_rod(draw, 2, 0.63, 0);
+    rods_red[1] = new Rod(draw, 2, 0.63, 0);
     rods_red[1].move(0, -0.66613);
-    rods_red[2] = create_rod(draw, 5, 0.31, 0);
+    rods_red[2] = new Rod(draw, 5, 0.31, 0);
     rods_red[2].move(0, -0.13323);
-    rods_red[3] = create_rod(draw, 3, 0.558, 0);
+    rods_red[3] = new Rod(draw, 3, 0.558, 0);
     rods_red[3].move(0, 0.39968);
 
     rods_red.draw = function() {
@@ -285,14 +289,15 @@ function create_table(draw, ball_layer) {
         }
     };
 
+    // XXX(jacquerie): Remove duplication.
     rods_blue = [];
-    rods_blue[0] = create_rod(draw, 1, 0, 1);
+    rods_blue[0] = new Rod(draw, 1, 0, 1);
     rods_blue[0].move(0, +0.9328);
-    rods_blue[1] = create_rod(draw, 2, 0.63, 1);
+    rods_blue[1] = new Rod(draw, 2, 0.63, 1);
     rods_blue[1].move(0, +0.66613);
-    rods_blue[2] = create_rod(draw, 5, 0.31, 1);
+    rods_blue[2] = new Rod(draw, 5, 0.31, 1);
     rods_blue[2].move(0, +0.13323);
-    rods_blue[3] = create_rod(draw, 3, 0.558, 1);
+    rods_blue[3] = new Rod(draw, 3, 0.558, 1);
     rods_blue[3].move(0, -0.39968);
 
     rods_blue.draw = function() {
