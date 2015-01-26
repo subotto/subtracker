@@ -6,3 +6,4 @@
 *.blend2
 database_url*
 test.sqlite
+venv
