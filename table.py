@@ -82,7 +82,7 @@ class RodSet(UserList):
                  0.00,
                 +0.12,
                 +0.24,
-            ], 0.12),
+            ], 0.10),
             RodType(3, "attack", +1.5 * d, [
                 -0.21,
                  0.0,

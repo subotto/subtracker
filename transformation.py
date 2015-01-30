@@ -102,8 +102,9 @@ def apply_projectivity(projectivity, point):
     Returns the transformed point.
     The projectivity must be a 3x3 matrix. Both input and output points are 2-dimensional.
     """
-    p = numpy.dot(projectivity, numpy.array([point[0], point[1], 1.0]))
-    return p[:2] / p[2]
+    projective_coordinates = numpy.concatenate((point[...,0:2], numpy.ones_like(point[...,0:1])), -1)
+    p = numpy.einsum("...ij,...j", projectivity, projective_coordinates)
+    return p[...,:2] / p[...,2,numpy.newaxis]
 
 # FIXME: Some of following code is duplicated because of different conventions.
 # We should always list corners in anti-clockwise order
