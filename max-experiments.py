@@ -681,7 +681,7 @@ def show(name, image, contrast=1.0, brightness=1.0):
         c = cv2.getTrackbarPos("contrast", name)
         b = cv2.getTrackbarPos("brightness", name)
         image = images[name]
-        cv2.imshow(name, image * 10 ** ((c - 1000) / 100.0) + (b - 1000) / 100.0)
+        cv2.imshow(name, 1.0 / 255.0 * image * 10.0 ** ((c - 1000) / 100.0)  + (b - 1000) / 100.0)
 
     if cv2.getTrackbarPos("contrast", name) == -1:
         cv2.namedWindow(name, cv2.WINDOW_NORMAL)
