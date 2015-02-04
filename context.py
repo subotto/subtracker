@@ -49,7 +49,7 @@ class FrameAnalysis:
 
         # Table tracker
         prev_table_tracker = prev_frame_analysis.table_tracker if prev_frame_analysis is not None else None
-        self.table_tracker = TableTracker(prev_table_tracker, self.frame_settings.table_tracking_settings, controls.subpanel("table tracking"))
+        self.table_tracker = TableTracker(prev_table_tracker, self.frame_settings.table_tracking_settings, controls.subpanel("table tracking"), ticker=self)
 
         # Table analysis
         self.prev_table_bg_estimation = prev_frame_analysis.table_bg_estimation if prev_frame_analysis is not None else None

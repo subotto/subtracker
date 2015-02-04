@@ -8,6 +8,13 @@ import logging
 
 logger = logging.getLogger("table tracker")
 
+class DummyTicker:
+
+    def tic(self, s):
+        pass
+
+    def toc(self, s):
+        pass
 
 class TableDetectionSettings:
 
@@ -21,7 +28,7 @@ class TableDetectionSettings:
         self.ref_table_points = numpy.float32(
             [[252, 70], [67, 65], [58, 183], [253, 186]])
 
-        self.detector_name = "brisk"
+        self.detector_name = "orb"
 
 
 class TableFollowingSettings:
@@ -44,27 +51,27 @@ class TableTrackingSettings:
         self.camera_matrix = camera_matrix
         self.dist_coeffs = dist_coeffs
 
+detectors = {
+    'sift':  (cv2.SIFT(400), cv2.NORM_L2),
+    'surf':  (cv2.SURF(800), cv2.NORM_L2),
+    'usurf': (cv2.SURF(800, upright=True), cv2.NORM_L2),
+    'orb':   (cv2.ORB(800), cv2.NORM_HAMMING),
+    #'akaze': (cv2.AKAZE(), cv2.NORM_HAMMING),
+    'brisk': (cv2.BRISK(), cv2.NORM_HAMMING),
+}
 
 def get_feature_detector(detector_name):
-    if detector_name == 'sift':
-        return cv2.SIFT(), cv2.NORM_L2
-    elif detector_name == 'surf':
-        return cv2.SURF(800), cv2.NORM_L2
-    elif detector_name == 'usurf':
-        return cv2.SURF(800, upright=True), cv2.NORM_L2
-    elif detector_name == 'orb':
-        return cv2.ORB(400), cv2.NORM_HAMMING
-    elif detector_name == 'akaze':
-        return cv2.AKAZE(), cv2.NORM_HAMMING
-    elif detector_name == 'brisk':
-        return cv2.BRISK(), cv2.NORM_HAMMING
-
+    return detectors[detector_name]
 
 class TableTracker:
 
-    def __init__(self, prev_table_tracker, settings, controls):
+    def __init__(self, prev_table_tracker, settings, controls, ticker=None):
         self.settings = settings
         self.controls = controls
+        if ticker is not None:
+            self.ticker = ticker
+        else:
+            self.ticker = DummyTicker()
 
         self.lk_track_points = None
         if prev_table_tracker is not None:
@@ -87,7 +94,7 @@ class TableTracker:
         """
         detection_settings = self.settings.detection_settings
         self.ref_image = cv2.imread(detection_settings.ref_image_path)
-        self.ref_mask = cv2.imread(detection_settings.ref_mask_path)
+        self.ref_mask = cv2.imread(detection_settings.ref_mask_path, cv2.IMREAD_GRAYSCALE)
         self.ref_lk_mask = cv2.imread(detection_settings.ref_lk_mask_path, cv2.IMREAD_GRAYSCALE)
 
         if self.settings.undistort_camera:
@@ -126,17 +133,26 @@ class TableTracker:
         return p1, p2, kp_pairs
 
     def match_features(self):
+        self.ticker.tic("match features: get detector")
         detection_settings = self.settings.detection_settings
         detector, norm = get_feature_detector(detection_settings.detector_name)
+        self.ticker.toc("match features: get detector")
 
+        self.ticker.tic("match features: detectAndCompute")
         kp, des = detector.detectAndCompute(self.frame, None)
+        self.ticker.toc("match features: detectAndCompute")
 
+        self.ticker.tic("match features: feature matching")
         bf = cv2.BFMatcher(norm)
 
         matches = bf.knnMatch(self.ref_des, trainDescriptors=des, k=2)
+        self.ticker.toc("match features: feature matching")
+
+        self.ticker.tic("match features: filter matches and computer homography")
         p1, p2, kp_pairs = self.filter_matches(self.ref_kp, kp, matches, ratio=detection_settings.match_filter_ratio)
         M, mask = cv2.findHomography(p1, p2, cv2.RANSAC, detection_settings.match_ransac_threshold)
         table_points = cv2.perspectiveTransform(detection_settings.ref_table_points.reshape(-1, 1, 2), M).reshape(-1, 2)
+        self.ticker.toc("match features: filter matches and computer homography")
 
         return table_points
 
@@ -285,7 +301,7 @@ class TableTracker:
         # If we have results from both "assest" and "track", then we
         # blend them together, estimating their variance (FIXME: magic
         # constants)
-        if lk_track_table_points is not None or lk_track_table_points is not None:
+        if lk_track_table_points is not None or lk_assest_table_points is not None:
             if lk_assest_table_points is None:
                 self.table_points = lk_track_table_points
             elif lk_track_table_points is None:
