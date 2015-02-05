@@ -1,0 +1,14 @@
+eclipse.preferences.version=1
+encoding/analysis.py=utf8
+encoding/background.py=utf8
+encoding/ball.py=utf8
+encoding/camera.py=utf8
+encoding/colorestimator.py=utf8
+encoding/commontypes.py=utf-8
+encoding/foosmen.py=utf8
+encoding/occlusion.py=utf8
+encoding/pixelclassifier.py=utf8
+encoding/rectifier.py=utf8
+encoding/tabletracker.py=utf-8
+encoding/test.py=utf8
+encoding/transformation.py=utf-8
