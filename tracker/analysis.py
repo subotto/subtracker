@@ -20,7 +20,7 @@ class GameAnalyzer:
         self.camera = camera
         self.frames_in_flight = 120
 
-        self.table_tracker = TableTracker(table, TableReferenceFrame())
+        self.table_tracker = TableTracker(table, camera, TableReferenceFrame())
         self.rectifier = Rectifier(table, margin=0.10, camera=camera, resolution=120)
 
         self.background_analyzer = BackgroundAnalyzer(table, self.rectifier)
@@ -30,7 +30,10 @@ class GameAnalyzer:
         self.rod_analyzer = [RodAnalyzer(table, rod, self.rectifier) for rod in table.rods]
 
     def analyze(self, data):
-        self.table_tracker.track_table(data.frames)
+        self.table_tracker.locate_table(data)
+        self.table_tracker.settle_table(data)
+        self.table_tracker.compute_camera_transform(data)
+
         self.rectifier.rectify(data.frames)
 
         self.background_analyzer.estimate_color(data)
@@ -71,10 +74,7 @@ class GameAnalysis:
             ("timestamp", "f8"),
             ("image", "u1", (fh, fw, c)),
             ("image_f", "f4", (fh, fw, c)),
-            ("camera", [
-                ("transform", projective_transform),
-                ("pixel_density", "f8"),
-            ]),
+            ("table", analyzer.table_tracker.dtype),
             ("rectification", "f4", (rh, rw, c)),
             ("background", analyzer.background_analyzer.dtype),
             ("team_foosmen", analyzer.team_foosmen_analyzer.dtype, len(analyzer.table.teams)),

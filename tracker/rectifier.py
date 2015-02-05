@@ -24,7 +24,7 @@ class Rectifier:
     def rectify(self, frames):
         frames.image_f[...] = frames.image / 255.0
 
-        transform = numpy.einsum("...ij,...jk", self.transform, numpy.linalg.inv(frames.camera.transform))
+        transform = numpy.einsum("...ij,...jk", self.transform, numpy.linalg.inv(frames.table.camera_transform))
 
         for i in numpy.ndindex(frames.shape):
             frames.rectification[i] = cv2.warpPerspective(frames.image_f[i], transform[i], self.image_size)
