@@ -15,9 +15,10 @@ void interrupt_handler(int param) {
 typedef struct {
   unsigned char *buf;
   int width, height;
+  double timestamp;
 } Image;
 
-#define JPEG_QUALITY 50
+#define JPEG_QUALITY 95
 
 void write_frame(FILE *fout, const Image &image) {
 
@@ -30,6 +31,8 @@ void write_frame(FILE *fout, const Image &image) {
 
   uint32_t length32 = htonl((uint32_t) length);
   size_t res;
+  res = fwrite(&image.timestamp, 8, 1, fout);
+  assert(res == 1);
   res = fwrite(&length32, 4, 1, fout);
   assert(res == 1);
   res = fwrite(buf, 1, length, fout);
@@ -68,7 +71,7 @@ int main(int argc, char **argv) {
                                      << time
                                      << " and playback time "
                                      << duration_cast<duration<double>>(frame_info.playback_time.time_since_epoch()).count()
-                                     << " (time difference: " << time - prev_time << "; reciproval: " << 1.0 / (time - prev_time) << ")"
+                                     << " (time difference: " << time - prev_time << "; reciprocal: " << 1.0 / (time - prev_time) << ")"
                                      << endl;
     assert(frame_info.data.isContinuous());
     assert(frame_info.data.channels() == 3);
@@ -76,6 +79,7 @@ int main(int argc, char **argv) {
     image.buf = frame_info.data.data;
     image.width = frame_info.data.size().width;
     image.height = frame_info.data.size().height;
+    image.timestamp = duration_cast<duration<double>>(frame_info.playback_time.time_since_epoch()).count();
     write_frame(stdout, image);
     prev_time = time;
   }
