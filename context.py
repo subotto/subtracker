@@ -3,23 +3,23 @@
 
 import Queue
 import collections
-import logging
-import cv2
 import cv
+import cv2
+import logging
 import numpy
 
 from monotonic_time import monotonic_time
-
-from tabletracker import TableTracker, TableTrackingSettings
+from spotsfinder import SpotsFinder, SpotsFinderSettings
 from spotstracker import SpotsTracker, Spot, Layer
 from tablebg import TableBackgroundEstimationSettings, estimate_table_background
+from tablell import analyze_table_background
+from tabletracker import TableTracker, TableTrackingSettings
 from transformation import pixels_to_rectangle, rectangle_to_region
-from spotsfinder import SpotsFinder, SpotsFinderSettings
+
 
 logger = logging.getLogger("context")
 timings_logger = logging.getLogger("timings")
 
-from tablell import analyze_table_background
 
 class FrameSettings:
 
@@ -77,7 +77,7 @@ class FrameAnalysis:
         if self.frame_settings.undistort_camera:
             self.tic("undistort frame")
             self.frame = cv2.undistort(self.frame, self.frame_settings.camera_matrix, self.frame_settings.dist_coeffs)
-            self.controls.subpanel("table tracking").show("undistorted", self.frame / 256.0)
+            self.controls.subpanel("table tracking").show("undistorted", self.frame / 255.0)
             self.toc("undistort frame")
 
     def do_table_tracking(self):
@@ -86,18 +86,21 @@ class FrameAnalysis:
         self.toc("table tracking")
         self.tic("table warping")
         warping_proj = numpy.dot(rectangle_to_region(self.table_corners), pixels_to_rectangle(*self.frame_settings.table_frame_size))
-        #logger.info("\n%r\n%r", self.table_corners, warping_proj)
+        # logger.info("\n%r\n%r", self.table_corners, warping_proj)
         self.table_frame = cv2.warpPerspective(self.frame,
                                                warping_proj,
                                                self.frame_settings.table_frame_size,
                                                flags=cv2.INTER_LINEAR | cv2.WARP_INVERSE_MAP,
-                                               borderMode=cv2.BORDER_REPLICATE)
+                                               borderMode=cv2.BORDER_REPLICATE) / 255.0
         self.toc("table warping")
-        self.controls.subpanel("table tracking").show("table frame", self.table_frame / 256.0)
+        self.controls.subpanel("table tracking").show("table frame", self.table_frame)
 
     def do_compute_ball_density(self):
-        self.tic("compute ball density")
+        self.tic("estimate background")
         self.table_bg_estimation = estimate_table_background(self.prev_table_bg_estimation, self.table_frame, self.frame_settings.table_bg_settings, self.controls.subpanel("tablebg"))
+        self.toc("estimate background")
+
+        self.tic("compute ball density")
         self.table_bg_analysis = analyze_table_background(self.table_bg_estimation, self.table_frame, self.controls.subpanel("tablebg"))
         # FIXME: the ball analysis is done in the analyze_table_background
         self.ball_density = self.table_bg_analysis.ballness
@@ -105,7 +108,7 @@ class FrameAnalysis:
 
     def find_spots(self):
         self.spots = self.spots_finder.find_spots(self.ball_density)
-        
+
     def get_csv_line(self):
         line = "%.5f" % (self.playback_time)
         if self.ball_pos is not None:
@@ -113,7 +116,7 @@ class FrameAnalysis:
         else:
             line += ",,"
         # FIXME: decide how bars are to be enumerated
-        #for side in [0, 1]:
+        # for side in [0, 1]:
         #    for bar in xrange(BARS):
         #        line += ",%.5f,%.5f" % (self.bars_pos[side][bar][0], self.bars_pos[side][bar][1])
         line += '\n'
@@ -165,7 +168,7 @@ class SubtrackerContext:
         # Pass the frame to the spots tracker
         # TODO
         self.tracking_frames.append(frame_analysis)
-        #logger.debug(repr((frame_analysis.frame_num, frame_analysis.timestamp)))
+        # logger.debug(repr((frame_analysis.frame_num, frame_analysis.timestamp)))
         spots = frame_analysis.spots
         layer = Layer(spots, frame_analysis.frame_num, frame_analysis.timestamp)
         ready_info = self.spots_tracker.push_back_and_get_info(layer)

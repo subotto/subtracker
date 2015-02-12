@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import copy
-import numpy
 import cv2
 import logging
+import numpy
+
 
 logger = logging.getLogger("table tracker")
 
@@ -52,11 +53,11 @@ class TableTrackingSettings:
         self.dist_coeffs = dist_coeffs
 
 detectors = {
-    'sift':  (cv2.SIFT(400), cv2.NORM_L2),
-    'surf':  (cv2.SURF(800), cv2.NORM_L2),
-    'usurf': (cv2.SURF(800, upright=True), cv2.NORM_L2),
+    # 'sift':  (cv2.SIFT(400), cv2.NORM_L2),
+    # 'surf':  (cv2.SURF(800), cv2.NORM_L2),
+    # 'usurf': (cv2.SURF(800, upright=True), cv2.NORM_L2),
     'orb':   (cv2.ORB(800), cv2.NORM_HAMMING),
-    #'akaze': (cv2.AKAZE(), cv2.NORM_HAMMING),
+    # 'akaze': (cv2.AKAZE(), cv2.NORM_HAMMING),
     'brisk': (cv2.BRISK(), cv2.NORM_HAMMING),
 }
 
@@ -191,8 +192,8 @@ class TableTracker:
         begin_points, end_points = self.lk_flow(p0=p0, begin_frame=begin_frame, end_frame=end_frame)
         self.lk_track_points = end_points
 
-        #self.draw_frame_with_points(begin_frame, p0, "track points before", begin_points)
-        #self.draw_frame_with_points(end_frame, end_points, "track points after", end_points)
+        # self.draw_frame_with_points(begin_frame, p0, "track points before", begin_points)
+        # self.draw_frame_with_points(end_frame, end_points, "track points after", end_points)
 
         begin_ref = numpy.array(begin_points)
         end_ref = numpy.array(end_points)
@@ -218,8 +219,8 @@ class TableTracker:
         begin_points, end_points = self.lk_flow(p0=p0, begin_frame=begin_frame, end_frame=end_frame)
         self.lk_assest_points = cv2.perspectiveTransform(numpy.array(begin_points), numpy.linalg.inv(H))
 
-        #self.draw_frame_with_points(begin_frame, p0, "assest points before", begin_points)
-        #self.draw_frame_with_points(end_frame, end_points, "assest points after", end_points)
+        # self.draw_frame_with_points(begin_frame, p0, "assest points before", begin_points)
+        # self.draw_frame_with_points(end_frame, end_points, "assest points after", end_points)
 
         begin_ref = self.lk_assest_points
         end_ref = numpy.array(end_points)

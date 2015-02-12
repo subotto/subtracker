@@ -22,7 +22,7 @@ def weighted_update(alpha, prev, curr):
 
 def initial_estimation(warped_frame, settings):
     estimation = TableBackgroundEstimation()
-    
+
     # Our initial best estimate for the table is the first frame that
     # we see
     estimation.mean = warped_frame.copy()
@@ -32,12 +32,12 @@ def initial_estimation(warped_frame, settings):
     # But this is going to be unreliable, so pixel channels can change
     # completely
     sigma = 1.0
-    
+
     # Consider channels independent and homoskedastic, so initialize
     # the variance to a multiple of identity.
     estimation.variance = numpy.zeros((h, w, channels, channels))
     for ch in xrange(channels):
-        estimation.variance[:,:,ch,ch] = sigma**2 * numpy.ones((h,w))
+        estimation.variance[:, :, ch, ch] = sigma ** 2 * numpy.ones((h, w))
 
     return estimation
 
@@ -50,7 +50,7 @@ def compute_scatter(frame, mean):
     # TODO: save half the computations as scatter is symmetric
     for ch1 in xrange(channels):
         for ch2 in xrange(channels):
-            scatter[:,:,ch1,ch2] = deviation[:,:,ch1] * deviation[:,:,ch2]
+            scatter[:, :, ch1, ch2] = deviation[:, :, ch1] * deviation[:, :, ch2]
 
     return scatter
 
@@ -60,11 +60,13 @@ def update_estimation(prev, warped_frame, settings):
     # Update the mean estimation using running avg
     estimation.mean = weighted_update(settings.alpha, prev.mean, warped_frame)
 
+    # Do not estimate the variance as it is not used.
+
     # Estimate the variance (see wiki/Scatter_matrix)
-    scatter = compute_scatter(warped_frame, estimation.mean)
+    # scatter = compute_scatter(warped_frame, estimation.mean)
 
     # Update the variance estimation using running avg
-    estimation.variance = weighted_update(settings.var_alpha, prev.variance, scatter)
+    # estimation.variance = weighted_update(settings.var_alpha, prev.variance, scatter)
 
     return estimation
 
@@ -75,6 +77,6 @@ def estimate_table_background(prev, warped_frame, settings, controls):
         estimation = initial_estimation(warped_frame, settings)
 
     controls.show("mean", estimation.mean)
-    controls.show("covar B-G", estimation.variance[:,:,0,1])
-    
+    # controls.show("covar B-G", estimation.variance[:, :, 0, 1])
+
     return estimation
