@@ -1,4 +1,4 @@
-var REQUEST_URL = "/24ore/tracking.json";
+var REQUEST_URL = "/subtracker/";
 var REQUEST_TIMEOUT = 2.0;
 var REQUEST_SLEEP = 0.5;
 
