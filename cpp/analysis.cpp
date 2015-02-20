@@ -202,7 +202,7 @@ Point2f subpixelMinimum(control_panel_t &panel, Mat in) {
   // This is a one-pixel matrix; how can it extract any derivative
   // from it?
 	Mat p = in(Range(m.y, m.y+1), Range(m.x, m.x+1));
-  logger(panel, "gio", DEBUG) << "p: " << p << endl;
+  //logger(panel, "gio", DEBUG) << "p: " << p << endl;
 
 	Mat der[2];
 	Mat der2[2];
@@ -211,7 +211,7 @@ Point2f subpixelMinimum(control_panel_t &panel, Mat in) {
 	Sobel(p, der[1], -1, 1, 0, 1);
 	Sobel(p, der2[0], -1, 0, 2, 1);
 	Sobel(p, der2[1], -1, 2, 0, 1);
-  logger(panel, "gio", DEBUG) << "derivatives: " << der[0] << der[1] << der2[0] << der2[1] << endl;
+  //logger(panel, "gio", DEBUG) << "derivatives: " << der[0] << der[1] << der2[0] << der2[1] << endl;
 
 	float correction[2] {0.f, 0.f};
 	for(int k = 0; k < 2; k++) {
@@ -230,7 +230,7 @@ Point2f subpixelMinimum(control_panel_t &panel, Mat in) {
 	}
 
 	Point2f c = Point2f(correction[1], correction[0]);
-  logger(panel, "gio", DEBUG) << "correction: " << c << endl;
+  //logger(panel, "gio", DEBUG) << "correction: " << c << endl;
 
 	return Point2f(m.x + c.x, m.y + c.y);
 }

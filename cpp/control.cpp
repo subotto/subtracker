@@ -31,22 +31,22 @@ static void update_show(control_panel_t& panel, string category, string name) {
 	string window_name = window_name_buf.str();
   bool visible = windows_visibility[window_name];
 
-  logger(panel, "gio", DEBUG) << "in update_show(" << name << "): " << endl;
+  //logger(panel, "gio", DEBUG) << "in update_show(" << name << "): " << endl;
 
 	if(will_show(panel, category, name)) {
-    logger(panel, "gio", DEBUG) << "  showing (window_name: " << window_name << ")" << endl;
+    //logger(panel, "gio", DEBUG) << "  showing (window_name: " << window_name << ")" << endl;
     if (!visible) {
       namedWindow(window_name, WINDOW_NORMAL);
       windows_visibility[window_name] = true;
-      logger(panel, "gio", DEBUG) << "  creating window" << endl;
+      //logger(panel, "gio", DEBUG) << "  creating window" << endl;
     }
 		imshow(window_name, status.image);
 	} else {
-    logger(panel, "gio", DEBUG) << "  not showing" << endl;
+    //logger(panel, "gio", DEBUG) << "  not showing" << endl;
     if (visible) {
       destroyWindow(window_name);
       windows_visibility[window_name] = false;
-      logger(panel, "gio", DEBUG) << "  destroying window" << endl;
+      //logger(panel, "gio", DEBUG) << "  destroying window" << endl;
     }
 	}
 }

@@ -65,7 +65,7 @@ void FrameReader::read() {
       timestamp = time_point<video_clock>(now - video_start_time);
     }
 
-    logger(panel, "gio", DEBUG) << "Read new frame with timestamp " << duration_cast<duration<double, milli> >(timestamp.time_since_epoch()).count() << endl;
+    //logger(panel, "gio", DEBUG) << "Read new frame with timestamp " << duration_cast<duration<double, milli> >(timestamp.time_since_epoch()).count() << endl;
 
     frame_times.push_back(timestamp);
     while(timestamp - frame_times.front() > frame_count_interval) {
@@ -134,7 +134,7 @@ FrameInfo FrameReader::get() {
   queue.pop_front();
   queue_not_full.notify_all();
 
-  logger(panel, "gio", DEBUG) << "Return frame with timestamp " << duration_cast<duration<double, milli> >(res.timestamp.time_since_epoch()).count() << endl;
+  //logger(panel, "gio", DEBUG) << "Return frame with timestamp " << duration_cast<duration<double, milli> >(res.timestamp.time_since_epoch()).count() << endl;
 
   return res;
 }

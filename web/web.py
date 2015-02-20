@@ -13,7 +13,7 @@ from monotonic_time import monotonic_time
 
 from data import Session, Log, INTERESTING_FPS
 
-TEST = True
+TEST = False
 TEST_BASEDIR = '../svgviewer'
 
 BUFFER_TIME = 30.0

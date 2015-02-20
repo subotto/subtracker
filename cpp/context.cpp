@@ -18,7 +18,7 @@ FrameSettings::FrameSettings(Mat ref_frame, Mat ref_mask)
 FrameAnalysis::FrameAnalysis(Mat frame, int frame_num, time_point< video_clock > timestamp, time_point< system_clock > playback_time, FrameSettings frame_settings, control_panel_t &panel)
   : frame(frame), frame_num(frame_num), timestamp(timestamp), playback_time(playback_time), frame_settings(frame_settings), panel(panel), table_tracking_status(frame_settings.table_tracking_params, frame_settings.reference, frame_settings.table_frame_size), table_description(frame_settings.table_frame_size) {
 
-  logger(this->panel, "gio", DEBUG) << "table_frame_size: " << this->frame_settings.table_frame_size << endl;
+  //logger(this->panel, "gio", DEBUG) << "table_frame_size: " << this->frame_settings.table_frame_size << endl;
 
 }
 
