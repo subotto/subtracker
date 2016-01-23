@@ -15,6 +15,10 @@ using namespace std;
 using namespace chrono;
 using namespace cv;
 
+static const seconds frame_count_interval(5);
+static const int stats_interval = 1;
+static const int buffer_size = 500;
+
 class FrameProducer {
 public:
   virtual FrameInfo get() = 0;
@@ -48,8 +52,8 @@ protected:
   FrameCycle(control_panel_t &panel);
   void stats(const FrameInfo &info);
   void push(FrameInfo info);
-  virtual void init_thread() = 0;
-  virtual void process_frame() = 0;
+  virtual bool init_thread();
+  virtual bool process_frame() = 0;
 
 public:
   void start();
@@ -60,28 +64,15 @@ public:
 class FrameReader: public FrameCycle {
 private:
 	VideoCapture cap;
-
 	bool fromFile = false;
 
 protected:
-  void init_thread();
-  void process_frame();
+  bool init_thread();
+  bool process_frame();
 
 public:
 	FrameReader(int device, control_panel_t& panel, int width=320, int height=240, int fps=125);
 	FrameReader(const char* file, control_panel_t& panel, bool simulate_live=false);
-	void read();
 };
-
-/*
-class FrameFromFile: public FrameCycle {
-private:
-  istream &fin;
-public:
-  FrameFromFile(istream &fin, control_panel_t &panel);
-  FrameInfo get();
-  ~FrameFromFile();
-};
-*/
 
 #endif

@@ -2,10 +2,6 @@
 #include "framereader.hpp"
 #include "v4l2cap.hpp"
 
-static const seconds frame_count_interval(5);
-static const int stats_interval = 1;
-static const int buffer_size = 500;
-
 FrameCycle::FrameCycle(control_panel_t &panel)
   : panel(panel), last_stats(system_clock::now()), running(true) {
 }
@@ -13,11 +9,7 @@ FrameCycle::FrameCycle(control_panel_t &panel)
 void FrameCycle::start() {
   this->t = thread(&FrameCycle::cycle, this);
 }
-/*
-FrameFromFile::FrameFromFile(istream &fin, control_panel_t &panel)
-  : FrameProducer(panel), fin(fin) {
-}
-*/
+
 FrameReader::FrameReader(int device, control_panel_t& panel, int width, int height, int fps)
 	: FrameCycle(panel) {
   cap = v4l2cap(device, width, height, fps);
@@ -35,32 +27,44 @@ FrameReader::FrameReader(const char* file, control_panel_t& panel, bool simulate
   this->can_drop_frames = simulate_live;
 }
 
+bool FrameCycle::init_thread() {
+
+  return true;
+
+}
+
 void FrameCycle::cycle() {
 
   video_start_time = system_clock::now();
-  this->init_thread();
+  if (!this->init_thread()) {
+    this->push({ time_point< video_clock >(), time_point< system_clock >(), Mat(), false });
+    return;
+  }
   while (running) {
-    this->process_frame();
+    if (!this->process_frame()) {
+      this->push({ time_point< video_clock >(), time_point< system_clock >(), Mat(), false });
+      return;
+    }
   }
 
 }
 
-void FrameReader::init_thread() {
+bool FrameReader::init_thread() {
 
-  if(!fromFile) {
+  if (!fromFile) {
     // Delay di 1s per dare il tempo alla webcam di inizializzarsi
     this_thread::sleep_for(seconds(1));
   }
   logger(panel, "gio", DEBUG) << "Start receiving frames" << endl;
+  return true;
 
 }
 
-void FrameReader::process_frame() {
+bool FrameReader::process_frame() {
 
   Mat frame;
   if(!cap.read(frame)) {
-    this->push({ time_point< video_clock >(), time_point< system_clock >(), Mat(), false });
-    return;
+    return false;
   }
   auto now = system_clock::now();
 
@@ -76,6 +80,7 @@ void FrameReader::process_frame() {
 
   auto playback_time = video_start_time + duration_cast< time_point< system_clock >::duration >(timestamp.time_since_epoch());
   this->push({ timestamp, playback_time, frame, true });
+  return true;
 
 }
 

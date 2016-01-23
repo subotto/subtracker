@@ -12,7 +12,8 @@ jobrunner.hpp \
 subotto_metrics.hpp \
 subotto_tracking.hpp \
 utility.hpp \
-v4l2cap.hpp
+v4l2cap.hpp \
+jpegreader.hpp \
 
 OBJECTS_subtracker2014 = \
 blobs_tracker.o \
@@ -25,7 +26,7 @@ utility.o \
 v4l2cap.o \
 subtracker2014.o \
 staging.o \
-analysis.o
+analysis.o \
 
 OBJECTS_subtracker2015 = \
 subtracker2015.o \
@@ -40,6 +41,7 @@ staging.o \
 blobs_tracker.o \
 tracking_types.o \
 spots_tracker.o \
+jpegreader.o \
 
 OBJECTS_camera_source = \
 camera_source.o \
@@ -56,7 +58,7 @@ subotto_metrics.o \
 subotto_tracking.o \
 utility.o \
 v4l2cap.o \
-tester.o
+tester.o \
 
 BINARIES = \
 subtracker2015 \
