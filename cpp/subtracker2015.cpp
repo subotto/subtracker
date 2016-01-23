@@ -84,7 +84,7 @@ int update_gui_skip = 1;
 bool step_frame = false;
 bool step_on_frame_produced = false;
 
-static void feed_frames(FrameReader &frame_reader, SubtrackerContext &ctx) {
+static void feed_frames(FrameProducer &frame_producer, SubtrackerContext &ctx) {
 
   control_panel_t &panel = ctx.panel;
 
@@ -118,7 +118,7 @@ static void feed_frames(FrameReader &frame_reader, SubtrackerContext &ctx) {
     dump_time(panel, "cycle", "beginning real cycle");
 
     // Read a new frame and perhaps terminate program
-    auto frame_info = frame_reader.get();
+    auto frame_info = frame_producer.get();
     if (!frame_info.valid) break;
 
     dump_time(panel, "cycle", "got a frame");
@@ -191,9 +191,11 @@ int main(int argc, char* argv[]) {
   set_log_level(panel, "gio", DEBUG);
 
   // Open frame reader
-  FrameReader *f;
+  FrameProducer *f;
   if(videoName.size() == 1) {
-    f = new FrameReader(videoName[0] - '0', panel);
+    FrameReader *reader = new FrameReader(videoName[0] - '0', panel);
+    reader->start();
+    f = reader;
   } else {
     bool simulate_live = false;
 
@@ -202,7 +204,9 @@ int main(int argc, char* argv[]) {
       simulate_live = true;
     }
 
-    f = new FrameReader(videoName.c_str(), panel, simulate_live);
+    FrameReader *reader = new FrameReader(videoName.c_str(), panel, simulate_live);
+    reader->start();
+    f = reader;
   }
 
   feed_frames(*f, ctx);
