@@ -14,6 +14,8 @@ JPEGReader::JPEGReader(string file_name, control_panel_t &panel, bool from_file,
     }
   }
 
+  //logger(panel, "jpeg", DEBUG) << "can_drop_frames: " << this->can_drop_frames << "; rate_limited: " << this->rate_limited << endl;
+
 }
 
 JPEGReader::~JPEGReader() {

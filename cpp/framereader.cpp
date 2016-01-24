@@ -136,7 +136,7 @@ void FrameCycle::push(FrameInfo info) {
   this->stats(info);
 
   unique_lock<mutex> lock(queue_mutex);
-  if (!can_drop_frames || !info.valid) {
+  if (!can_drop_frames) {
     while (queue.size() >= buffer_size) {
       queue_not_full.wait(lock);
       logger(panel, "capture", INFO) << "queue is full, waiting" << endl;
@@ -150,8 +150,9 @@ void FrameCycle::push(FrameInfo info) {
 
   // Prende tutti i frames finchè queue.size() < buffer_size, un frame
   // su 2 se queue.size() < 2*buffer_size, uno su 3 se queue.size() <
-  // 3*buffer_size, etc
-  if (count % (queue.size() / buffer_size + 1) == 0) {
+  // 3*buffer_size, etc; in ogni caso accettiamo i frame non validi
+  // (perché segnalano la fine dello stream)
+  if (count % (queue.size() / buffer_size + 1) == 0 || !info.valid) {
     queue.push_back(info);
     queue_not_empty.notify_all();
     enqueued_frames++;

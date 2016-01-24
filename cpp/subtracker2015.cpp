@@ -123,8 +123,6 @@ static void feed_frames(FrameProducer &frame_producer, SubtrackerContext &ctx) {
     auto frame_info = frame_producer.get();
     if (!frame_info.valid) break;
 
-    continue;
-
     dump_time(panel, "cycle", "got a frame");
 
     // Feed the frame to the subtracker
