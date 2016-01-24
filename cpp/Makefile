@@ -42,6 +42,7 @@ blobs_tracker.o \
 tracking_types.o \
 spots_tracker.o \
 jpegreader.o \
+utility.o \
 
 OBJECTS_camera_source = \
 camera_source.o \

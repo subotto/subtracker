@@ -27,6 +27,7 @@ public:
 class FrameCycle : public FrameProducer {
 private:
   void cycle();
+  void process_stats();
 
 protected:
 	deque<FrameInfo> queue;
@@ -40,7 +41,7 @@ protected:
 
 	control_panel_t& panel;
 
-  bool can_drop_frames = false;
+  bool can_drop_frames = true;
 	bool rate_limited = false;
 
   long unsigned int enqueued_frames = 0;

@@ -7,4 +7,6 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
+bool ends_with(std::string const & value, std::string const & ending);
+
 #endif /* UTILITY_HPP_ */

@@ -43,6 +43,7 @@ void FrameCycle::cycle() {
   while (running) {
     if (!this->process_frame()) {
       this->push({ time_point< system_clock >(), time_point< system_clock >(), Mat(), false });
+      this->process_stats();
       return;
     }
   }
@@ -90,35 +91,43 @@ void FrameCycle::stats(const FrameInfo &info) {
 
   auto now = system_clock::now();
 
-  auto &pb = info.playback_time;
-  frame_times.push_back(pb);
-  while(pb - frame_times.front() > frame_count_interval) {
+  frame_times.push_back(info.playback_time);
+
+  if (now - last_stats > stats_interval) {
+    this->process_stats();
+    last_stats = now;
+  }
+
+}
+
+void FrameCycle::process_stats() {
+
+  auto now = system_clock::now();
+
+  while(frame_times.back() - frame_times.front() > frame_count_interval) {
     frame_times.pop_front();
   }
-  while(frame_dropped.size() && pb - frame_dropped.front() > frame_count_interval) {
+  while(frame_dropped.size() && frame_times.back() - frame_dropped.front() > frame_count_interval) {
     frame_dropped.pop_front();
   }
 
-  if (now - last_stats > stats_interval) {
-    logger(panel, "capture", INFO) << "queue size: " << queue.size() << endl;
-    logger(panel, "capture", INFO) <<
-      "received " << frame_times.size() << " frames " <<
-      "in " << seconds(frame_count_interval).count() << " seconds (" <<
-      frame_times.size() / seconds(frame_count_interval).count() <<
-      " frames per second)" << endl;
-    logger(panel, "capture", INFO) <<
-      "processed " << enqueued_frames - queue.size() << " frames " <<
-      "in " << duration_cast<duration<float>>(now - video_start_playback_time).count() << " seconds (" <<
-      (enqueued_frames - queue.size()) / duration_cast<duration<float>>(now - video_start_playback_time).count() <<
+  logger(panel, "capture", INFO) << "queue size: " << queue.size() << endl;
+  logger(panel, "capture", INFO) <<
+    "received " << frame_times.size() << " frames " <<
+    "in " << seconds(frame_count_interval).count() << " seconds (" <<
+    frame_times.size() / seconds(frame_count_interval).count() <<
+    " frames per second)" << endl;
+  logger(panel, "capture", INFO) <<
+    "processed " << enqueued_frames - queue.size() << " frames " <<
+    "in " << duration_cast<duration<float>>(now - video_start_playback_time).count() << " seconds (" <<
+    (enqueued_frames - queue.size()) / duration_cast<duration<float>>(now - video_start_playback_time).count() <<
+    " frames per second)." << endl;
+  if(frame_dropped.size())
+    logger(panel, "capture", WARNING) << "dropped " <<
+      frame_dropped.size() << " in " <<
+      seconds(frame_count_interval).count() << " seconds (" <<
+      frame_dropped.size() / seconds(frame_count_interval).count() <<
       " frames per second)." << endl;
-    if(frame_dropped.size())
-      logger(panel, "capture", WARNING) << "dropped " <<
-        frame_dropped.size() << " in " <<
-        seconds(frame_count_interval).count() << " seconds (" <<
-        frame_dropped.size() / seconds(frame_count_interval).count() <<
-        " frames per second)." << endl;
-    last_stats = now;
-  }
 
 }
 
@@ -135,6 +144,7 @@ void FrameCycle::push(FrameInfo info) {
   }
 
   if(rate_limited) {
+    logger(panel, "capture", DEBUG) << "rate limiting for " << duration_cast< duration< double > >(info.playback_time - system_clock::now()).count() << " seconds" << endl;
     this_thread::sleep_until(info.playback_time);
   }
 

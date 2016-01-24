@@ -2,7 +2,9 @@
 
 #include "control.hpp"
 #include "framereader.hpp"
+#include "jpegreader.hpp"
 #include "context.hpp"
+#include "utility.hpp"
 
 using namespace cv;
 using namespace std;
@@ -121,6 +123,8 @@ static void feed_frames(FrameProducer &frame_producer, SubtrackerContext &ctx) {
     auto frame_info = frame_producer.get();
     if (!frame_info.valid) break;
 
+    continue;
+
     dump_time(panel, "cycle", "got a frame");
 
     // Feed the frame to the subtracker
@@ -191,11 +195,23 @@ int main(int argc, char* argv[]) {
   set_log_level(panel, "gio", DEBUG);
 
   // Open frame reader
-  FrameProducer *f;
+  FrameCycle *f;
   if(videoName.size() == 1) {
-    FrameReader *reader = new FrameReader(videoName[0] - '0', panel);
-    reader->start();
-    f = reader;
+    f = new FrameReader(videoName[0] - '0', panel);
+    f->start();
+  } else if (videoName.back() == '~') {
+    videoName = videoName.substr(0, videoName.size()-1);
+    bool from_file = true;
+    bool simulate_live = false;
+    if (videoName.back() == '+') {
+      videoName = videoName.substr(0, videoName.size()-1);
+      simulate_live = true;
+    } else if (videoName.back() == '-') {
+      videoName = videoName.substr(0, videoName.size()-1);
+      from_file = false;
+    }
+    f = new JPEGReader(videoName, panel, from_file, simulate_live, 320, 240);
+    f->start();
   } else {
     bool simulate_live = false;
 
@@ -204,9 +220,8 @@ int main(int argc, char* argv[]) {
       simulate_live = true;
     }
 
-    FrameReader *reader = new FrameReader(videoName.c_str(), panel, simulate_live);
-    reader->start();
-    f = reader;
+    f = new FrameReader(videoName.c_str(), panel, simulate_live);
+    f->start();
   }
 
   feed_frames(*f, ctx);

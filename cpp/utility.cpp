@@ -44,3 +44,9 @@ void dumpTime(string category, string what) {
 	cerr << category << " - " << what << ": " << duration_cast<nanoseconds>(now - last).count() / 1000000.f << endl;
 	last = now;
 }
+
+// Courtesy of http://stackoverflow.com/a/2072890/807307
+bool ends_with(std::string const & value, std::string const & ending) {
+    if (ending.size() > value.size()) return false;
+    return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+}
