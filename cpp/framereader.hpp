@@ -16,7 +16,7 @@ using namespace chrono;
 using namespace cv;
 
 static const seconds frame_count_interval(5);
-static const int stats_interval = 1;
+static const seconds stats_interval(1);
 static const int buffer_size = 500;
 
 class FrameProducer {
@@ -33,10 +33,10 @@ protected:
 	mutex queue_mutex;
 	condition_variable queue_not_empty;
 	condition_variable queue_not_full;
-	deque<time_point<video_clock>> frame_times;
-	deque<time_point<video_clock>> frame_dropped;
+	deque<time_point<system_clock>> frame_times;
+	deque<time_point<system_clock>> frame_dropped;
 	time_point<system_clock> last_stats;
-	time_point<system_clock> video_start_time;
+	time_point<system_clock> video_start_playback_time;
 
 	control_panel_t& panel;
 

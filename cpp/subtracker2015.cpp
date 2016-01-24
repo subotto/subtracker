@@ -124,7 +124,7 @@ static void feed_frames(FrameProducer &frame_producer, SubtrackerContext &ctx) {
     dump_time(panel, "cycle", "got a frame");
 
     // Feed the frame to the subtracker
-    ctx.feed(frame_info.data, frame_info.playback_time);
+    ctx.feed(frame_info.data, frame_info.time);
 
     // Obtain as many processed frames as possible
     FrameAnalysis *frameAnalysis;

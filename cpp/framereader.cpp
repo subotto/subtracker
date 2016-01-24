@@ -35,14 +35,14 @@ bool FrameCycle::init_thread() {
 
 void FrameCycle::cycle() {
 
-  video_start_time = system_clock::now();
+  video_start_playback_time = system_clock::now();
   if (!this->init_thread()) {
-    this->push({ time_point< video_clock >(), time_point< system_clock >(), Mat(), false });
+    this->push({ time_point< system_clock >(), time_point< system_clock >(), Mat(), false });
     return;
   }
   while (running) {
     if (!this->process_frame()) {
-      this->push({ time_point< video_clock >(), time_point< system_clock >(), Mat(), false });
+      this->push({ time_point< system_clock >(), time_point< system_clock >(), Mat(), false });
       return;
     }
   }
@@ -68,18 +68,20 @@ bool FrameReader::process_frame() {
   }
   auto now = system_clock::now();
 
-  time_point<video_clock> timestamp;
+  time_point<system_clock> time, playback_time;
   if(fromFile) {
     double posMsec = cap.get(CV_CAP_PROP_POS_MSEC);
-    timestamp = time_point<video_clock>(duration_cast<nanoseconds>(duration<double, milli>(posMsec)));
+    playback_time = this->video_start_playback_time + duration_cast< time_point< system_clock >::duration >(duration<double, milli>(posMsec));
+    // Since we are taking the input from a file which is not
+    // timestamped, we don't know the original time of the frame; we
+    // then use playback_time
+    time = playback_time;
   } else {
-    timestamp = time_point<video_clock>(now - video_start_time);
+    time = now;
+    playback_time = now;
   }
 
-  //logger(panel, "gio", DEBUG) << "Read new frame with timestamp " << duration_cast<duration<double, milli> >(timestamp.time_since_epoch()).count() << endl;
-
-  auto playback_time = video_start_time + duration_cast< time_point< system_clock >::duration >(timestamp.time_since_epoch());
-  this->push({ timestamp, playback_time, frame, true });
+  this->push({ time, playback_time, frame, true });
   return true;
 
 }
@@ -88,16 +90,16 @@ void FrameCycle::stats(const FrameInfo &info) {
 
   auto now = system_clock::now();
 
-  auto &timestamp = info.timestamp;
-  frame_times.push_back(timestamp);
-  while(timestamp - frame_times.front() > frame_count_interval) {
+  auto &pb = info.playback_time;
+  frame_times.push_back(pb);
+  while(pb - frame_times.front() > frame_count_interval) {
     frame_times.pop_front();
   }
-  while(frame_dropped.size() && timestamp - frame_dropped.front() > frame_count_interval) {
+  while(frame_dropped.size() && pb - frame_dropped.front() > frame_count_interval) {
     frame_dropped.pop_front();
   }
 
-  if(now - last_stats > seconds(stats_interval)) {
+  if (now - last_stats > stats_interval) {
     logger(panel, "capture", INFO) << "queue size: " << queue.size() << endl;
     logger(panel, "capture", INFO) <<
       "received " << frame_times.size() << " frames " <<
@@ -106,8 +108,8 @@ void FrameCycle::stats(const FrameInfo &info) {
       " frames per second)" << endl;
     logger(panel, "capture", INFO) <<
       "processed " << enqueued_frames - queue.size() << " frames " <<
-      "in " << duration_cast<duration<float>>(now - video_start_time).count() << " seconds (" <<
-      (enqueued_frames - queue.size()) / duration_cast<duration<float>>(now - video_start_time).count() <<
+      "in " << duration_cast<duration<float>>(now - video_start_playback_time).count() << " seconds (" <<
+      (enqueued_frames - queue.size()) / duration_cast<duration<float>>(now - video_start_playback_time).count() <<
       " frames per second)." << endl;
     if(frame_dropped.size())
       logger(panel, "capture", WARNING) << "dropped " <<
@@ -145,7 +147,7 @@ void FrameCycle::push(FrameInfo info) {
     enqueued_frames++;
   } else {
     assert(can_drop_frames);
-    frame_dropped.push_back(info.timestamp);
+    frame_dropped.push_back(info.playback_time);
     logger(panel, "capture", DEBUG) << "frame dropped" << endl;
   }
   count++;
@@ -160,8 +162,6 @@ FrameInfo FrameCycle::get() {
   auto res = queue.front();
   queue.pop_front();
   queue_not_full.notify_all();
-
-  //logger(panel, "gio", DEBUG) << "Return frame with timestamp " << duration_cast<duration<double, milli> >(res.timestamp.time_since_epoch()).count() << endl;
 
   return res;
 }

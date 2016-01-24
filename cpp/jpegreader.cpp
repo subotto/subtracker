@@ -48,12 +48,12 @@ bool FrameFromFile::process_frame() {
 
   // Fill other satellite information and send frame
   info.valid = true;
-  info.playback_time = time_point< system_clock >(duration_cast< time_point< system_clock >::duration >(duration< double >(timestamp)));
+  info.time = time_point< system_clock >(duration_cast< time_point< system_clock >::duration >(duration< double >(timestamp)));
+  info.playback_time = info.time;
   if (!this->first_frame_seen) {
     this->first_frame_seen = true;
     this->first_frame_time = info.playback_time;
   }
-  info.timestamp = time_point< video_clock >(duration_cast< time_point< video_clock >::duration >(info.playback_time - this->first_frame_time));
   this->push(info);
 
 }

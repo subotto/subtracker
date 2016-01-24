@@ -66,7 +66,7 @@ int main(int argc, char **argv) {
   double prev_time = 0.0;
   for (frame_num = 0; !stop; frame_num++) {
     auto frame_info = frame_reader.get();
-    double time = duration_cast<duration<double>>(frame_info.timestamp.time_since_epoch()).count();
+    double time = duration_cast<duration<double>>(frame_info.time.time_since_epoch()).count();
     logger(panel, "frames", VERBOSE) << "Received frame number " << frame_num << " with timestamp "
                                      << time
                                      << " and playback time "
