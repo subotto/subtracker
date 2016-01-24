@@ -38,7 +38,6 @@ public:
   // Global frame data
   Mat frame;
   int frame_num;
-  time_point< video_clock > timestamp;
   time_point< system_clock > playback_time;
   FrameSettings frame_settings;
   control_panel_t &panel;
@@ -76,7 +75,7 @@ public:
   Mat ball_display;
   Mat foosmen_display;
 
-  FrameAnalysis(Mat frame, int frame_num, time_point< video_clock > timestamp, time_point< system_clock > playback_time, FrameSettings frame_settings, control_panel_t &panel);
+  FrameAnalysis(Mat frame, int frame_num, time_point< system_clock > playback_time, FrameSettings frame_settings, control_panel_t &panel);
 
   void setup_from_prev_table_tracking(const FrameAnalysis &prev_frame_analysis);
   void track_table();
@@ -107,6 +106,8 @@ public:
   control_panel_t &panel;
   FrameSettings frame_settings;
 
+  time_point< system_clock > first_frame_playback_time;
+  bool first_frame_seen = false;
   FrameAnalysis *frame_analysis;
   FrameAnalysis *prev_frame_analysis;
   deque< FrameAnalysis > past_frames;
@@ -119,7 +120,7 @@ public:
   SubtrackerContext(Mat ref_frame, Mat ref_mask, control_panel_t &panel);
   ~SubtrackerContext();
 
-  void feed(Mat frame, time_point< video_clock > timestamp, time_point< system_clock > playback_time);
+  void feed(Mat frame, time_point< system_clock > playback_time);
   FrameAnalysis *get_processed_frame();
 
   void do_table_tracking();

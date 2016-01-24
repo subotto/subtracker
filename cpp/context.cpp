@@ -15,8 +15,8 @@ FrameSettings::FrameSettings(Mat ref_frame, Mat ref_mask)
 }
 
 
-FrameAnalysis::FrameAnalysis(Mat frame, int frame_num, time_point< video_clock > timestamp, time_point< system_clock > playback_time, FrameSettings frame_settings, control_panel_t &panel)
-  : frame(frame), frame_num(frame_num), timestamp(timestamp), playback_time(playback_time), frame_settings(frame_settings), panel(panel), table_tracking_status(frame_settings.table_tracking_params, frame_settings.reference, frame_settings.table_frame_size), table_description(frame_settings.table_frame_size) {
+FrameAnalysis::FrameAnalysis(Mat frame, int frame_num, time_point< system_clock > playback_time, FrameSettings frame_settings, control_panel_t &panel)
+  : frame(frame), frame_num(frame_num), playback_time(playback_time), frame_settings(frame_settings), panel(panel), table_tracking_status(frame_settings.table_tracking_params, frame_settings.reference, frame_settings.table_frame_size), table_description(frame_settings.table_frame_size) {
 
   //logger(this->panel, "gio", DEBUG) << "table_frame_size: " << this->frame_settings.table_frame_size << endl;
 
@@ -216,10 +216,16 @@ SubtrackerContext::SubtrackerContext(Mat ref_frame, Mat ref_mask, control_panel_
 
 }
 
-void SubtrackerContext::feed(Mat frame, time_point< video_clock> timestamp, time_point< system_clock > playback_time) {
+void SubtrackerContext::feed(Mat frame, time_point< system_clock > playback_time) {
+
+  // Record playback time of first frame
+  if (!this->first_frame_seen) {
+    this->first_frame_seen = true;
+    this->first_frame_playback_time = playback_time;
+  }
 
   // Create new FrameAnalysis
-  this->frame_analysis = new FrameAnalysis(frame, last_frame_num++, timestamp, playback_time, this->frame_settings, this->panel);
+  this->frame_analysis = new FrameAnalysis(frame, last_frame_num++, playback_time, this->frame_settings, this->panel);
 
   // Do the actual analysis
   this->do_table_tracking();
@@ -290,7 +296,7 @@ void SubtrackerContext::do_spots_tracking() {
   // Store the frame in our deque and in the SpotsTracker
   int frame_num = this->frame_analysis->frame_num;
   this->past_frames.push_back(*this->frame_analysis);
-  this->spots_tracker.push_back(this->frame_analysis->spots, duration_cast< duration< double > >(this->frame_analysis->timestamp.time_since_epoch()).count());
+  this->spots_tracker.push_back(this->frame_analysis->spots, duration_cast< duration< double > >(this->frame_analysis->playback_time - this->first_frame_playback_time).count());
 
   // If we have already filled enough of the past...
   if (frame_num >= this->spots_timeline_span) {
