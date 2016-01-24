@@ -9,6 +9,8 @@ class FrameFromFile: public FrameCycle {
 private:
   istream &fin;
   tjhandle tj_dec;
+  time_point< system_clock > first_frame_time;
+  bool first_frame_seen = false;
 
 protected:
   bool process_frame();
