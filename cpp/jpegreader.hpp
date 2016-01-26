@@ -9,7 +9,7 @@
 
 class JPEGReader: public FrameCycle {
 private:
-  ifstream fin;
+  Ptr< istream > fin;
   tjhandle tj_dec;
   time_point< system_clock > first_frame_time;
   bool first_frame_seen = false;
@@ -20,10 +20,12 @@ private:
 
 protected:
   bool process_frame();
+  void open_file(string file_name);
 
 public:
   JPEGReader(string file_name, control_panel_t &panel, bool from_file, bool simulate_live, int width=-1, int height=-1);
   ~JPEGReader();
+  static void mangle_file_name(string &file_name, bool &from_file, bool &simulate_live);
 };
 
 #endif

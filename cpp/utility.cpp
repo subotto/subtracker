@@ -1,5 +1,7 @@
 #include "utility.hpp"
 
+#include "jpegreader.hpp"
+
 #include <iostream>
 #include <string>
 #include <unordered_map>
@@ -49,4 +51,27 @@ void dumpTime(string category, string what) {
 bool ends_with(std::string const & value, std::string const & ending) {
     if (ending.size() > value.size()) return false;
     return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+}
+
+FrameCycle *open_frame_cycle(string videoName, control_panel_t &panel, int width, int height) {
+
+  FrameCycle *f;
+  if(videoName.size() == 1) {
+    f = new FrameReader(videoName[0] - '0', panel);
+  } else if (videoName.back() == '~') {
+    videoName = videoName.substr(0, videoName.size()-1);
+    bool from_file;
+    bool simulate_live;
+    JPEGReader::mangle_file_name(videoName, from_file, simulate_live);
+    f = new JPEGReader(videoName, panel, from_file, simulate_live, width, height);
+  } else {
+    bool simulate_live = false;
+    if(videoName.back() == '+') {
+      videoName = videoName.substr(0, videoName.size()-1);
+      simulate_live = true;
+    }
+    f = new FrameReader(videoName.c_str(), panel, simulate_live);
+  }
+  return f;
+
 }

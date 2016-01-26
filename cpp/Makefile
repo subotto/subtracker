@@ -3,7 +3,7 @@ PKG_CONFIG_PATH = $(PWD)/opencv_install/lib/pkgconfig
 CXX = g++
 CFLAGS = $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --cflags opencv) -lturbojpeg -g -O2
 CXXFLAGS = $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --cflags opencv) -I$(PWD) -g -std=c++11 -O2
-LIBS = $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --libs opencv) -lpthread -lturbojpeg
+LIBS = $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --libs opencv) -lpthread -lturbojpeg -lboost_system
 
 HEADERS = \
 blobs_tracker.hpp \
@@ -57,6 +57,7 @@ framereader.o \
 control.o \
 v4l2cap.o \
 jpegreader.o \
+utility.o \
 
 OBJECTS_tester = \
 blobs_tracker.o \
