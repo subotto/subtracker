@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
   Mat camera_matrix, distortion_coefficients;
   fs["camera_matrix"] >> camera_matrix;
   fs["distortion_coefficients"] >> distortion_coefficients;
-  Mat new_camera_matrix = getOptimalNewCameraMatrix(camera_matrix, distortion_coefficients, image_size, 1.0, image_size, NULL, false);
+  Mat new_camera_matrix = getOptimalNewCameraMatrix(camera_matrix, distortion_coefficients, image_size, 0.0, image_size, NULL, true);
   Mat undistort_map1, undistort_map2;
   initUndistortRectifyMap(camera_matrix, distortion_coefficients, Mat(), new_camera_matrix, image_size, CV_16SC2, undistort_map1, undistort_map2);
 

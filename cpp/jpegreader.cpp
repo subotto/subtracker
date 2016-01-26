@@ -92,8 +92,8 @@ bool JPEGReader::process_frame() {
   int width, height, subsamp, res;
   res = tjDecompressHeader2(this->tj_dec, (unsigned char*) &buffer[0], length, &width, &height, &subsamp);
   if (res) {
-    logger(panel, "jpeg", ERROR) << "Cannot decompress JPEG header" << endl;
-    return false;
+    logger(panel, "jpeg", WARNING) << "Cannot decompress JPEG header, skipping frame" << endl;
+    return true;
   }
   if (this->width >= 0) {
     width = this->width;
@@ -105,8 +105,8 @@ bool JPEGReader::process_frame() {
   assert(info.data.elemSize() == 3);
   res = tjDecompress2(this->tj_dec, (unsigned char*) &buffer[0], length, info.data.data, width, info.data.step[0], height, TJPF_BGR, TJFLAG_ACCURATEDCT);
   if (res) {
-    logger(panel, "jpeg", ERROR) << "Cannot decompress JPEG image" << endl;
-    return false;
+    logger(panel, "jpeg", WARNING) << "Cannot decompress JPEG image, skipping frame" << endl;
+    return true;
   }
 
   // Fill other satellite information and send frame
