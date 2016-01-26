@@ -36,6 +36,6 @@ table_tracking_status_t::table_tracking_status_t(const table_tracking_params_t& 
   : frames_to_next_detection(0) {
 
   resize(reference.image, this->scaled_reference, table_frame_size);
-	GoodFeaturesToTrackDetector(params.following_params.optical_flow_features).detect(this->scaled_reference, this->reference_features);
+  GFTTDetector::create(params.following_params.optical_flow_features)->detect(this->scaled_reference, this->reference_features);
 
 }

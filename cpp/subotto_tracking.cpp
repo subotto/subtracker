@@ -5,6 +5,7 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/videostab/videostab.hpp>
+#include <opencv2/xfeatures2d.hpp>
 
 #include <iostream>
 #include <tuple>
@@ -34,15 +35,21 @@ static Point_<float> applyTransform(Point_<float> p, Mat m) {
 
 static tuple< vector< KeyPoint >, Mat > get_features(Mat frame, Mat mask, int features_per_level, int features_levels) {
 
-  Ptr< GoodFeaturesToTrackDetector > gftd(new GoodFeaturesToTrackDetector(features_per_level));
-  PyramidAdaptedFeatureDetector fd(gftd, features_levels);
+  auto gftd = GFTTDetector::create(features_per_level);
+  // PyramidAdaptedFeatureDetector does not exist anymore in OpenCV 3,
+  // so we have to bypass it waiting for an answer to
+  // http://stackoverflow.com/q/35003851/807307
+  //PyramidAdaptedFeatureDetector fd(gftd, features_levels);
+  auto &fd = gftd;
   vector< KeyPoint > features;
-  fd.detect(frame, features, mask);
+  fd->detect(frame, features, mask);
 
-  Ptr< BriefDescriptorExtractor > bde(new BriefDescriptorExtractor(64));
-	OpponentColorDescriptorExtractor de(bde);
+  auto bde = xfeatures2d::BriefDescriptorExtractor::create(64);
+  // As above
+	//OpponentColorDescriptorExtractor de(bde);
+  auto &de = bde;
   Mat features_descriptions;
-  de.compute(frame, features, features_descriptions);
+  de->compute(frame, features, features_descriptions);
 
   return make_tuple(features, features_descriptions);
 
@@ -95,7 +102,7 @@ static Mat detect_table(Mat frame, table_detection_params_t& params, control_pan
 		RansacParams ransac_params(6, params.coarse_ransac_threshold, params.coarse_ransac_outliers_ratio, 0.99f);
 		float rmse;
 		int ninliers;
-		coarse_transform = estimateGlobalMotionRobust(coarse_from, coarse_to, LINEAR_SIMILARITY, ransac_params, &rmse, &ninliers);
+		coarse_transform = estimateGlobalMotionRansac(coarse_from, coarse_to, MM_SIMILARITY, ransac_params, &rmse, &ninliers);
 
 		logger(panel, "table detect", INFO) <<
 				"phase 1 motion estimation - rmse: " << rmse <<
@@ -108,9 +115,11 @@ static Mat detect_table(Mat frame, table_detection_params_t& params, control_pan
 
 	vector<KeyPoint> optical_flow_features;
 
-	PyramidAdaptedFeatureDetector optical_flow_fd(new GoodFeaturesToTrackDetector(params.optical_flow_features_per_level), params.optical_flow_features_levels);
+  // As above
+	//PyramidAdaptedFeatureDetector optical_flow_fd(new GoodFeaturesToTrackDetector(params.optical_flow_features_per_level), params.optical_flow_features_levels);
+  auto optical_flow_fd = GFTTDetector::create(params.optical_flow_features_per_level);
 
-	optical_flow_fd.detect(reference_image, optical_flow_features);
+	optical_flow_fd->detect(reference_image, optical_flow_features);
 
 	SparsePyrLkOptFlowEstimator ofe;
 
@@ -216,8 +225,8 @@ static Mat follow_table(Mat frame, Mat previous_transform, table_following_param
 	} else {
 		int ninliers;
 		float rmse;
-		correction = estimateGlobalMotionRobust(optical_flow_from, optical_flow_to,
-				LINEAR_SIMILARITY,
+		correction = estimateGlobalMotionRansac(optical_flow_from, optical_flow_to,
+				MM_SIMILARITY,
 				RansacParams(6, params.optical_flow_ransac_threshold, 0.6f, 0.99f), &rmse,
 				&ninliers);
 	}
