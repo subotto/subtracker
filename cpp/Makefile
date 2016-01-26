@@ -51,6 +51,13 @@ framereader.o \
 control.o \
 v4l2cap.o \
 
+OBJECTS_viewer = \
+viewer.o \
+framereader.o \
+control.o \
+v4l2cap.o \
+jpegreader.o \
+
 OBJECTS_tester = \
 blobs_tracker.o \
 control.o \
@@ -64,7 +71,8 @@ tester.o \
 
 BINARIES = \
 subtracker2015 \
-camera_source
+camera_source \
+viewer
 #subtracker2014
 #tester
 
@@ -103,6 +111,9 @@ subtracker2015: $(OBJECTS_subtracker2015) Makefile
 
 camera_source: $(OBJECTS_camera_source) Makefile
 	$(CXX) -o $@ $(OBJECTS_camera_source) $(LIBS)
+
+viewer: $(OBJECTS_viewer) Makefile
+	$(CXX) -o $@ $(OBJECTS_viewer) $(LIBS)
 
 tester: $(OBJECTS_tester) Makefile
 	$(CXX) -o $@ $(OBJECTS_tester) $(LIBS)

@@ -50,7 +50,9 @@ protected:
 	atomic<bool> running;
 	thread t;
 
-  FrameCycle(control_panel_t &panel);
+  bool droppy;
+
+  FrameCycle(control_panel_t &panel, bool droppy=false);
   void stats(const FrameInfo &info);
   void push(FrameInfo info);
   virtual bool init_thread();
@@ -58,6 +60,7 @@ protected:
 
 public:
   void start();
+  void set_droppy(bool droppy);
   FrameInfo get();
 	~FrameCycle();
 };

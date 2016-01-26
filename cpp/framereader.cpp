@@ -2,8 +2,8 @@
 #include "framereader.hpp"
 #include "v4l2cap.hpp"
 
-FrameCycle::FrameCycle(control_panel_t &panel)
-  : panel(panel), last_stats(system_clock::now()), running(true) {
+FrameCycle::FrameCycle(control_panel_t &panel, bool droppy)
+  : panel(panel), last_stats(system_clock::now()), running(true), droppy(droppy) {
 }
 
 void FrameCycle::start() {
@@ -136,6 +136,11 @@ void FrameCycle::push(FrameInfo info) {
   this->stats(info);
 
   unique_lock<mutex> lock(queue_mutex);
+
+  if (this->droppy) {
+    queue.clear();
+  }
+
   if (!can_drop_frames) {
     while (queue.size() >= buffer_size) {
       queue_not_full.wait(lock);
@@ -173,7 +178,6 @@ FrameInfo FrameCycle::get() {
   auto res = queue.front();
   queue.pop_front();
   queue_not_full.notify_all();
-
   return res;
 }
 
@@ -182,4 +186,10 @@ FrameCycle::~FrameCycle() {
   if (t.joinable()) {
     t.join();
   }
+}
+
+void FrameCycle::set_droppy(bool droppy) {
+
+  this->droppy = droppy;
+
 }
