@@ -2,8 +2,8 @@ PWD := $(shell pwd)
 PKG_CONFIG_PATH = $(PWD)/opencv_install/lib/pkgconfig
 CXX = g++
 CFLAGS = $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --cflags opencv) -lturbojpeg -g -O2
-CXXFLAGS = $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --cflags opencv) -I$(PWD) -lturbojpeg -g -std=c++11 -O2
-LIBS = $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --libs opencv) -lpthread
+CXXFLAGS = $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --cflags opencv) -I$(PWD) -g -std=c++11 -O2
+LIBS = $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --libs opencv) -lpthread -lturbojpeg
 
 HEADERS = \
 blobs_tracker.hpp \
@@ -96,16 +96,16 @@ clean:
 -include $(OBJECTS_subtracker2015:.o=.d)
 
 subtracker2014: $(OBJECTS_subtracker2014) Makefile
-	$(CXX) $(CXXFLAGS) $(LIBS) -o $@ $(OBJECTS_subtracker2014)
+	$(CXX) -o $@ $(OBJECTS_subtracker2014) $(LIBS)
 
 subtracker2015: $(OBJECTS_subtracker2015) Makefile
-	$(CXX) $(CXXFLAGS) -o $@ $(OBJECTS_subtracker2015) $(LIBS)
+	$(CXX) -o $@ $(OBJECTS_subtracker2015) $(LIBS)
 
 camera_source: $(OBJECTS_camera_source) Makefile
-	$(CXX) $(CXXFLAGS) -o $@ $(OBJECTS_camera_source) $(LIBS)
+	$(CXX) -o $@ $(OBJECTS_camera_source) $(LIBS)
 
 tester: $(OBJECTS_tester) Makefile
-	$(CXX) $(CXXFLAGS) $(LIBS) -o $@ $(OBJECTS_tester)
+	$(CXX) -o $@ $(OBJECTS_tester) $(LIBS)
 
 Makefile:
 
