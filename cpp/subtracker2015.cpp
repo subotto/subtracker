@@ -29,6 +29,7 @@ static void key_pressed(SubtrackerContext &ctx, char c) {
 
   case 'c':
     toggle(panel, "cycle", TIME);
+    toggle(panel, "cycle frame", TIME);
     break;
 
 	case 's':
@@ -150,6 +151,7 @@ static void feed_frames(FrameProducer &frame_producer, SubtrackerContext &ctx) {
     }
 
     dump_time(panel, "cycle", "finished cycle");
+    dump_time(panel, "cycle frame", "finished frame");
 
   }
 
@@ -179,6 +181,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
+  //setNumThreads(0);
   control_panel_t panel;
 
   // Read reference image and mask

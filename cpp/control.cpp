@@ -62,19 +62,27 @@ void show(control_panel_t& panel, string category, string name, cv::Mat image, s
   }
 }
 
+static const double alpha = 0.1;
+
 void dump_time(control_panel_t& panel, string category, string name) {
 	time_point<high_resolution_clock> now = high_resolution_clock::now();
 
 	if(panel.time_status.find(category) == panel.time_status.end()) {
 		panel.time_status[category].last_dump = now;
 	}
+  auto &status = panel.time_status[category];
 
-	time_point<high_resolution_clock>& last_dump = panel.time_status[category].last_dump;
+	time_point<high_resolution_clock>& last_dump = status.last_dump;
 	double interval_milliseconds = duration_cast<duration<double, milli>>(now - last_dump).count();
+  if (status.average.find(name) == status.average.end()) {
+    status.average[name] = interval_milliseconds;
+  }
+  auto &this_average = status.average[name];
+  this_average = (1-alpha) * this_average + alpha * interval_milliseconds;
 
 	if (is_toggled(panel, category, TIME)) {
 		cerr << category << " - " << name << ": ";
-		cerr << fixed << setprecision(3) << interval_milliseconds << "ms" << endl;
+		cerr << fixed << setprecision(3) << interval_milliseconds << "ms" << " (average: " << this_average << "ms)" << endl;
 	}
 	last_dump = now;
 }

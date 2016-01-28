@@ -34,6 +34,7 @@ struct toggle_status_t {
 
 struct time_status_t {
 	std::chrono::time_point<std::chrono::high_resolution_clock> last_dump;
+  std::unordered_map< std::string, double > average;
 };
 
 enum log_level_t {
