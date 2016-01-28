@@ -88,6 +88,7 @@ int update_gui_skip = 1;
 bool step_frame = false;
 bool step_on_frame_produced = false;
 bool do_not_track_spots = false;
+int max_frames = -1;
 
 static void feed_frames(FrameProducer &frame_producer, SubtrackerContext &ctx) {
 
@@ -97,7 +98,7 @@ static void feed_frames(FrameProducer &frame_producer, SubtrackerContext &ctx) {
 
   //VideoWriter video_writer("ball_position.mpg", CV_FOURCC('P','I','M','1'), 100, ctx.frame_settings.table_frame_size, true);
 
-  for (int frame_num = 0; ; frame_num++) {
+  for (int frame_num = 0; max_frames < 0 || frame_num < max_frames; frame_num++) {
 
     dump_time(panel, "cycle", "before GUI");
 

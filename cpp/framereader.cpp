@@ -146,10 +146,16 @@ void FrameCycle::push(FrameInfo info) {
   if (this->droppy) {
     queue.clear();
   }
+  if (!this->running) {
+    return;
+  }
 
   if (!can_drop_frames) {
     while (queue.size() >= buffer_size) {
       queue_not_full.wait(lock);
+      if (!this->running) {
+        return;
+      }
       logger(panel, "capture", INFO) << "queue is full, waiting" << endl;
     }
   }
@@ -189,6 +195,7 @@ FrameInfo FrameCycle::get() {
 
 FrameCycle::~FrameCycle() {
   running = false;
+  this->queue_not_full.notify_all();
   if (t.joinable()) {
     t.join();
   }

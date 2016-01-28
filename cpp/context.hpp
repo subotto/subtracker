@@ -119,7 +119,6 @@ public:
   bool do_not_track_spots;
 
   SubtrackerContext(Mat ref_frame, Mat ref_mask, control_panel_t &panel, bool do_not_track_spots=false);
-  ~SubtrackerContext();
 
   void feed(Mat frame, time_point< system_clock > playback_time);
   FrameAnalysis *get_processed_frame();

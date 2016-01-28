@@ -240,14 +240,6 @@ void SubtrackerContext::feed(Mat frame, time_point< system_clock > playback_time
 
 }
 
-SubtrackerContext::~SubtrackerContext() {
-
-  if (this->prev_frame_analysis != NULL) {
-    delete this->prev_frame_analysis;
-  }
-
-}
-
 void SubtrackerContext::do_table_tracking() {
 
   if (this->prev_frame_analysis != NULL) {
