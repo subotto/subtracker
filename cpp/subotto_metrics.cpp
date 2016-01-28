@@ -85,10 +85,10 @@ Mat sizeToSize(Size from, Size to) {
 }
 
 SubottoReferenceMetrics::SubottoReferenceMetrics()
-  : red_defence_corner(252, 72),
-    red_attack_corner(67, 67),
-    blue_defence_corner(58, 183),
-    blue_attack_corner(253, 186) {
+  : red_defence_corner(119, 382),
+    red_attack_corner(547, 380),
+    blue_defence_corner(546, 113),
+    blue_attack_corner(116, 125) {
 
 }
 

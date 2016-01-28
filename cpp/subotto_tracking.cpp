@@ -259,7 +259,7 @@ Mat track_table(Mat frame, table_tracking_status_t& status, table_tracking_param
 
 	Mat transform;
 
-	if (status.near_transform.empty() || status.frames_to_next_detection <= 0) {
+  if (status.near_transform.empty() || status.frames_to_next_detection <= 0) {
     frame_analysis.feature_matching_used = true;
 		transform = detect_table(undistorted, params.detection, panel, reference, metrics, frame_analysis);
 		status.frames_to_next_detection = params.detect_every_frames;

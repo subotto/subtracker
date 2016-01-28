@@ -211,8 +211,8 @@ void FrameAnalysis::show_all_displays() {
 }
 
 
-SubtrackerContext::SubtrackerContext(Mat ref_frame, Mat ref_mask, control_panel_t &panel)
-  : last_frame_num(0), frame_settings(ref_frame, ref_mask), prev_frame_analysis(NULL), panel(panel), spots_tracker(panel), spots_timeline_span(60) {
+SubtrackerContext::SubtrackerContext(Mat ref_frame, Mat ref_mask, control_panel_t &panel, bool do_not_track_spots)
+  : last_frame_num(0), frame_settings(ref_frame, ref_mask), panel(panel), spots_tracker(panel), spots_timeline_span(60), do_not_track_spots(do_not_track_spots) {
 
 }
 
@@ -236,9 +236,6 @@ void SubtrackerContext::feed(Mat frame, time_point< system_clock > playback_time
   this->do_spots_tracking();
 
   // Store FrameAnalysis for next round
-  if (this->prev_frame_analysis != NULL) {
-    delete this->prev_frame_analysis;
-  }
   this->prev_frame_analysis = this->frame_analysis;
 
 }
@@ -292,6 +289,11 @@ void SubtrackerContext::do_spot_search() {
 }
 
 void SubtrackerContext::do_spots_tracking() {
+
+  if (this->do_not_track_spots) {
+    this->ready_frames.push_back(*this->frame_analysis);
+    return;
+  }
 
   // Store the frame in our deque and in the SpotsTracker
   int frame_num = this->frame_analysis->frame_num;

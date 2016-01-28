@@ -82,9 +82,11 @@ static void key_pressed(SubtrackerContext &ctx, char c) {
 
 }
 
+// Debug options
 int update_gui_skip = 1;
 bool step_frame = false;
-bool step_on_frame_produced = false;
+bool step_on_frame_produced = true;
+bool do_not_track_spots = true;
 
 static void feed_frames(FrameProducer &frame_producer, SubtrackerContext &ctx) {
 
@@ -186,7 +188,7 @@ int main(int argc, char* argv[]) {
     ref_mask = imread(referenceImageMaskName, CV_LOAD_IMAGE_GRAYSCALE);
   }
 
-  SubtrackerContext ctx(ref_frame, ref_mask, panel);
+  SubtrackerContext ctx(ref_frame, ref_mask, panel, do_not_track_spots);
 
   // Initialize panel (GUI)
   init_control_panel(panel);

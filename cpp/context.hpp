@@ -109,15 +109,16 @@ public:
   time_point< system_clock > first_frame_playback_time;
   bool first_frame_seen = false;
   FrameAnalysis *frame_analysis;
-  FrameAnalysis *prev_frame_analysis;
+  Ptr< FrameAnalysis > prev_frame_analysis;
   deque< FrameAnalysis > past_frames;
   deque< FrameAnalysis > ready_frames;
 
   // Spots tracking
   SpotsTracker spots_tracker;
   int spots_timeline_span;
+  bool do_not_track_spots;
 
-  SubtrackerContext(Mat ref_frame, Mat ref_mask, control_panel_t &panel);
+  SubtrackerContext(Mat ref_frame, Mat ref_mask, control_panel_t &panel, bool do_not_track_spots=false);
   ~SubtrackerContext();
 
   void feed(Mat frame, time_point< system_clock > playback_time);
