@@ -7,6 +7,8 @@
 
 #include <opencv2/imgproc.hpp>
 #include <opencv2/calib3d.hpp>
+#include <opencv2/features2d.hpp>
+#include <opencv2/xfeatures2d.hpp>
 
 using namespace std;
 
@@ -31,6 +33,8 @@ int main(int argc, char **argv) {
 
   control_panel_t panel;
   init_control_panel(panel);
+  toggle(panel, "timing", TIME);
+  set_log_level(panel, "capture", INFO);
   signal(SIGINT, interrupt_handler);
 
   Size image_size(640, 480);
@@ -48,19 +52,47 @@ int main(int argc, char **argv) {
   Mat undistort_map1, undistort_map2;
   initUndistortRectifyMap(camera_matrix, distortion_coefficients, Mat(), new_camera_matrix, image_size, CV_16SC2, undistort_map1, undistort_map2);
 
+  // Create SIFT detector
+  auto detector = BRISK::create();
+
   int frame_num;
   for (frame_num = 0; !stop; frame_num++) {
     auto frame_info = f->get();
+    dump_time(panel, "timing", "get frame");
+    if (!frame_info.valid) {
+      break;
+    }
     assert(frame_info.data.isContinuous());
     assert(frame_info.data.channels() == 3);
-    Mat undistorted_frame;
-    remap(frame_info.data, undistorted_frame, undistort_map1, undistort_map2, INTER_LINEAR);
     namedWindow("frame");
-    namedWindow("undistorted frame");
     imshow("frame", frame_info.data);
+    dump_time(panel, "timing", "show frame");
+
+    /*Mat undistorted_frame;
+    remap(frame_info.data, undistorted_frame, undistort_map1, undistort_map2, INTER_LINEAR);
+    namedWindow("undistorted frame");
     imshow("undistorted frame", undistorted_frame);
-    int c = waitKey(100);
+    dump_time(panel, "timing", "undistort frame");*/
+
+    Mat gray_frame;
+    cvtColor(frame_info.data, gray_frame, COLOR_BGR2GRAY);
+    dump_time(panel, "timing", "gray conversion");
+
+    vector< KeyPoint > keypoints;
+    detector->detect(gray_frame, keypoints);
+    dump_time(panel, "timing", "detect keypoints");
+
+    Mat keypoints_frame;
+    drawKeypoints(gray_frame, keypoints, keypoints_frame, Scalar::all(-1), DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+    dump_time(panel, "timing", "draw keypoints");
+
+    namedWindow("keypoints frame");
+    imshow("keypoints frame", keypoints_frame);
+    dump_time(panel, "timing", "show keypoints frame");
+
+    int c = waitKey(1);
     if (c > 0) c &= 0xff;
+    dump_time(panel, "timing", "gui");
     if (c == 'q') break;
   }
 

@@ -57,6 +57,7 @@ protected:
   void push(FrameInfo info);
   virtual bool init_thread();
   virtual bool process_frame() = 0;
+  void terminate();
 
 public:
   void start();

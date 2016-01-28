@@ -33,16 +33,22 @@ bool FrameCycle::init_thread() {
 
 }
 
+void FrameCycle::terminate() {
+
+  this->push({ time_point< system_clock >(), time_point< system_clock >(), Mat(), false });
+
+}
+
 void FrameCycle::cycle() {
 
   video_start_playback_time = system_clock::now();
   if (!this->init_thread()) {
-    this->push({ time_point< system_clock >(), time_point< system_clock >(), Mat(), false });
+    this->terminate();
     return;
   }
   while (running) {
     if (!this->process_frame()) {
-      this->push({ time_point< system_clock >(), time_point< system_clock >(), Mat(), false });
+      this->terminate();
       this->process_stats();
       return;
     }

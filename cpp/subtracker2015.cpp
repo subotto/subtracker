@@ -192,7 +192,7 @@ int main(int argc, char* argv[]) {
   init_control_panel(panel);
   set_log_level(panel, "gio", DEBUG);
 
-  auto f = open_frame_cycle(videoName, panel, 320, 240);
+  auto f = open_frame_cycle(videoName, panel);
   f->start();
   feed_frames(*f, ctx);
 

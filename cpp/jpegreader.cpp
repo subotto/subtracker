@@ -59,7 +59,6 @@ void JPEGReader::mangle_file_name(string &file_name, bool &from_file, bool &simu
 JPEGReader::~JPEGReader() {
 
   tjDestroy(this->tj_dec);
-  delete(this->fin);
 
 }
 
@@ -122,5 +121,6 @@ bool JPEGReader::process_frame() {
     info.playback_time = info.time;
   }
   this->push(info);
+  return true;
 
 }
