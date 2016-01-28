@@ -32,8 +32,8 @@ void do_table_analysis(control_panel_t &panel,
 
 
 struct BallDescription {
-	Scalar meanColor = Scalar(0.85f, 0.85f, 0.85f);
-	float valueVariance = 0.019f;
+	Scalar meanColor = Scalar(255.0f/255.0f, 240.0f/255.0f, 200.0f/255.0f);
+	float valueVariance = 0.002f;
 };
 
 struct BallAnalysis {

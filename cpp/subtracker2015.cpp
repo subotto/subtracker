@@ -85,8 +85,8 @@ static void key_pressed(SubtrackerContext &ctx, char c) {
 // Debug options
 int update_gui_skip = 1;
 bool step_frame = false;
-bool step_on_frame_produced = true;
-bool do_not_track_spots = true;
+bool step_on_frame_produced = false;
+bool do_not_track_spots = false;
 
 static void feed_frames(FrameProducer &frame_producer, SubtrackerContext &ctx) {
 

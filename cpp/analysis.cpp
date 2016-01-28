@@ -17,8 +17,7 @@ TableDescription::TableDescription(Size tableFrameSize) {
 void TableDescription::set_first_frame(Mat firstFrame) {
 
      firstFrame.copyTo(this->mean);
-     // At the beginning we know nearly nothing about the actualy
-     // table
+     // At the beginning we know nearly nothing about the actual table
      this->variance = Mat(this->mean.size(), CV_32FC3, 1000.f);
 
 }
