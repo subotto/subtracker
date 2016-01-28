@@ -32,10 +32,13 @@ table_tracking_params_t::table_tracking_params_t()
 
 {}
 
-table_tracking_status_t::table_tracking_status_t(const table_tracking_params_t& params, const SubottoReference& reference, Size table_frame_size)
-  : frames_to_next_detection(0) {
+table_tracking_status_t::table_tracking_status_t(const table_tracking_params_t& params, const SubottoReference& reference, const Size &table_frame_size)
+  : frames_to_next_detection(0), params(params), reference(reference), table_frame_size(table_frame_size) {
+}
 
-  resize(reference.image, this->scaled_reference, table_frame_size);
-  GFTTDetector::create(params.following_params.optical_flow_features)->detect(this->scaled_reference, this->reference_features);
+void table_tracking_status_t::detect_features() {
+
+  resize(this->reference.image, this->scaled_reference, this->table_frame_size);
+  GFTTDetector::create(this->params.following_params.optical_flow_features)->detect(this->scaled_reference, this->reference_features);
 
 }

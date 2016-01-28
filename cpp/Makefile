@@ -1,8 +1,7 @@
 PWD := $(shell pwd)
 PKG_CONFIG_PATH = $(PWD)/opencv_install/lib/pkgconfig
 CXX = g++
-CFLAGS = $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --cflags opencv) -I$(PWD) -g -O3 -march=native
-CXXFLAGS = $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --cflags opencv) -I$(PWD) -g -std=c++11 -O3 -march=native
+CXXFLAGS = $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --cflags opencv) -I$(PWD) -g -std=c++11 -march=native -O3
 LIBS = $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --libs opencv) -lpthread -lturbojpeg -lboost_system
 
 HEADERS = \
@@ -60,26 +59,31 @@ jpegreader.o \
 utility.o \
 
 OBJECTS_tester = \
-blobs_tracker.o \
-control.o \
-framereader.o \
-jobrunner.o \
-subotto_metrics.o \
-subotto_tracking.o \
-utility.o \
-v4l2cap.o \
 tester.o \
+framereader.o \
+control.o \
+v4l2cap.o \
+context.o \
+subotto_tracking.o \
+subotto_metrics.o \
+analysis.o \
+staging.o \
+blobs_tracker.o \
+tracking_types.o \
+spots_tracker.o \
+jpegreader.o \
+utility.o \
 
 BINARIES = \
 subtracker2015 \
 camera_source \
-viewer
-#subtracker2014
-#tester
+viewer \
+tester \
+#subtracker2014 \
 
 TEST_BINARIES = \
 tests/framereader_test \
-tests/jobrunner_test
+tests/jobrunner_test \
 
 all: $(BINARIES)
 

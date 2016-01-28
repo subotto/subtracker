@@ -9,16 +9,16 @@ int tableDiffLowFilterStdDev = 40;
 
 TableDescription::TableDescription(Size tableFrameSize) {
 
-  this->mean = Mat(tableFrameSize, CV_32FC3, 0.f);
-  this->variance = Mat(tableFrameSize, CV_32FC3, 0.f);
+  this->mean = Mat(tableFrameSize, CV_32FC3, Scalar(135.0/255.0, 150.0/255.0, 120.0/255.0));
+  this->variance = Mat(tableFrameSize, CV_32FC3, Scalar((20.0/255.0)*(20.0/255.0), (20.0/255.0)*(20.0/255.0), (20.0/255.0)*(20.0/255.0)));
 
 }
 
 void TableDescription::set_first_frame(Mat firstFrame) {
 
-     firstFrame.copyTo(this->mean);
-     // At the beginning we know nearly nothing about the actual table
-     this->variance = Mat(this->mean.size(), CV_32FC3, 1000.f);
+  //firstFrame.copyTo(this->mean);
+  // At the beginning we know nearly nothing about the actual table
+  //this->variance = Mat(this->mean.size(), CV_32FC3, 1000.f);
 
 }
 

@@ -6,7 +6,7 @@
 #include "staging.hpp"
 #include "subotto_tracking.hpp"
 
-FrameSettings::FrameSettings(Mat ref_frame, Mat ref_mask)
+FrameSettings::FrameSettings(const Mat &ref_frame, const Mat &ref_mask)
   : table_frame_size(reference.metrics.get_ideal_rectangle_size()), local_maxima_limit(5), local_maxima_min_distance(0.10f) {
 
   this->reference.image = ref_frame;
@@ -15,7 +15,7 @@ FrameSettings::FrameSettings(Mat ref_frame, Mat ref_mask)
 }
 
 
-FrameAnalysis::FrameAnalysis(Mat frame, int frame_num, time_point< system_clock > playback_time, FrameSettings frame_settings, control_panel_t &panel)
+FrameAnalysis::FrameAnalysis(const Mat &frame, int frame_num, const time_point< system_clock > &playback_time, const FrameSettings &frame_settings, control_panel_t &panel)
   : frame(frame), frame_num(frame_num), playback_time(playback_time), frame_settings(frame_settings), panel(panel), table_tracking_status(frame_settings.table_tracking_params, frame_settings.reference, frame_settings.table_frame_size), table_description(frame_settings.table_frame_size) {
 
   //logger(this->panel, "gio", DEBUG) << "table_frame_size: " << this->frame_settings.table_frame_size << endl;
@@ -24,7 +24,13 @@ FrameAnalysis::FrameAnalysis(Mat frame, int frame_num, time_point< system_clock 
 
 void FrameAnalysis::setup_from_prev_table_tracking(const FrameAnalysis &prev_frame_analysis) {
 
-  this->table_tracking_status = prev_frame_analysis.table_tracking_status;
+  this->table_tracking_status = table_tracking_status_t(prev_frame_analysis.table_tracking_status);
+
+}
+
+void FrameAnalysis::setup_first_table_tracking() {
+
+  this->table_tracking_status.detect_features();
 
 }
 
@@ -216,7 +222,7 @@ SubtrackerContext::SubtrackerContext(Mat ref_frame, Mat ref_mask, control_panel_
 
 }
 
-void SubtrackerContext::feed(Mat frame, time_point< system_clock > playback_time) {
+void SubtrackerContext::feed(const Mat &frame, time_point< system_clock > playback_time) {
 
   // Record playback time of first frame
   if (!this->first_frame_seen) {
@@ -244,6 +250,8 @@ void SubtrackerContext::do_table_tracking() {
 
   if (this->prev_frame_analysis != NULL) {
     this->frame_analysis->setup_from_prev_table_tracking(*this->prev_frame_analysis);
+  } else {
+    this->frame_analysis->setup_first_table_tracking();
   }
   this->frame_analysis->track_table();
   dump_time(this->panel, "cycle", "track table");

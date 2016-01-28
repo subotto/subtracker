@@ -58,7 +58,12 @@ struct table_tracking_status_t {
 	cv::Mat scaled_reference;
 	std::vector<cv::KeyPoint> reference_features;
 
-  table_tracking_status_t(const table_tracking_params_t& params, const SubottoReference& reference, Size table_frame_size);
+  table_tracking_params_t params;
+  SubottoReference reference;
+  Size table_frame_size;
+
+  table_tracking_status_t(const table_tracking_params_t& params, const SubottoReference& reference, const Size &table_frame_size);
+  void detect_features();
 };
 
 struct table_tracking_t {

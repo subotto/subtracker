@@ -27,7 +27,7 @@ public:
   int local_maxima_limit;
   float local_maxima_min_distance;
 
-  FrameSettings(Mat ref_frame, Mat ref_mask);
+  FrameSettings(const Mat &ref_frame, const Mat &ref_mask);
 
 };
 
@@ -75,9 +75,10 @@ public:
   Mat ball_display;
   Mat foosmen_display;
 
-  FrameAnalysis(Mat frame, int frame_num, time_point< system_clock > playback_time, FrameSettings frame_settings, control_panel_t &panel);
+  FrameAnalysis(const Mat &frame, int frame_num, const time_point< system_clock > &playback_time, const FrameSettings &frame_settings, control_panel_t &panel);
 
   void setup_from_prev_table_tracking(const FrameAnalysis &prev_frame_analysis);
+  void setup_first_table_tracking();
   void track_table();
   void warp_table_frame();
 
@@ -120,7 +121,7 @@ public:
 
   SubtrackerContext(Mat ref_frame, Mat ref_mask, control_panel_t &panel, bool do_not_track_spots=false);
 
-  void feed(Mat frame, time_point< system_clock > playback_time);
+  void feed(const Mat &frame, time_point< system_clock > playback_time);
   FrameAnalysis *get_processed_frame();
 
   void do_table_tracking();
