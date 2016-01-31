@@ -109,19 +109,19 @@ clean:
 -include $(OBJECTS_subtracker2015:.o=.d)
 
 subtracker2014: $(OBJECTS_subtracker2014) Makefile
-	$(CXX) $(CXXFLAGS) -o $@ $(OBJECTS_subtracker2014) $(LIBS)
+	$(CXX) $(CXXFLAGS) $(LIBS) -o $@ $(OBJECTS_subtracker2014)
 
 subtracker2015: $(OBJECTS_subtracker2015) Makefile
-	$(CXX) $(CXXFLAGS) -o $@ $(OBJECTS_subtracker2015) $(LIBS)
+	$(CXX) $(CXXFLAGS)  $(LIBS) -o $@ $(OBJECTS_subtracker2015)
 
 camera_source: $(OBJECTS_camera_source) Makefile
-	$(CXX) $(CXXFLAGS) -o $@ $(OBJECTS_camera_source) $(LIBS)
+	$(CXX) $(CXXFLAGS) $(LIBS) -o $@ $(OBJECTS_camera_source)
 
 viewer: $(OBJECTS_viewer) Makefile
-	$(CXX) $(CXXFLAGS) -o $@ $(OBJECTS_viewer) $(LIBS)
+	$(CXX) $(CXXFLAGS) $(LIBS) -o $@ $(OBJECTS_viewer)
 
 tester: $(OBJECTS_tester) Makefile
-	$(CXX) $(CXXFLAGS) -o $@ $(OBJECTS_tester) $(LIBS)
+	$(CXX) $(CXXFLAGS) $(LIBS) -o $@ $(OBJECTS_tester)
 
 Makefile:
 
