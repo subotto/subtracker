@@ -56,7 +56,7 @@ static tuple< vector< KeyPoint >, Mat > get_features(Mat frame, Mat mask, int fe
 
 }
 
-static Mat detect_table(Mat frame, table_detection_params_t& params, control_panel_t& panel, const SubottoReference& reference, const SubottoMetrics &metrics, FrameAnalysis &frame_analysis) {
+static Mat detect_table(Mat &frame, table_detection_params_t& params, control_panel_t& panel, const SubottoReference& reference, const SubottoMetrics &metrics, FrameAnalysis &frame_analysis) {
 
 	const Mat& reference_image = reference.image;
 	const Mat& reference_mask = reference.mask;
@@ -169,8 +169,8 @@ static Mat detect_table(Mat frame, table_detection_params_t& params, control_pan
 	return transform;
 }
 
-static Mat follow_table(Mat frame, Mat previous_transform, table_following_params_t& params, table_tracking_status_t& status, control_panel_t& panel, const SubottoReference& reference, const SubottoMetrics &metrics, FrameAnalysis &frame_analysis) {
-	Mat scaled_reference_image = status.scaled_reference;
+static Mat follow_table(Mat &frame, Mat &previous_transform, table_following_params_t& params, table_tracking_status_t& status, control_panel_t& panel, const SubottoReference& reference, const SubottoMetrics &metrics, FrameAnalysis &frame_analysis) {
+	Mat &scaled_reference_image = status.scaled_reference;
 
 	Size size = scaled_reference_image.size();
 
@@ -216,7 +216,7 @@ static Mat follow_table(Mat frame, Mat previous_transform, table_following_param
   }
   sort(sort_array.begin(), sort_array.end(), [](const auto &a, const auto &b) { return a.first < b.first; });
 
-  int take_num = 20;
+  int take_num = 100;
   for (auto &tmp : sort_array) {
     if (take_num-- == 0) {
       break;
@@ -261,7 +261,7 @@ void init_table_tracking_panel(table_tracking_params_t& params, control_panel_t&
 	trackbar(panel, "table detect", "follow optical flow ransac threshold", params.following_params.optical_flow_ransac_threshold, {0.0f, 100.f, 0.1f});
 }
 
-Mat track_table(Mat frame, table_tracking_status_t& status, table_tracking_params_t& params, control_panel_t& panel, const SubottoReference& reference, const SubottoMetrics &metrics, FrameAnalysis &frame_analysis) {
+Mat track_table(Mat &frame, table_tracking_status_t& status, table_tracking_params_t& params, control_panel_t& panel, const SubottoReference& reference, const SubottoMetrics &metrics, FrameAnalysis &frame_analysis) {
 
   dump_time(panel, "cycle", "beginning table tracking");
 

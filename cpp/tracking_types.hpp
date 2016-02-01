@@ -37,6 +37,7 @@ struct table_detection_params_t {
 struct table_following_params_t {
 	int optical_flow_features;
 	float optical_flow_ransac_threshold;
+  Size optical_flow_size;
 
   table_following_params_t();
 };
@@ -56,6 +57,8 @@ struct table_tracking_status_t {
 	int frames_to_next_detection;
 
 	cv::Mat scaled_reference;
+  cv::Mat scaled_reference_with_keypoints;
+  cv::Mat scaled_mask;
 	std::vector<cv::KeyPoint> reference_features;
 
   table_tracking_params_t params;

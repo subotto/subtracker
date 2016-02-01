@@ -12,6 +12,6 @@
 #include <memory>
 
 void init_table_tracking_panel(table_tracking_params_t& params, control_panel_t& panel);
-Mat track_table(Mat frame, table_tracking_status_t& status, table_tracking_params_t& params, control_panel_t& panel, const SubottoReference& reference, const SubottoMetrics &metrics, FrameAnalysis &frame_analysis);
+Mat track_table(Mat &frame, table_tracking_status_t& status, table_tracking_params_t& params, control_panel_t& panel, const SubottoReference& reference, const SubottoMetrics &metrics, FrameAnalysis &frame_analysis);
 
 #endif /* SUBOTTOTRACKING_H_ */

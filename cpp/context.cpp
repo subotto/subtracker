@@ -7,7 +7,7 @@
 #include "subotto_tracking.hpp"
 
 FrameSettings::FrameSettings(const Mat &ref_frame, const Mat &ref_mask)
-  : table_frame_size_alpha(0.5), table_frame_size(reference.metrics.get_ideal_rectangle_size(table_frame_size_alpha)), local_maxima_limit(5), local_maxima_min_distance(0.10f) {
+  : table_frame_size_alpha(1.0), table_frame_size(reference.metrics.get_ideal_rectangle_size(table_frame_size_alpha)), local_maxima_limit(5), local_maxima_min_distance(0.10f) {
 
   this->reference.image = ref_frame;
   this->reference.mask = ref_mask;
@@ -186,7 +186,8 @@ void FrameAnalysis::show_all_displays() {
   show(this->panel, "frame", "table_frame", this->table_frame);
   show(this->panel, "frame", "mean", this->table_description.mean);
 
-  show(this->panel, "table detect", "reference image", this->frame_settings.reference.image);
+  //show(this->panel, "table detect", "reference image", this->frame_settings.reference.image);
+  show(this->panel, "table detect", "reference image with keypoints", this->table_tracking_status.scaled_reference_with_keypoints);
   if (this->feature_matching_used) {
     show(this->panel, "table detect", "matches", this->detect_table_matches);
     show(this->panel, "table detect", "after feature matching", this->detect_table_after_matching);
