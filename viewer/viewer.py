@@ -120,7 +120,7 @@ class RequestThread(threading.Thread):
                 raise
                 continue
 
-            print "Last timestamp: %f" % (self.last_timestamp)
+            print "Last timestamp: %r" % (self.last_timestamp)
 
 def resize(width, height, fs_width, fs_height, fullscreen):
 
