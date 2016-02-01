@@ -77,6 +77,8 @@ class Application:
 
     def select_records(self, last_timestamp, convert_units):
         res = [x.clone() for x in self.worker.buffer if x.timestamp > last_timestamp]
+        for x in res:
+            x.fix_NaN()
         if convert_units == 1:
             for x in res:
                 x.convert_units()

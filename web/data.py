@@ -91,6 +91,13 @@ class Log(Base):
     def clone(self):
         return Log.from_tuple(self.to_tuple())
 
+    # For some strange reasons sometimes NaN appear in the data and JS
+    # is not happy about them
+    def fix_NaN(self):
+        for f in Log.INTERESTING_FIELDS:
+            if (self.__dict__[f] is not None ) and math.isnan(self.__dict__[f]):
+                self.__dict__[f] = 0.0
+
     @staticmethod
     def from_tuple(data):
         log = Log()
