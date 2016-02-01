@@ -34,6 +34,7 @@ static void key_pressed(SubtrackerContext &ctx, char c) {
 
 	case 's':
     set_log_level(panel, "table detect", VERBOSE);
+    set_log_level(panel, "table follow", VERBOSE);
     toggle(panel, "table detect", TRACKBAR, true);
     toggle(panel, "table detect", SHOW, true);
     break;
@@ -198,7 +199,7 @@ int main(int argc, char* argv[]) {
   init_control_panel(panel);
   set_log_level(panel, "gio", DEBUG);
 
-  auto f = open_frame_cycle(videoName, panel, 320, 240);
+  auto f = open_frame_cycle(videoName, panel);
   f->start();
   feed_frames(*f, ctx);
 

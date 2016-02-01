@@ -1,7 +1,7 @@
 PWD := $(shell pwd)
 PKG_CONFIG_PATH = $(PWD)/opencv_install/lib/pkgconfig
 CXX = g++
-CXXFLAGS = $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --cflags opencv) -I$(PWD) -g -std=c++11 -march=native -O3
+CXXFLAGS = $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --cflags opencv) -I$(PWD) -g -std=c++14 -march=native -O3
 LIBS = $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --libs opencv) -lpthread -lturbojpeg -lboost_system
 
 HEADERS = \

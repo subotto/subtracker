@@ -2,10 +2,10 @@
 #include "tracking_types.hpp"
 
 table_detection_params_t::table_detection_params_t()
-  : reference_features_per_level(300),
+  : reference_features_per_level(100),
     reference_features_levels(3),
 
-    frame_features_per_level(500),
+    frame_features_per_level(100),
     frame_features_levels(3),
 
     features_knn(2),
@@ -13,7 +13,7 @@ table_detection_params_t::table_detection_params_t()
     coarse_ransac_threshold(20.f),
     coarse_ransac_outliers_ratio(0.75f),
 
-    optical_flow_features_per_level(200),
+    optical_flow_features_per_level(50),
     optical_flow_features_levels(3),
 
     optical_flow_ransac_threshold(1.0f)
@@ -21,7 +21,7 @@ table_detection_params_t::table_detection_params_t()
 {}
 
 table_following_params_t::table_following_params_t()
-  : optical_flow_features(100),
+  : optical_flow_features(50),
     optical_flow_ransac_threshold(1.0f)
 
 {}

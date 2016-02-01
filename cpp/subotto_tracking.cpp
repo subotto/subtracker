@@ -6,6 +6,7 @@
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/videostab/videostab.hpp>
 #include <opencv2/xfeatures2d.hpp>
+#include <opencv2/video.hpp>
 
 #include <iostream>
 #include <tuple>
@@ -37,8 +38,8 @@ static tuple< vector< KeyPoint >, Mat > get_features(Mat frame, Mat mask, int fe
 
   auto gftd = GFTTDetector::create(features_per_level);
   // PyramidAdaptedFeatureDetector does not exist anymore in OpenCV 3,
-  // so we have to bypass it waiting for an answer to
-  // http://stackoverflow.com/q/35003851/807307
+  // so for workarounds:
+  // http://answers.opencv.org/question/85741/is-pyramidadaptedfeaturedetector-gone-in-opencv-3/
   //PyramidAdaptedFeatureDetector fd(gftd, features_levels);
   auto &fd = gftd;
   vector< KeyPoint > features;
@@ -121,8 +122,6 @@ static Mat detect_table(Mat frame, table_detection_params_t& params, control_pan
 
 	optical_flow_fd->detect(reference_image, optical_flow_features);
 
-	SparsePyrLkOptFlowEstimator ofe;
-
 	vector<Point2f> optical_flow_from, optical_flow_to;
 	vector<uchar> status;
 
@@ -133,7 +132,7 @@ static Mat detect_table(Mat frame, table_detection_params_t& params, control_pan
 	vector<Point2f> good_optical_flow_from, good_optical_flow_to;
 
 	if (!optical_flow_features.empty()) {
-		ofe.run(reference_image, warped, optical_flow_from, optical_flow_to, status, noArray());
+    calcOpticalFlowPyrLK(reference_image, warped, optical_flow_from, optical_flow_to, status, noArray());
 
 		for (int i = 0; i < optical_flow_from.size(); i++) {
 			if (!status[i]) {
@@ -193,31 +192,40 @@ static Mat follow_table(Mat frame, Mat previous_transform, table_following_param
 
 	vector<KeyPoint> optical_flow_features = status.reference_features;
 
-	SparsePyrLkOptFlowEstimator ofe;
-
 	vector<Point2f> optical_flow_from, optical_flow_to;
 	vector<uchar> optical_flow_status;
+  vector< float > err;
 
 	for(KeyPoint kp : optical_flow_features) {
 		optical_flow_from.push_back(kp.pt);
 	}
 
 	if(!optical_flow_from.empty()) {
-		ofe.run(scaled_reference_image, warped, optical_flow_from, optical_flow_to, optical_flow_status, noArray());
+    calcOpticalFlowPyrLK(scaled_reference_image, warped, optical_flow_from, optical_flow_to, optical_flow_status, err);
 	}
 
 	dump_time(panel, "cycle", "follow optical flow");
 
 	vector<Point2f> good_optical_flow_from, good_optical_flow_to;
+  vector< pair< float, pair< Point2f, Point2f > > > sort_array;
 
 	for (int i = 0; i < optical_flow_from.size(); i++) {
-		if (!optical_flow_status[i]) {
-			continue;
-		}
+    if (optical_flow_status[i]) {
+      sort_array.push_back(make_pair(err[i], make_pair(optical_flow_from[i], optical_flow_to[i])));
+    }
+  }
+  sort(sort_array.begin(), sort_array.end(), [](const auto &a, const auto &b) { return a.first < b.first; });
 
-		good_optical_flow_from.push_back(optical_flow_from[i]);
-		good_optical_flow_to.push_back(optical_flow_to[i]);
+  int take_num = 20;
+  for (auto &tmp : sort_array) {
+    if (take_num-- == 0) {
+      break;
+    }
+		good_optical_flow_from.push_back(tmp.second.first);
+		good_optical_flow_to.push_back(tmp.second.second);
 	}
+
+  dump_time(panel, "cycle", "select features");
 
 	Mat correction;
 	if (good_optical_flow_from.size() < 6) {
@@ -225,10 +233,9 @@ static Mat follow_table(Mat frame, Mat previous_transform, table_following_param
 	} else {
 		int ninliers;
 		float rmse;
-		correction = estimateGlobalMotionRansac(optical_flow_from, optical_flow_to,
-				MM_SIMILARITY,
-				RansacParams(6, params.optical_flow_ransac_threshold, 0.6f, 0.99f), &rmse,
-				&ninliers);
+    RansacParams ransac_params(6, params.optical_flow_ransac_threshold, 0.3f, 0.99f);
+		correction = estimateGlobalMotionRansac(good_optical_flow_from, good_optical_flow_to, MM_SIMILARITY, ransac_params, &rmse, &ninliers);
+    logger(panel, "table follow", VERBOSE) << "RANSAC (" << ransac_params.niters() << " iters) with " << good_optical_flow_from.size() << " point; found " << ninliers << " inliers with final RMSE " << rmse << endl;
 	}
 
 	dump_time(panel, "cycle", "follow motion estimation");
