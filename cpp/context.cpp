@@ -7,7 +7,7 @@
 #include "subotto_tracking.hpp"
 
 FrameSettings::FrameSettings(const Mat &ref_frame, const Mat &ref_mask)
-  : table_frame_size(reference.metrics.get_ideal_rectangle_size()), local_maxima_limit(5), local_maxima_min_distance(0.10f) {
+  : table_frame_size_alpha(0.5), table_frame_size(reference.metrics.get_ideal_rectangle_size(table_frame_size_alpha)), local_maxima_limit(5), local_maxima_min_distance(0.10f) {
 
   this->reference.image = ref_frame;
   this->reference.mask = ref_mask;
@@ -18,7 +18,7 @@ FrameSettings::FrameSettings(const Mat &ref_frame, const Mat &ref_mask)
 FrameAnalysis::FrameAnalysis(const Mat &frame, int frame_num, const time_point< system_clock > &playback_time, const FrameSettings &frame_settings, control_panel_t &panel)
   : frame(frame), frame_num(frame_num), playback_time(playback_time), frame_settings(frame_settings), panel(panel), table_tracking_status(frame_settings.table_tracking_params, frame_settings.reference, frame_settings.table_frame_size), table_description(frame_settings.table_frame_size) {
 
-  //logger(this->panel, "gio", DEBUG) << "table_frame_size: " << this->frame_settings.table_frame_size << endl;
+  logger(this->panel, "gio", DEBUG) << "table_frame_size: " << this->frame_settings.table_frame_size << endl;
 
 }
 

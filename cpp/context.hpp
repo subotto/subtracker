@@ -20,6 +20,7 @@ public:
 
   table_tracking_params_t table_tracking_params;
   SubottoReference reference;
+  float table_frame_size_alpha;
   Size table_frame_size;
   SubottoMetrics table_metrics;
   foosmen_params_t foosmen_params;

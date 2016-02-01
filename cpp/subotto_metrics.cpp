@@ -98,9 +98,10 @@ inline static double avg(double a, double b) {
 
 }
 
-Size SubottoReferenceMetrics::get_ideal_rectangle_size() {
+Size SubottoReferenceMetrics::get_ideal_rectangle_size(float alpha) {
 
-  return Size(avg(norm(red_defence_corner - red_attack_corner), norm(blue_defence_corner - blue_attack_corner)),
-              avg(norm(red_defence_corner - blue_attack_corner), norm(red_attack_corner - blue_defence_corner)));
+  float alpha_root = sqrt(alpha);
+  return Size(alpha_root * avg(norm(red_defence_corner - red_attack_corner), norm(blue_defence_corner - blue_attack_corner)),
+              alpha_root * avg(norm(red_defence_corner - blue_attack_corner), norm(red_attack_corner - blue_defence_corner)));
 
 }
