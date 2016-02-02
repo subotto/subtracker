@@ -95,7 +95,7 @@ class Log(Base):
     # is not happy about them
     def fix_NaN(self):
         for f in Log.INTERESTING_FIELDS:
-            if (self.__dict__[f] is not None ) and math.isnan(self.__dict__[f]):
+            if (type(self.__dict__[f]) is float ) and math.isnan(self.__dict__[f]):
                 self.__dict__[f] = 0.0
 
     @staticmethod
