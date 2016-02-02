@@ -86,13 +86,14 @@ void do_ball_analysis(control_panel_t &panel,
 void do_update_table_description(control_panel_t &panel,
                                  const Mat &tableFrame,
                                  const TableAnalysis& tableAnalysis,
-                                 TableDescription& table) {
+                                 TableDescription& table,
+				 const Mat &foosmen_mask) {
 
-	accumulateWeighted(tableFrame, table.mean, 0.005f);
+  accumulateWeighted(tableFrame, table.mean, 0.005f, foosmen_mask);
 
 	Mat scatter;
 	multiply(tableAnalysis.diff, tableAnalysis.diff, scatter);
-	accumulateWeighted(scatter, table.variance, 0.005f);
+	accumulateWeighted(scatter, table.variance, 0.005f, foosmen_mask);
 
   dump_time(panel, "cycle", "update table description");
 
@@ -234,7 +235,7 @@ Point2f subpixelMinimum(control_panel_t &panel, Mat in) {
 	return Point2f(m.x + c.x, m.y + c.y);
 }
 
-static void findFoosmen(control_panel_t &panel, FoosmenBarMetrics barMetrics, FoosmenBarAnalysis &analysis, const foosmen_params_t& params) {
+static void findFoosmen(control_panel_t &panel, FoosmenBarMetrics barMetrics, FoosmenBarAnalysis &analysis, const foosmen_params_t& params, Mat &foosmen_mask) {
 	Point2f m;
 	m = subpixelMinimum(panel, analysis.overlapped);
 
@@ -260,8 +261,10 @@ void do_foosmen_analysis(control_panel_t &panel,
                          const Mat &tableFrame,
                          const TableAnalysis& tableAnalysis,
                          float barsShift[BARS][2],
-                         float barsRot[BARS][2]) {
+                         float barsRot[BARS][2],
+			 Mat &foosmen_mask) {
 
+  foosmen_mask = Mat(tableFrame.size(), CV_8UC1, Scalar(255));
 		for(int side = 0; side < 2; side++) {
 			for(int bar = 0; bar < BARS; bar++) {
 				FoosmenBarMetrics& barMetrics = barsMetrics[bar][side];
@@ -272,7 +275,7 @@ void do_foosmen_analysis(control_panel_t &panel,
 				startFoosmenBarAnalysis(barMetrics, analysis, tableFrame, tableAnalysis);
 				computeLL(barMetrics, analysis, foosmen_params);
 				computeOverlapped(barMetrics, analysis);
-				findFoosmen(panel, barMetrics, analysis, foosmen_params);
+				findFoosmen(panel, barMetrics, analysis, foosmen_params, foosmen_mask);
 
 				float& shift = barsShift[bar][side];
 				float& rot = barsRot[bar][side];

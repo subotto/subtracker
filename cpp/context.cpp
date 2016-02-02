@@ -86,13 +86,14 @@ void FrameAnalysis::analyze_foosmen() {
                         this->table_frame,
                         this->table_analysis,
                         this->bars_shift,
-                        this->bars_rot);
+                        this->bars_rot,
+			this->foosmen_mask);
 
 }
 
 void FrameAnalysis::update_table_description() {
 
-  ::do_update_table_description(this->panel, this->table_frame, this->table_analysis, this->table_description);
+  ::do_update_table_description(this->panel, this->table_frame, this->table_analysis, this->table_description, this->foosmen_mask);
 
 }
 
@@ -171,6 +172,24 @@ void FrameAnalysis::draw_foosmen_display() {
 
 }
 
+void FrameAnalysis::draw_foosmen_mask() {
+
+  for(int side = 0; side < 2; side++) {
+    for(int bar = 0; bar < BARS; bar++) {
+      float xx = barx(side, bar, this->foosmen_mask.size(), this->frame_settings.table_metrics, this->frame_settings.foosmen_metrics);
+      
+      for(int i = 0; i < this->frame_settings.foosmen_metrics.count[bar]; i++) {
+	float y = (0.5f + i - this->frame_settings.foosmen_metrics.count[bar] * 0.5f) * this->frame_settings.foosmen_metrics.distance[bar];
+	float yy = (0.5f + (y + this->bars_shift[bar][side]) / this->frame_settings.table_metrics.width) * this->foosmen_mask.rows;
+	
+	//line(this->foosmen_mask, Point(xx - 5, yy), Point(xx + 5, yy), Scalar(0.f, 1.f, 0.f));
+	rectangle(this->foosmen_mask, Point(xx - 20, yy - 15), Point(xx + 20, yy + 15), Scalar(.0f, .0f, .0f), CV_FILLED);
+      }
+    }
+  }
+
+}
+
 double density_inf = -150.0;
 double density_sup = 30.0;
 
@@ -204,6 +223,7 @@ void FrameAnalysis::show_all_displays() {
     this->draw_foosmen_display();
     show(this->panel, "foosmen tracking", "foosmen", this->foosmen_display);
   }
+  show(this->panel, "foosmen tracking", "foosmen mask", this->foosmen_mask);
 
   // Possibly draw ball display
   if (will_show(panel, "ball tracking", "ball")) {
@@ -276,6 +296,7 @@ void SubtrackerContext::do_analysis() {
   this->frame_analysis->analyze_foosmen();
 
   // Update the running state
+  this->frame_analysis->draw_foosmen_mask();
   this->frame_analysis->update_table_description();
   if (this->frame_analysis->frame_num % 5 == 0) {
     this->frame_analysis->update_corrected_variance();

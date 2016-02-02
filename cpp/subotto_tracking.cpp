@@ -58,6 +58,8 @@ static tuple< vector< KeyPoint >, Mat > get_features(Mat frame, Mat mask, int fe
 
 static Mat detect_table(Mat &frame, table_detection_params_t& params, control_panel_t& panel, const SubottoReference& reference, const SubottoMetrics &metrics, FrameAnalysis &frame_analysis) {
 
+  dump_time(panel, "cycle", "detect table start");
+
 	const Mat& reference_image = reference.image;
 	const Mat& reference_mask = reference.mask;
 	auto& reference_metrics = reference.metrics;
@@ -110,6 +112,8 @@ static Mat detect_table(Mat &frame, table_detection_params_t& params, control_pa
 				" inliers: " << ninliers << "/" << coarse_from.size() << endl;
 
 	}
+
+  dump_time(panel, "cycle", "detect table phase 1 finished");
 
 	Mat &warped = frame_analysis.detect_table_after_matching;
 	warpPerspective(frame, warped, coarse_transform, reference_image.size(), WARP_INVERSE_MAP | INTER_LINEAR);
@@ -165,6 +169,8 @@ static Mat detect_table(Mat &frame, table_detection_params_t& params, control_pa
   logger(panel, "gio", DEBUG) << "sizeToReference(...)" << endl << sizeToReference(reference_metrics, metrics) << endl;
   logger(panel, "gio", DEBUG) << "identity" << endl << referenceToSize(reference_metrics, metrics) * sizeToReference(reference_metrics, metrics) << endl;*/
 	Mat transform = flow_transform * referenceToSize(reference_metrics, metrics);
+
+  dump_time(panel, "cycle", "detect table phase 2 finished");
 
 	return transform;
 }
@@ -274,10 +280,11 @@ Mat track_table(Mat &frame, table_tracking_status_t& status, table_tracking_para
 		status.near_transform = transform;
 	} else {
     frame_analysis.feature_matching_used = false;
-		transform = follow_table(undistorted, status.near_transform, params.following_params, status, panel, reference, metrics, frame_analysis);
+    //transform = follow_table(undistorted, status.near_transform, params.following_params, status, panel, reference, metrics, frame_analysis);
 		status.frames_to_next_detection--;
 		// smooth the previous transform
-		accumulateWeighted(transform, status.near_transform, params.near_transform_alpha);
+		//accumulateWeighted(transform, status.near_transform, params.near_transform_alpha);
+		transform = status.near_transform;
 	}
 
 	return transform;

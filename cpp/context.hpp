@@ -66,6 +66,7 @@ public:
   FoosmenBarAnalysis foosmen_bars_analysis[BARS][2];
   float bars_shift[BARS][2];
   float bars_rot[BARS][2];
+  Mat foosmen_mask;
 
   // Search spots
   vector< Spot > spots;
@@ -96,6 +97,7 @@ public:
   string get_csv_line();
   void draw_ball_display();
   void draw_foosmen_display();
+  void draw_foosmen_mask();
   void show_all_displays();
 
 };

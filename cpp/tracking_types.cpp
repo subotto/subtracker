@@ -30,7 +30,7 @@ table_following_params_t::table_following_params_t()
 {}
 
 table_tracking_params_t::table_tracking_params_t()
-  : detect_every_frames(10 * 120),
+  : detect_every_frames(120),
     near_transform_alpha(0.25f)
 
 {}

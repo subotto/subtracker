@@ -54,7 +54,8 @@ void do_ball_analysis(control_panel_t &panel,
 void do_update_table_description(control_panel_t &panel,
                                  const Mat &tableFrame,
                                  const TableAnalysis& tableAnalysis,
-                                 TableDescription& table);
+                                 TableDescription& table,
+				 const Mat &foosmen_mask);
 
 void do_update_corrected_variance(control_panel_t &panel,
                                   TableDescription &table);
@@ -159,6 +160,7 @@ void do_foosmen_analysis(control_panel_t &panel,
                          const Mat &tableFrame,
                          const TableAnalysis& tableAnalysis,
                          float barsShift[BARS][2],
-                         float barsRot[BARS][2]);
+                         float barsRot[BARS][2],
+			 Mat &foosmen_mask);
 
 #endif /* ANALYSIS_HPP_ */

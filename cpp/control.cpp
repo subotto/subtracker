@@ -52,6 +52,7 @@ static void update_show(control_panel_t& panel, string category, string name) {
 }
 
 void show(control_panel_t& panel, string category, string name, cv::Mat image, show_params_t params) {
+  if (image.size().height == 0 || image.size().width == 0) return;
 	show_status_t& status = panel.show_status[category][name];
 
 	status.image = image;
