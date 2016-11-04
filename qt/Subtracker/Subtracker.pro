@@ -14,9 +14,17 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
         mainwindow.cpp \
-    videowidget.cpp
+    videowidget.cpp \
+    framereader.cpp
 
 HEADERS  += mainwindow.h \
-    videowidget.h
+    videowidget.h \
+    framereader.h
 
 FORMS    += mainwindow.ui
+
+QMAKE_CXXFLAGS += -std=c++14 -march=native -O3
+QMAKE_LFLAGS += -lturbojpeg -lboost_system
+
+CONFIG += link_pkgconfig
+PKGCONFIG += opencv
