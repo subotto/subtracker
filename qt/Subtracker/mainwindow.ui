@@ -39,13 +39,19 @@
     <property name="title">
      <string>Commands</string>
     </property>
-    <addaction name="actionConnect"/>
+    <addaction name="actionStart"/>
+    <addaction name="actionStop"/>
    </widget>
    <addaction name="menuCommands"/>
   </widget>
-  <action name="actionConnect">
+  <action name="actionStart">
    <property name="text">
-    <string>Connect</string>
+    <string>Start</string>
+   </property>
+  </action>
+  <action name="actionStop">
+   <property name="text">
+    <string>Stop</string>
    </property>
   </action>
  </widget>

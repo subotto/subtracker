@@ -58,6 +58,7 @@ protected:
     int count = 0;
 
     std::atomic<bool> running;
+    std::atomic<bool> finished;
     std::thread t;
 
   bool droppy;
@@ -71,6 +72,8 @@ protected:
 
 public:
   void start();
+  void stop();
+  bool is_finished();
   void set_droppy(bool droppy);
   FrameInfo get();
     ~FrameCycle();
@@ -92,7 +95,7 @@ protected:
   void open_file(std::string file_name);
 
 public:
-  JPEGReader(std::string file_name, bool from_file, bool simulate_live, int width=-1, int height=-1);
+  JPEGReader(std::string file_name, bool from_file=false, bool simulate_live=false, int width=-1, int height=-1);
   ~JPEGReader();
   static void mangle_file_name(std::string &file_name, bool &from_file, bool &simulate_live);
 };

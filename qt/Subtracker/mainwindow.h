@@ -2,6 +2,9 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QTimer>
+
+#include "framereader.h"
 
 namespace Ui {
 class MainWindow;
@@ -16,10 +19,15 @@ public:
     ~MainWindow();
 
 private slots:
-    void on_actionConnect_triggered();
+    void on_actionStart_triggered();
+
+    void on_actionStop_triggered();
 
 private:
     Ui::MainWindow *ui;
+
+    FrameCycle *frame_cycle;
+    QTimer timer;
 };
 
 #endif // MAINWINDOW_H

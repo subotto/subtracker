@@ -9,7 +9,7 @@ using namespace chrono;
 using namespace cv;
 
 FrameCycle::FrameCycle(bool droppy)
-  : last_stats(system_clock::now()), running(true), droppy(droppy) {
+  : last_stats(system_clock::now()), running(true), finished(false), droppy(droppy) {
 }
 
 void FrameCycle::start() {
@@ -25,7 +25,12 @@ bool FrameCycle::init_thread() {
 void FrameCycle::terminate() {
 
   this->push({ time_point< system_clock >(), time_point< system_clock >(), Mat(), false });
+  this->finished = true;
 
+}
+
+bool FrameCycle::is_finished() {
+  return this->finished;
 }
 
 void FrameCycle::cycle() {
@@ -147,9 +152,13 @@ FrameInfo FrameCycle::get() {
   return res;
 }
 
-FrameCycle::~FrameCycle() {
+void FrameCycle::stop() {
   running = false;
   this->queue_not_full.notify_all();
+}
+
+FrameCycle::~FrameCycle() {
+  this->stop();
   if (t.joinable()) {
     t.join();
   }
@@ -162,7 +171,7 @@ void FrameCycle::set_droppy(bool droppy) {
 }
 
 JPEGReader::JPEGReader(string file_name, bool from_file, bool simulate_live, int width, int height)
-  : tj_dec(tjInitDecompress()), width(width), height(height), from_file(from_file) {
+  : tj_dec(tjInitDecompress()), from_file(from_file), width(width), height(height) {
 
   if (from_file) {
     if (simulate_live) {
