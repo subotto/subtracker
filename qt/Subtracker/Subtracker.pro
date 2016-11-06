@@ -23,8 +23,8 @@ HEADERS  += mainwindow.h \
 
 FORMS    += mainwindow.ui
 
-QMAKE_CXXFLAGS += -std=c++14 -march=native -O3
-QMAKE_LFLAGS += -lturbojpeg -lboost_system
+QMAKE_CXXFLAGS += -std=c++14 -march=native -O3 -DBOOST_ALL_DYN_LINK
+QMAKE_LFLAGS += -lturbojpeg -lboost_system -lboost_log
 
 CONFIG += link_pkgconfig
 PKGCONFIG += opencv
