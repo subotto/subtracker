@@ -1,5 +1,6 @@
 
 #include "framereader.h"
+#include "logging.h"
 
 #include <arpa/inet.h>
 #include <boost/asio.hpp>
@@ -34,6 +35,8 @@ bool FrameCycle::is_finished() {
 }
 
 void FrameCycle::cycle() {
+
+  BOOST_LOG_NAMED_SCOPE("capture cycle");
 
   video_start_playback_time = system_clock::now();
   if (!this->init_thread()) {
@@ -74,9 +77,8 @@ void FrameCycle::process_stats() {
     frame_dropped.pop_front();
   }
 
-  /*
-  logger(panel, "capture", INFO) << "queue size: " << queue.size() << endl;
-  logger(panel, "capture", INFO) <<
+  BOOST_LOG_TRIVIAL(info) << "queue size: " << queue.size() << endl;
+  /*logger(panel, "capture", INFO) <<
     "received " << frame_times.size() << " frames " <<
     "in " << seconds(frame_count_interval).count() << " seconds (" <<
     frame_times.size() / seconds(frame_count_interval).count() <<

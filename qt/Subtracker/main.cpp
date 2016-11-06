@@ -1,11 +1,10 @@
 #include "mainwindow.h"
 #include "framereader.h"
+#include "logging.h"
 #include <QApplication>
 
-#include <boost/log/core/core.hpp>
-#include <boost/log/sources/record_ostream.hpp>
-#include <boost/log/sources/channel_feature.hpp>
-#include <boost/log/sources/channel_logger.hpp>
+#include <chrono>
+#include <thread>
 
 int main(int argc, char *argv[])
 {
@@ -13,8 +12,17 @@ int main(int argc, char *argv[])
     MainWindow w;
     w.show();
 
-    boost::log::sources::channel_logger< > logger(boost::log::keywords::channel="test");
-    BOOST_LOG(logger) << "Test!";
+    setup_logging();
+
+    BOOST_LOG_NAMED_SCOPE("main");
+    BOOST_LOG_TRIVIAL(info) << "Starting Subtracker!";
+
+    FrameCycle *f = new JPEGReader("test.mjpeg", true, true);
+    f->start();
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+
+    delete f;
 
     return a.exec();
 }
