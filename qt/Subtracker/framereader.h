@@ -69,6 +69,7 @@ protected:
   virtual bool init_thread();
   virtual bool process_frame() = 0;
   void terminate();
+  void join_worker();
 
 public:
   void start();
@@ -76,7 +77,7 @@ public:
   bool is_finished();
   void set_droppy(bool droppy);
   FrameInfo get();
-    ~FrameCycle();
+  virtual ~FrameCycle();
 };
 
 class JPEGReader: public FrameCycle {
