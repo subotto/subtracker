@@ -16,12 +16,20 @@ SOURCES += main.cpp\
         mainwindow.cpp \
     videowidget.cpp \
     framereader.cpp \
-    logging.cpp
+    logging.cpp \
+    worker.cpp \
+    context.cpp \
+    frameanalysis.cpp \
+    framesettings.cpp
 
 HEADERS  += mainwindow.h \
     videowidget.h \
     framereader.h \
-    logging.h
+    logging.h \
+    worker.h \
+    context.h \
+    frameanalysis.h \
+    framesettings.h
 
 FORMS    += mainwindow.ui
 
