@@ -30,6 +30,8 @@ struct FrameInfo {
 class FrameProducer {
 public:
   virtual FrameInfo get() = 0;
+  virtual FrameInfo maybe_get() = 0;
+  virtual FrameInfo get_last() = 0;
 };
 
 static const std::chrono::seconds frame_count_interval(5);
@@ -77,6 +79,8 @@ public:
   bool is_finished();
   void set_droppy(bool droppy);
   FrameInfo get();
+  FrameInfo maybe_get();
+  FrameInfo get_last();
   virtual ~FrameCycle();
 };
 

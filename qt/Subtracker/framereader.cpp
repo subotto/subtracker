@@ -155,6 +155,28 @@ FrameInfo FrameCycle::get() {
   return res;
 }
 
+FrameInfo FrameCycle::maybe_get() {
+  unique_lock<mutex> lock(this->queue_mutex);
+  if (queue.empty()) {
+      return { time_point< system_clock >(), time_point< system_clock >(), Mat(), false };
+  }
+  auto res = queue.front();
+  queue.pop_front();
+  queue_not_full.notify_all();
+  return res;
+}
+
+FrameInfo FrameCycle::get_last() {
+  unique_lock<mutex> lock(this->queue_mutex);
+  FrameInfo res = { time_point< system_clock >(), time_point< system_clock >(), Mat(), false };
+  while (!queue.empty()) {
+    res = queue.front();
+    queue.pop_front();
+  }
+  queue_not_full.notify_all();
+  return res;
+}
+
 void FrameCycle::stop() {
   this->running = false;
   this->queue_not_full.notify_all();

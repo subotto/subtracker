@@ -17,10 +17,10 @@
    <widget class="VideoWidget" name="widget" native="true">
     <property name="geometry">
      <rect>
-      <x>250</x>
-      <y>230</y>
-      <width>441</width>
-      <height>281</height>
+      <x>90</x>
+      <y>40</y>
+      <width>640</width>
+      <height>480</height>
      </rect>
     </property>
    </widget>
