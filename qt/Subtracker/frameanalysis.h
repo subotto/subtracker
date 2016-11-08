@@ -9,6 +9,7 @@
 class FrameAnalysis
 {
     friend class Context;
+    friend class MainWindow;
 
 public:
     FrameAnalysis(const cv::Mat &frame, int frame_num, const std::chrono::time_point< std::chrono::system_clock > &time, const FrameSettings &settings);

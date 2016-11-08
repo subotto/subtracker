@@ -1,9 +1,12 @@
 #include "context.h"
+#include "logging.h"
 
 using namespace std;
 
 Context::Context(int slave_num, FrameProducer *producer) :
-    running(true), frame_num(0), producer(producer), phase3_frame_num(0)
+    running(true),
+    phase1_out(NULL), phase2_out(NULL), phase3_out(NULL),
+    frame_num(0), producer(producer), phase3_frame_num(0)
 {
     this->slaves.emplace_back(&Context::phase1_thread, this);
     this->slaves.emplace_back(&Context::phase3_thread, this);
@@ -81,6 +84,7 @@ void Context::phase3_thread() {
             this->phase2_empty.notify_one();
         }
 
+        //BOOST_LOG_TRIVIAL(debug) << "frame: " << frame;
         this->reorder_buf.insert(make_pair(frame->frame_num, frame));
         frame = NULL;
         while (this->reorder_buf.begin()->first == this->phase3_frame_num) {

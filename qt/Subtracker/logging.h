@@ -5,5 +5,6 @@
 #include <boost/log/attributes/named_scope.hpp>
 
 void setup_logging();
+void flush_log();
 
 #endif // LOGGING_H

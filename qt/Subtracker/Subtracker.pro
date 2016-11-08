@@ -33,7 +33,7 @@ HEADERS  += mainwindow.h \
 
 FORMS    += mainwindow.ui
 
-QMAKE_CXXFLAGS += -std=c++14 -march=native -O3 -DBOOST_ALL_DYN_LINK
+QMAKE_CXXFLAGS += -std=c++14 -march=native -DBOOST_ALL_DYN_LINK
 QMAKE_LFLAGS += -lturbojpeg -lboost_log_setup -lboost_log -lboost_system -lboost_thread
 
 CONFIG += link_pkgconfig

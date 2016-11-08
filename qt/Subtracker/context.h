@@ -18,7 +18,6 @@ class Context
 {
 public:
     Context(int slave_num, FrameProducer *producer);
-    void feed(const cv::Mat &frame, std::chrono::time_point< std::chrono::system_clock > playback_time);
     FrameAnalysis *get();
     FrameAnalysis *maybe_get();
     ~Context();

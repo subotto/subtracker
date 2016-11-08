@@ -5,20 +5,20 @@
 #include <chrono>
 #include <cmath>
 
-#include <opencv2/core/core.hpp>
-
 using namespace std;
 using namespace chrono;
 using namespace cv;
 
 VideoWidget::VideoWidget(QWidget *parent) : QWidget(parent)
 {
-  this->f = new JPEGReader("test.gjpeg", true, true);
-  this->f->start();
 }
 
 VideoWidget::~VideoWidget() {
-  delete this->f;
+}
+
+void VideoWidget::set_current_frame(Mat current_frame)
+{
+    this->current_frame = current_frame;
 }
 
 template< typename T >
@@ -35,12 +35,12 @@ void VideoWidget::paintEvent(QPaintEvent *event) {
   // Ack unused parameter
   (void) event;
 
-  auto now = now_to_float(steady_clock::now());
+  //auto now = now_to_float(steady_clock::now());
   QPainter painter(this);
   painter.setRenderHint(QPainter::Antialiasing);
   //painter.drawLine(50*sin(now), 50, 100, 100);
 
-  auto frame = f->get_last();
-  painter.drawImage(0, 0, mat_to_qimage(frame.data));
+  //auto frame = f->get_last();
+    painter.drawImage(0, 0, mat_to_qimage(this->current_frame));
 
 }

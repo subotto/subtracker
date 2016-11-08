@@ -14,6 +14,8 @@
 #include <boost/log/sinks/text_file_backend.hpp>
 #include <boost/log/sinks/text_ostream_backend.hpp>
 
+auto consoleSink = boost::log::add_console_log(std::clog);
+
 void setup_logging() {
   boost::log::add_common_attributes();
      boost::log::core::get()->add_global_attribute("Scope",
@@ -41,8 +43,11 @@ void setup_logging() {
           % boost::log::expressions::smessage;
 
       /* console sink */
-      auto consoleSink = boost::log::add_console_log(std::clog);
       consoleSink->set_formatter(logFmt);
+}
+
+void flush_log() {
+    consoleSink->flush();
 }
 
 //BOOST_LOG_FUNCTION();
