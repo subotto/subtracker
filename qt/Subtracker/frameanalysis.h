@@ -8,9 +8,13 @@
 
 class FrameAnalysis
 {
+    friend class Context;
+
 public:
     FrameAnalysis(const cv::Mat &frame, int frame_num, const std::chrono::time_point< std::chrono::system_clock > &time, const FrameSettings &settings);
-    void process();
+    void phase1();
+    void phase2();
+    void phase3();
 
 private:
     cv::Mat frame;
@@ -19,7 +23,7 @@ private:
     FrameSettings settings;
 
     // Just to test
-    cv::Mat frame_copy;
+    cv::Mat test_phase1, test_phase2, test_phase3;
 };
 
 #endif // FRAMEANALYSIS_H

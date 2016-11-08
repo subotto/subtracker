@@ -5,6 +5,14 @@ FrameAnalysis::FrameAnalysis(const cv::Mat &frame, int frame_num, const std::chr
 
 }
 
-void FrameAnalysis::process() {
-    this->frame_copy = this->frame;
+void FrameAnalysis::phase1() {
+    this->test_phase1 = this->frame;
+}
+
+void FrameAnalysis::phase2() {
+    this->test_phase2 = this->test_phase1;
+}
+
+void FrameAnalysis::phase3() {
+    this->test_phase3 = this->test_phase2;
 }
