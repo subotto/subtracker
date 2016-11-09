@@ -21,6 +21,8 @@ protected:
 private:
     FrameCycle *f;
     cv::Mat current_frame;
+    QImage current_image;
+    QImage &get_current_image();
 };
 
 #endif // VIDEOWIDGET_H

@@ -59,13 +59,20 @@ void MainWindow::pass_string_to_label(const QString &name, const QString &value)
 }
 
 static inline string time_point_to_string(const time_point< system_clock > &now) {
-    return "";
+    ostringstream stream;
+    time_t time = duration_cast< seconds >(now.time_since_epoch()).count();
+    double fractional = duration_cast< duration< double > >(now.time_since_epoch()).count() - time;
+    assert(0.0 <= fractional && fractional < 1.0);
+    struct tm tm;
+    localtime_r(&time, &tm);
+    stream << put_time(&tm, "%x %T") << "." << fixed << setprecision(0) << fractional * 1000;
+    return stream.str();
 }
 
 static inline string duration_to_string(const system_clock::duration &dur) {
-    double value = duration_cast< duration< double > >(dur).count();
     ostringstream stream;
-    stream << fixed << setprecision(10) << value;
+    double value = duration_cast< duration< double, milli > >(dur).count();
+    stream << fixed << setprecision(2) << value << " ms";
     return stream.str();
 }
 
@@ -75,6 +82,7 @@ void MainWindow::receive_frame(QSharedPointer<FrameAnalysis> frame)
     //BOOST_LOG_TRIVIAL(debug) << "Received frame";
     this->pass_frame_to_video("mainVideo", frame->test_phase3);
     this->pass_string_to_label("processingTime", duration_to_string(frame->end_time - frame->begin_time).c_str());
+    this->pass_string_to_label("frameTime", time_point_to_string(frame->time).c_str());
 }
 
 void MainWindow::when_worker_finished() {

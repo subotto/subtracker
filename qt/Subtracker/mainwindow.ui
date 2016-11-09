@@ -35,11 +35,17 @@
        </widget>
       </item>
       <item>
-       <widget class="QLabel" name="processingTime">
+       <widget class="QLabel" name="processingTime"/>
+      </item>
+      <item>
+       <widget class="QLabel" name="label">
         <property name="text">
-         <string/>
+         <string>Frame time:</string>
         </property>
        </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="frameTime"/>
       </item>
      </layout>
     </item>
