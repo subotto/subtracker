@@ -13,23 +13,17 @@ void FrameAnalysis::phase1() {
     this->begin_time = system_clock::now();
     this->begin_phase1 = steady_clock::now();
 
-    this->test_phase1 = this->frame;
-
     this->end_phase1 = steady_clock::now();
 }
 
 void FrameAnalysis::phase2() {
     this->begin_phase2 = steady_clock::now();
 
-    this->test_phase2 = this->test_phase1;
-
     this->end_phase2 = steady_clock::now();
 }
 
 void FrameAnalysis::phase3() {
     this->begin_phase3 = steady_clock::now();
-
-    this->test_phase3 = this->test_phase2;
 
     this->end_phase3 = steady_clock::now();
     this->end_time = system_clock::now();

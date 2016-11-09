@@ -36,8 +36,12 @@ private:
     FrameCycle *frame_cycle;
     QTimer timer;
     QPointer< Worker > worker;
+    FrameSettings settings;
+
     void pass_frame_to_video(const QString &name, const cv::Mat &frame);
     void pass_string_to_label(const QString &name, const QString &value);
+    void settings_modified();
+    void init_settings();
 };
 
 Q_DECLARE_METATYPE(QSharedPointer< FrameAnalysis >)

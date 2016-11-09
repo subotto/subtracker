@@ -19,8 +19,7 @@ SOURCES += main.cpp\
     logging.cpp \
     worker.cpp \
     context.cpp \
-    frameanalysis.cpp \
-    framesettings.cpp
+    frameanalysis.cpp
 
 HEADERS  += mainwindow.h \
     videowidget.h \
@@ -29,8 +28,8 @@ HEADERS  += mainwindow.h \
     worker.h \
     context.h \
     frameanalysis.h \
-    framesettings.h \
-    atomiccounter.h
+    atomiccounter.h \
+    framesettings.h
 
 FORMS    += mainwindow.ui
 

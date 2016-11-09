@@ -20,6 +20,14 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(&this->timer, SIGNAL(timeout()), this, SLOT(update()));
     //this->timer.start();
     qRegisterMetaType< QSharedPointer< FrameAnalysis > >();
+    init_settings();
+}
+
+void MainWindow::init_settings() {
+    this->settings.table_corners[0] = { 50.0, 50.0 };
+    this->settings.table_corners[1] = { 50.0, 100.0 };
+    this->settings.table_corners[2] = { 100.0, 100.0 };
+    this->settings.table_corners[3] = { 100.0, 50.0 };
 }
 
 MainWindow::~MainWindow()
@@ -32,13 +40,17 @@ void MainWindow::on_actionStart_triggered()
 {
     bool res;
     this->ui->statusBar->showMessage("Start!", 1000);
-    this->worker = new Worker();
+    this->worker = new Worker(this->settings);
     res = connect(this->worker, SIGNAL(frame_produced(QSharedPointer<FrameAnalysis>)), this, SLOT(receive_frame(QSharedPointer<FrameAnalysis>)), Qt::QueuedConnection);
     assert(res);
     res = connect(this->worker, SIGNAL(finished()), this, SLOT(when_worker_finished()), Qt::QueuedConnection);
     assert(res);
     this->worker->start();
     this->timer.start();
+}
+
+void MainWindow::settings_modified() {
+    this->worker->set_settings(this->settings);
 }
 
 void MainWindow::on_actionStop_triggered()
@@ -80,7 +92,7 @@ void MainWindow::receive_frame(QSharedPointer<FrameAnalysis> frame)
 {
     BOOST_LOG_NAMED_SCOPE("when frame produced");
     //BOOST_LOG_TRIVIAL(debug) << "Received frame";
-    this->pass_frame_to_video("mainVideo", frame->test_phase3);
+    this->pass_frame_to_video("mainVideo", frame->frame);
     this->pass_string_to_label("processingTime", duration_to_string(frame->end_time - frame->begin_time).c_str());
     this->pass_string_to_label("frameTime", time_point_to_string(frame->time).c_str());
 }

@@ -7,12 +7,12 @@
 using namespace std;
 using namespace chrono;
 
-Context::Context(int slave_num, FrameProducer *producer) :
+Context::Context(int slave_num, FrameProducer *producer, const FrameSettings &settings) :
     running(true),
     phase1_out(NULL), phase2_out(NULL), phase3_out(NULL),
     phase1_count(0), phase2_count(0), phase3_count(0),
-    exausted(false),
-    frame_num(0), producer(producer), phase3_frame_num(0)
+    exausted(false), frame_num(0), settings(settings),
+    producer(producer), phase3_frame_num(0)
 {
     this->slaves.emplace_back(&Context::phase1_thread, this);
     this->slaves.emplace_back(&Context::phase3_thread, this);
@@ -31,6 +31,11 @@ Context::~Context() {
     delete this->phase3_out;
 }
 
+void Context::set_settings(const FrameSettings &settings) {
+    unique_lock< mutex > lock(this->settings_mutex);
+    this->settings = settings;
+}
+
 void Context::phase1_thread() {
 
     BOOST_LOG_NAMED_SCOPE("phase1 thread");
@@ -46,7 +51,11 @@ void Context::phase1_thread() {
             flush_log();
             return;
         }
-        FrameAnalysis *frame = new FrameAnalysis(info.data, this->frame_num++, info.time, this->settings);
+        FrameAnalysis *frame;
+        {
+            unique_lock< mutex > lock(this->settings_mutex);
+            frame = new FrameAnalysis(info.data, this->frame_num++, info.time, this->settings);
+        }
 
         this->phase1_fn(frame);
 

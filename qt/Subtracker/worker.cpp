@@ -10,11 +10,15 @@ static int safe_ideal_thread_count() {
     return res;
 }
 
-Worker::Worker() :
-    jpeg_reader("test.gjpeg", true, true),
-    context(safe_ideal_thread_count(), &jpeg_reader),
-    running(true)
+Worker::Worker(const FrameSettings &settings) :
+  jpeg_reader("test.gjpeg", true, true),
+  context(safe_ideal_thread_count(), &jpeg_reader, settings),
+  running(true)
 {
+}
+
+void Worker::set_settings(const FrameSettings &settings) {
+    this->context.set_settings(settings);
 }
 
 void Worker::stop() {

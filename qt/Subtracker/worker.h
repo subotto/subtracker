@@ -13,8 +13,9 @@ class Worker : public QThread
     Q_OBJECT
 
 public:
-    Worker();
+    Worker(const FrameSettings &settings);
     void stop();
+    void set_settings(const FrameSettings &settings);
 
 signals:
     void frame_produced(QSharedPointer< FrameAnalysis > frame);

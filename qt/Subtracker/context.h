@@ -1,7 +1,6 @@
 #ifndef CONTEXT_H
 #define CONTEXT_H
 
-#include "framesettings.h"
 #include "frameanalysis.h"
 #include "framereader.h"
 
@@ -17,10 +16,11 @@
 class Context
 {
 public:
-    Context(int slave_num, FrameProducer *producer);
+    Context(int slave_num, FrameProducer *producer, const FrameSettings &settings);
     FrameAnalysis *get();
     FrameAnalysis *maybe_get();
     ~Context();
+    void set_settings(const FrameSettings &settings);
 
 private:
     void phase1_fn(FrameAnalysis *frame);
@@ -42,6 +42,7 @@ private:
 
     // phase1 variables
     int frame_num;
+    std::mutex settings_mutex;
     FrameSettings settings;
     FrameProducer *producer;
 
