@@ -37,6 +37,8 @@ private:
     std::mutex phase1_mutex, phase2_mutex, phase3_mutex;
     std::condition_variable phase1_empty, phase2_empty, phase3_empty, phase1_full, phase2_full, phase3_full;
     FrameAnalysis *phase1_out, *phase2_out, *phase3_out;
+    std::atomic< int > phase1_count, phase2_count, phase3_count;
+    std::atomic< bool > exausted;
 
     // phase1 variables
     int frame_num;

@@ -29,7 +29,8 @@ HEADERS  += mainwindow.h \
     worker.h \
     context.h \
     frameanalysis.h \
-    framesettings.h
+    framesettings.h \
+    atomiccounter.h
 
 FORMS    += mainwindow.ui
 

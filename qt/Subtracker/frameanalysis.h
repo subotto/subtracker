@@ -23,6 +23,8 @@ private:
     std::chrono::time_point< std::chrono::system_clock > time;
     FrameSettings settings;
 
+    std::chrono::time_point< std::chrono::system_clock > begin_time, end_time;
+
     // Just to test
     cv::Mat test_phase1, test_phase2, test_phase3;
 };

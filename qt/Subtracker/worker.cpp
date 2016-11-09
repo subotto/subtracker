@@ -12,17 +12,26 @@ static int safe_ideal_thread_count() {
 
 Worker::Worker() :
     jpeg_reader("test.gjpeg", true, true),
-    context(safe_ideal_thread_count(), &jpeg_reader)
+    context(safe_ideal_thread_count(), &jpeg_reader),
+    running(true)
 {
 }
 
+void Worker::stop() {
+    this->jpeg_reader.stop();
+}
+
 void Worker::run() {
-    BOOST_LOG_NAMED_SCOPE("when frame produced");
+    BOOST_LOG_NAMED_SCOPE("worker run");
     this->jpeg_reader.start();
-    while (true) {
+    while (this->running) {
         FrameAnalysis *frame = this->context.get();
+        if (frame == NULL) {
+            BOOST_LOG_TRIVIAL(debug) << "Worker ready to exit";
+            break;
+        }
         QSharedPointer< FrameAnalysis > frame_ptr(frame);
-        BOOST_LOG_TRIVIAL(debug) << "Emitting frame";
+        //BOOST_LOG_TRIVIAL(debug) << "Emitting frame";
         emit frame_produced(frame_ptr);
     }
 }

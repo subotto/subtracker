@@ -3,6 +3,7 @@
 
 #include <QThread>
 #include <QSharedPointer>
+#include <atomic>
 
 #include "context.h"
 #include "framereader.h"
@@ -13,6 +14,7 @@ class Worker : public QThread
 
 public:
     Worker();
+    void stop();
 
 signals:
     void frame_produced(QSharedPointer< FrameAnalysis > frame);
@@ -22,6 +24,8 @@ private:
 
     JPEGReader jpeg_reader;
     Context context;
+
+    std::atomic< bool > running;
 };
 
 #endif // WORKER_H

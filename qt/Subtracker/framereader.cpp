@@ -25,8 +25,9 @@ bool FrameCycle::init_thread() {
 
 void FrameCycle::terminate() {
 
-  this->push({ time_point< system_clock >(), time_point< system_clock >(), Mat(), false });
-  this->finished = true;
+    BOOST_LOG_TRIVIAL(debug) << "Enqueueing terminator";
+    this->push({ time_point< system_clock >(), time_point< system_clock >(), Mat(), false });
+    this->finished = true;
 
 }
 
@@ -43,8 +44,8 @@ void FrameCycle::cycle() {
     this->terminate();
     return;
   }
-  while (running) {
-    if (!this->process_frame()) {
+  while (true) {
+    if (!this->process_frame() || !running) {
       this->terminate();
       this->process_stats();
       return;
@@ -106,13 +107,13 @@ void FrameCycle::push(FrameInfo info) {
   unique_lock<mutex> lock(queue_mutex);
 
   if (this->droppy) {
-    queue.clear();
+        queue.clear();
   }
-  if (!this->running) {
-    return;
+  if (!this->running && info.valid) {
+        return;
   }
 
-  if (!can_drop_frames) {
+  if (!can_drop_frames && info.valid) {
     while (queue.size() >= buffer_size) {
       queue_not_full.wait(lock);
       if (!this->running) {
@@ -122,7 +123,7 @@ void FrameCycle::push(FrameInfo info) {
     }
   }
 
-  if(rate_limited) {
+  if(rate_limited && info.valid) {
     //BOOST_LOG_TRIVIAL(debug) << "rate limiting for " << duration_cast< duration< double > >(info.playback_time - system_clock::now()).count() << " seconds";
     this_thread::sleep_until(info.playback_time);
   }
@@ -201,7 +202,7 @@ void FrameCycle::set_droppy(bool droppy) {
 }
 
 JPEGReader::JPEGReader(string file_name, bool from_file, bool simulate_live, int width, int height)
-  : tj_dec(tjInitDecompress()), from_file(from_file), width(width), height(height) {
+  : FrameCycle(false), tj_dec(tjInitDecompress()), from_file(from_file), width(width), height(height) {
 
   BOOST_LOG_NAMED_SCOPE("jpeg open");
 

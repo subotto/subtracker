@@ -1,11 +1,17 @@
 #include "context.h"
 #include "logging.h"
+#include "atomiccounter.h"
+
+#include <chrono>
 
 using namespace std;
+using namespace chrono;
 
 Context::Context(int slave_num, FrameProducer *producer) :
     running(true),
     phase1_out(NULL), phase2_out(NULL), phase3_out(NULL),
+    phase1_count(0), phase2_count(0), phase3_count(0),
+    exausted(false),
     frame_num(0), producer(producer), phase3_frame_num(0)
 {
     this->slaves.emplace_back(&Context::phase1_thread, this);
@@ -20,12 +26,26 @@ Context::~Context() {
     for (auto &thread : this->slaves) {
         thread.join();
     }
+    delete this->phase1_out;
+    delete this->phase2_out;
+    delete this->phase3_out;
 }
 
 void Context::phase1_thread() {
 
-    while (this->running) {
+    BOOST_LOG_NAMED_SCOPE("phase1 thread");
+
+    AtomicCounter counter(this->phase1_count);
+    //BOOST_LOG_TRIVIAL(debug) << "Phase 1 counter: " << this->phase1_count;
+
+    while (true) {
         FrameInfo info = this->producer->get();
+        if (!info.valid) {
+            this->exausted = true;
+            BOOST_LOG_TRIVIAL(debug) << "Found terminator";
+            flush_log();
+            return;
+        }
         FrameAnalysis *frame = new FrameAnalysis(info.data, this->frame_num++, info.time, this->settings);
 
         this->phase1_fn(frame);
@@ -33,7 +53,10 @@ void Context::phase1_thread() {
         {
             unique_lock< mutex > lock(this->phase1_mutex);
             while (this->phase1_out != NULL) {
-                this->phase1_empty.wait(lock);
+                if (!this->running) {
+                    return;
+                }
+                this->phase1_empty.wait_for(lock, seconds(1));
             }
             this->phase1_out = frame;
             this->phase1_full.notify_one();
@@ -44,12 +67,19 @@ void Context::phase1_thread() {
 
 void Context::phase2_thread() {
 
-    while (this->running) {
+    BOOST_LOG_NAMED_SCOPE("phase2 thread");
+
+    AtomicCounter counter(this->phase2_count);
+
+    while (true) {
         FrameAnalysis *frame;
         {
             unique_lock< mutex > lock(this->phase1_mutex);
             while (this->phase1_out == NULL) {
-                this->phase1_full.wait(lock);
+                if (!this->running || (this->phase1_count == 0 && this->exausted)) {
+                    return;
+                }
+                this->phase1_full.wait_for(lock, seconds(1));
             }
             frame = this->phase1_out;
             this->phase1_out = NULL;
@@ -61,7 +91,10 @@ void Context::phase2_thread() {
         {
             unique_lock< mutex > lock(this->phase2_mutex);
             while (this->phase2_out != NULL) {
-                this->phase2_empty.wait(lock);
+                if (!this->running) {
+                    return;
+                }
+                this->phase2_empty.wait_for(lock, seconds(1));
             }
             this->phase2_out = frame;
             this->phase2_full.notify_one();
@@ -72,12 +105,19 @@ void Context::phase2_thread() {
 
 void Context::phase3_thread() {
 
-    while (this->running) {
+    BOOST_LOG_NAMED_SCOPE("phase3 thread");
+
+    AtomicCounter counter(this->phase3_count);
+
+    while (true) {
         FrameAnalysis *frame;
         {
             unique_lock< mutex > lock(this->phase2_mutex);
             while (this->phase2_out == NULL) {
-                this->phase2_full.wait(lock);
+                if (!this->running || (this->phase2_count == 0 && this->exausted)) {
+                    return;
+                }
+                this->phase2_full.wait_for(lock, seconds(1));
             }
             frame = this->phase2_out;
             this->phase2_out = NULL;
@@ -95,7 +135,10 @@ void Context::phase3_thread() {
             {
                 unique_lock< mutex > lock(this->phase3_mutex);
                 while (this->phase3_out != NULL) {
-                    this->phase3_empty.wait(lock);
+                    if (!this->running) {
+                        return;
+                    }
+                    this->phase3_empty.wait_for(lock, seconds(1));
                 }
                 this->phase3_out = frame;
                 this->phase3_full.notify_one();
@@ -110,7 +153,10 @@ FrameAnalysis *Context::get() {
     FrameAnalysis *frame;
     unique_lock< mutex > lock(this->phase3_mutex);
     while (this->phase3_out == NULL) {
-        this->phase3_full.wait(lock);
+        if (!this->running || (this->phase3_count == 0 && this->exausted)) {
+            return NULL;
+        }
+        this->phase3_full.wait_for(lock, seconds(1));
     }
     frame = this->phase3_out;
     this->phase3_out = NULL;

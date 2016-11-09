@@ -3,6 +3,8 @@
 
 #include <QMainWindow>
 #include <QTimer>
+#include <QMetaType>
+#include <QPointer>
 
 #include "framereader.h"
 #include "frameanalysis.h"
@@ -25,14 +27,19 @@ private slots:
     void on_actionStop_triggered();
 
 public slots:
-    void when_frame_produced(QSharedPointer< FrameAnalysis > frame);
+    void receive_frame(QSharedPointer< FrameAnalysis > frame);
+    void when_worker_finished();
 
 private:
     Ui::MainWindow *ui;
 
     FrameCycle *frame_cycle;
     QTimer timer;
-    Worker *worker;
+    QPointer< Worker > worker;
+    void pass_frame_to_video(const QString &name, const cv::Mat &frame);
+    void pass_string_to_label(const QString &name, const QString &value);
 };
+
+Q_DECLARE_METATYPE(QSharedPointer< FrameAnalysis >)
 
 #endif // MAINWINDOW_H
