@@ -28,7 +28,8 @@ private:
     std::chrono::time_point< std::chrono::system_clock > begin_time, end_time;
     std::chrono::time_point< std::chrono::steady_clock > begin_phase1, end_phase1, begin_phase2, end_phase2, begin_phase3, end_phase3;
 
-    cv::Mat warping;
+    // phase1
+    cv::Mat table_frame, table_frame_on_main;
 };
 
 #endif // FRAMEANALYSIS_H

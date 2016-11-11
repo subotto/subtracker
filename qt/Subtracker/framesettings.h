@@ -6,6 +6,7 @@
 struct FrameSettings {
     // The four corners of the table, in this order: red defence, red attack, blue defence, blue attack
     cv::Point2f table_corners[4];
+    cv::Size intermediate_size;
 };
 
 #endif // FRAMESETTINGS_H
