@@ -20,6 +20,8 @@ private:
     void phase2();
     void phase3();
 
+    void foosmen_ll(int color);
+
     cv::Mat frame;
     int frame_num;
     std::chrono::time_point< std::chrono::system_clock > time;
@@ -29,7 +31,7 @@ private:
     std::chrono::time_point< std::chrono::steady_clock > begin_phase1, end_phase1, begin_phase2, end_phase2, begin_phase3, end_phase3;
 
     // phase1
-    cv::Mat table_frame, table_frame_on_main;
+    cv::Mat table_frame, table_frame_on_main, float_table_frame;
 };
 
 #endif // FRAMEANALYSIS_H

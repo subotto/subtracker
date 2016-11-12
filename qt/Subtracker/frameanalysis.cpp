@@ -15,6 +15,16 @@ void FrameAnalysis::phase1() {
     this->begin_time = system_clock::now();
     this->begin_phase1 = steady_clock::now();
 
+    this->end_phase1 = steady_clock::now();
+}
+
+void FrameAnalysis::foosmen_ll(int color) {
+    Mat diff = this->float_table_frame - this->settings.foosmen_colors[i];
+}
+
+void FrameAnalysis::phase2() {
+    this->begin_phase2 = steady_clock::now();
+
     Size &size = this->settings.intermediate_size;
     Point2f image_corners[4] = { { 0.0, (float) size.height },
                                  { (float) size.width, (float) size.height },
@@ -25,14 +35,13 @@ void FrameAnalysis::phase1() {
 
     this->table_frame_on_main = frame.clone();
     for (int i = 0; i < 4; i++) {
-        line(this->table_frame_on_main, this->settings.table_corners[i], this->settings.table_corners[(i+1)%4], Scalar(255, 0, 0), 2);
+        line(this->table_frame_on_main, this->settings.table_corners[i], this->settings.table_corners[(i+1)%4], Scalar(0, 0, 255), 2);
     }
 
-    this->end_phase1 = steady_clock::now();
-}
+    this->table_frame.convertTo(this->float_table_frame, CV_32FC3);
 
-void FrameAnalysis::phase2() {
-    this->begin_phase2 = steady_clock::now();
+    this->foosmen_ll(0);
+    this->foosmen_ll(1);
 
     this->end_phase2 = steady_clock::now();
 }
