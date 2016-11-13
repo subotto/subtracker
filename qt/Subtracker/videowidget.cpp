@@ -23,8 +23,13 @@ void VideoWidget::set_current_frame(Mat current_frame)
 }
 
 static inline QImage mat_to_qimage(const Mat &mat) {
-    assert(mat.depth() == CV_8U);
-    return QImage(mat.data, mat.cols, mat.rows, mat.step, QImage::Format_RGB888).rgbSwapped();
+    if (mat.type() == CV_8UC3) {
+        return QImage(mat.data, mat.cols, mat.rows, mat.step, QImage::Format_RGB888).rgbSwapped();
+    } else if (mat.type() == CV_8UC1) {
+        return QImage(mat.data, mat.cols, mat.rows, mat.step, QImage::Format_Grayscale8);
+    } else {
+        assert("Unsupported matrix type" == 0);
+    }
 }
 
 QImage &VideoWidget::get_current_image() {

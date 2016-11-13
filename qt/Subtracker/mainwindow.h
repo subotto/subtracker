@@ -41,7 +41,6 @@ private:
 
     void pass_string_to_label(const QString &name, const QString &value);
     void settings_modified();
-    void init_settings();
     void pass_frame_to_video(VideoWidget *video, const cv::Mat &frame);
 };
 
