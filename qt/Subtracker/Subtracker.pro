@@ -19,7 +19,9 @@ SOURCES += main.cpp\
     logging.cpp \
     worker.cpp \
     context.cpp \
-    frameanalysis.cpp
+    frameanalysis.cpp \
+    categorybutton.cpp \
+    ballpanel.cpp
 
 HEADERS  += mainwindow.h \
     videowidget.h \
@@ -29,9 +31,12 @@ HEADERS  += mainwindow.h \
     context.h \
     frameanalysis.h \
     atomiccounter.h \
-    framesettings.h
+    framesettings.h \
+    categorybutton.h \
+    ballpanel.h
 
-FORMS    += mainwindow.ui
+FORMS    += mainwindow.ui \
+    ballpanel.ui
 
 QMAKE_CXXFLAGS += -std=c++14 -march=native -DBOOST_ALL_DYN_LINK
 QMAKE_LFLAGS += -lturbojpeg -lboost_log_setup -lboost_log -lboost_system -lboost_thread

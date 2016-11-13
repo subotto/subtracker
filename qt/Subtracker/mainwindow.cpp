@@ -16,8 +16,9 @@ MainWindow::MainWindow(QWidget *parent) :
     timer(this)
 {
     ui->setupUi(this);
+    this->connect_category_buttons();
     this->timer.setInterval(50);
-    connect(&this->timer, SIGNAL(timeout()), this, SLOT(update()));
+    connect(&this->timer, SIGNAL(timeout()), this, SLOT(repaint_everything()));
     //this->timer.start();
     qRegisterMetaType< QSharedPointer< FrameAnalysis > >();
 }
@@ -26,6 +27,10 @@ MainWindow::~MainWindow()
 {
     delete ui;
     //delete this->worker;
+}
+
+void MainWindow::connect_category_buttons() {
+    this->ui->
 }
 
 void MainWindow::on_actionStart_triggered()
@@ -50,6 +55,14 @@ void MainWindow::on_actionStop_triggered()
     this->ui->statusBar->showMessage("Stop!", 1000);
     this->worker->stop();
     this->timer.stop();
+}
+
+void MainWindow::repaint_everything()
+{
+    this->update();
+    for (int i = 0; i < this->ui->mainToolBox->count(); i++) {
+        this->ui->mainToolBox->widget(i)->update();
+    }
 }
 
 void MainWindow::pass_frame_to_video(VideoWidget *video, const Mat &frame) {

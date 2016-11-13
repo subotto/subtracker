@@ -26,6 +26,7 @@ public:
 private slots:
     void on_actionStart_triggered();
     void on_actionStop_triggered();
+    void repaint_everything();
 
 public slots:
     void receive_frame(QSharedPointer< FrameAnalysis > frame);
@@ -42,6 +43,7 @@ private:
     void pass_string_to_label(const QString &name, const QString &value);
     void settings_modified();
     void pass_frame_to_video(VideoWidget *video, const cv::Mat &frame);
+    void connect_category_buttons();
 };
 
 Q_DECLARE_METATYPE(QSharedPointer< FrameAnalysis >)
