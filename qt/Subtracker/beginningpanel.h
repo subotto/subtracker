@@ -17,6 +17,7 @@ public:
     explicit BeginningPanel(MainWindow *main, QWidget *parent = 0);
     ~BeginningPanel();
     void receive_frame(QSharedPointer<FrameAnalysis> frame);
+    void receive_settings(const FrameSettings &settings);
 
 private:
     Ui::BeginningPanel *ui;

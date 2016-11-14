@@ -17,6 +17,7 @@ public:
     explicit FoosmenPanel(MainWindow *main, QWidget *parent = 0);
     ~FoosmenPanel();
     void receive_frame(QSharedPointer<FrameAnalysis> frame);
+    void receive_settings(const FrameSettings &settings);
 
 private:
     Ui::FoosmenPanel *ui;

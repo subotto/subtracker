@@ -31,6 +31,10 @@ void MainWindow::add_all_frames() {
     this->add_frame_to_tree(new BeginningPanel(this), "Beginning panel");
     this->add_frame_to_tree(new BallPanel(this), "Ball panel");
     this->add_frame_to_tree(new FoosmenPanel(this), "Foosmen panel");
+
+    for (auto &sub_frame : this->sub_frames) {
+        sub_frame->receive_settings(this->settings);
+    }
 }
 
 MainWindow::~MainWindow()
@@ -73,7 +77,9 @@ void MainWindow::on_actionStart_triggered()
 }
 
 void MainWindow::settings_modified() {
-    this->worker->set_settings(this->settings);
+    if (this->worker != NULL) {
+        this->worker->set_settings(this->settings);
+    }
 }
 
 void MainWindow::on_actionStop_triggered()

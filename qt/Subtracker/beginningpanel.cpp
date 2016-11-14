@@ -18,3 +18,7 @@ void BeginningPanel::receive_frame(QSharedPointer<FrameAnalysis> frame)
     this->ui->frame->set_current_frame(frame->frame);
     this->ui->tableFrame->set_current_frame(frame->table_frame);
 }
+
+void BeginningPanel::receive_settings(const FrameSettings &settings) {
+
+}

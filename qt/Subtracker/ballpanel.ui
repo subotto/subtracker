@@ -26,6 +26,35 @@
        <height>200</height>
       </size>
      </property>
+     <zorder>ballR</zorder>
+    </widget>
+   </item>
+   <item>
+    <widget class="QSlider" name="ballR">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QSlider" name="ballG">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QSlider" name="ballB">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QSlider" name="ballStdDev">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
     </widget>
    </item>
   </layout>

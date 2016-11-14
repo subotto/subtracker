@@ -23,6 +23,10 @@ class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
+    friend class BallPanel;
+    friend class FoosmenPanel;
+    friend class BeginningPanel;
+
 public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
