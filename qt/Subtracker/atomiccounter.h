@@ -5,6 +5,8 @@
 
 #include "logging.h"
 
+// See some discussion here: http://stackoverflow.com/q/40498351/807307
+
 class AtomicCounter
 {
 public:

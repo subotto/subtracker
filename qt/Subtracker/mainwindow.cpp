@@ -2,6 +2,9 @@
 #include "ui_mainwindow.h"
 
 #include "logging.h"
+#include "categorybutton.h"
+#include "ballpanel.h"
+#include "foosmenpanel.h"
 
 #include <iomanip>
 
@@ -16,11 +19,15 @@ MainWindow::MainWindow(QWidget *parent) :
     timer(this)
 {
     ui->setupUi(this);
-    this->connect_category_buttons();
     this->timer.setInterval(50);
-    connect(&this->timer, SIGNAL(timeout()), this, SLOT(repaint_everything()));
-    //this->timer.start();
+    connect(&this->timer, SIGNAL(timeout()), this, SLOT(update()));
     qRegisterMetaType< QSharedPointer< FrameAnalysis > >();
+    this->add_all_frames();
+}
+
+void MainWindow::add_all_frames() {
+    this->add_frame_to_tree(new BallPanel(this), "Ball panel");
+    this->add_frame_to_tree(new FoosmenPanel(this), "Foosmen panel");
 }
 
 MainWindow::~MainWindow()
@@ -29,8 +36,24 @@ MainWindow::~MainWindow()
     //delete this->worker;
 }
 
-void MainWindow::connect_category_buttons() {
-    this->ui->
+void MainWindow::register_sub_frame(TreeSubFrame *sub_frame)
+{
+    this->sub_frames.push_back(sub_frame);
+    connect(&this->timer, SIGNAL(timeout()), sub_frame, SLOT(update()));
+}
+
+// Heavily copied from http://www.fancyaddress.com/blog/qt-2/create-something-like-the-widget-box-as-in-the-qt-designer/
+void MainWindow::add_frame_to_tree(QFrame *frame, const QString &button_text) {
+    QTreeWidget *tree = this->ui->tree;
+    QTreeWidgetItem *category = new QTreeWidgetItem();
+    tree->addTopLevelItem(category);
+    tree->setItemWidget(category, 0, new CategoryButton(button_text, tree, category));
+
+    frame->setParent(tree);
+    QTreeWidgetItem *container = new QTreeWidgetItem();
+    container->setDisabled(true);
+    category->addChild(container);
+    tree->setItemWidget(container, 0, frame);
 }
 
 void MainWindow::on_actionStart_triggered()
@@ -55,14 +78,6 @@ void MainWindow::on_actionStop_triggered()
     this->ui->statusBar->showMessage("Stop!", 1000);
     this->worker->stop();
     this->timer.stop();
-}
-
-void MainWindow::repaint_everything()
-{
-    this->update();
-    for (int i = 0; i < this->ui->mainToolBox->count(); i++) {
-        this->ui->mainToolBox->widget(i)->update();
-    }
 }
 
 void MainWindow::pass_frame_to_video(VideoWidget *video, const Mat &frame) {
@@ -98,10 +113,13 @@ void MainWindow::receive_frame(QSharedPointer<FrameAnalysis> frame)
     BOOST_LOG_NAMED_SCOPE("when frame produced");
     //BOOST_LOG_TRIVIAL(debug) << "Received frame";
     this->pass_frame_to_video(this->ui->mainVideo, frame->frame);
-    this->pass_frame_to_video(this->ui->tableFrameVideo, frame->viz_foosmen_ll[0]);
-    this->pass_frame_to_video(this->ui->tableFrameOnMainVideo, frame->viz_foosmen_ll[1]);
+    //this->pass_frame_to_video(this->ui->tableFrameOnMainVideo, frame->viz_foosmen_ll[1]);
     this->pass_string_to_label("processingTime", duration_to_string(frame->total_processing_time()).c_str());
     this->pass_string_to_label("frameTime", time_point_to_string(frame->time).c_str());
+
+    for (auto &sub_frame : this->sub_frames) {
+        sub_frame->receive_frame(frame);
+    }
 }
 
 void MainWindow::when_worker_finished() {

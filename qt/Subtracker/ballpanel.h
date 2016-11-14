@@ -3,17 +3,20 @@
 
 #include <QFrame>
 
+#include "treesubframe.h"
+
 namespace Ui {
 class BallPanel;
 }
 
-class BallPanel : public QFrame
+class BallPanel : public TreeSubFrame
 {
     Q_OBJECT
 
 public:
-    explicit BallPanel(QWidget *parent = 0);
+    explicit BallPanel(MainWindow *main, QWidget *parent = 0);
     ~BallPanel();
+    virtual void receive_frame(QSharedPointer<FrameAnalysis> frame);
 
 private:
     Ui::BallPanel *ui;
