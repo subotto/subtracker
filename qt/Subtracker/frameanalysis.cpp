@@ -18,14 +18,14 @@ void FrameAnalysis::phase1() {
     this->end_phase1 = steady_clock::now();
 }
 
-void FrameAnalysis::compute_foosmen_ll(int color) {
+void FrameAnalysis::compute_objects_ll(int color) {
     Mat tmp;
-    Mat diff = this->float_table_frame - this->settings.foosmen_colors[color];
-    float factor = -0.5f / (this->settings.foosmen_color_stddev[color] * this->settings.foosmen_color_stddev[color]);
+    Mat diff = this->float_table_frame - this->settings.objects_colors[color];
+    float factor = -0.5f / (this->settings.objects_color_stddev[color] * this->settings.objects_color_stddev[color]);
     Matx< float, 1, 3 > t = { factor, factor, factor };
     transform(diff.mul(diff), tmp, t);
-    this->foosmen_ll[color] = tmp - 3.0f/2.0f * log(2 * M_PI * this->settings.foosmen_color_stddev[color]);
-    this->foosmen_ll[color].convertTo(this->viz_foosmen_ll[color], CV_8UC1, 10.0, 255.0);
+    this->objects_ll[color] = tmp - 3.0f/2.0f * log(2 * M_PI * this->settings.objects_color_stddev[color]);
+    this->objects_ll[color].convertTo(this->viz_objects_ll[color], CV_8UC1, 10.0, 255.0);
 }
 
 void FrameAnalysis::phase2() {
@@ -46,8 +46,9 @@ void FrameAnalysis::phase2() {
 
     this->table_frame.convertTo(this->float_table_frame, CV_32FC3, 1.0/255.0);
 
-    this->compute_foosmen_ll(0);
-    this->compute_foosmen_ll(1);
+    for (int color = 0; color < 3; color++) {
+        this->compute_objects_ll(color);
+    }
 
     this->end_phase2 = steady_clock::now();
 }

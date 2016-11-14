@@ -12,6 +12,7 @@ class FrameAnalysis
     friend class MainWindow;
     friend class BallPanel;
     friend class FoosmenPanel;
+    friend class BeginningPanel;
 
 public:
     FrameAnalysis(const cv::Mat &frame, int frame_num, const std::chrono::time_point< std::chrono::system_clock > &time, const FrameSettings &settings);
@@ -22,7 +23,7 @@ private:
     void phase2();
     void phase3();
 
-    void compute_foosmen_ll(int color);
+    void compute_objects_ll(int color);
 
     cv::Mat frame;
     int frame_num;
@@ -34,8 +35,8 @@ private:
 
     // phase2
     cv::Mat table_frame, table_frame_on_main, float_table_frame;
-    cv::Mat foosmen_ll[2];
-    cv::Mat viz_foosmen_ll[2];
+    cv::Mat objects_ll[3];
+    cv::Mat viz_objects_ll[3];
 };
 
 #endif // FRAMEANALYSIS_H

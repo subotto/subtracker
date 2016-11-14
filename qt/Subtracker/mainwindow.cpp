@@ -3,8 +3,10 @@
 
 #include "logging.h"
 #include "categorybutton.h"
+
 #include "ballpanel.h"
 #include "foosmenpanel.h"
+#include "beginningpanel.h"
 
 #include <iomanip>
 
@@ -26,6 +28,7 @@ MainWindow::MainWindow(QWidget *parent) :
 }
 
 void MainWindow::add_all_frames() {
+    this->add_frame_to_tree(new BeginningPanel(this), "Beginning panel");
     this->add_frame_to_tree(new BallPanel(this), "Ball panel");
     this->add_frame_to_tree(new FoosmenPanel(this), "Foosmen panel");
 }

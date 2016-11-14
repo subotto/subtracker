@@ -23,7 +23,8 @@ SOURCES += main.cpp\
     categorybutton.cpp \
     ballpanel.cpp \
     treesubframe.cpp \
-    foosmenpanel.cpp
+    foosmenpanel.cpp \
+    beginningpanel.cpp
 
 HEADERS  += mainwindow.h \
     videowidget.h \
@@ -37,11 +38,13 @@ HEADERS  += mainwindow.h \
     categorybutton.h \
     ballpanel.h \
     treesubframe.h \
-    foosmenpanel.h
+    foosmenpanel.h \
+    beginningpanel.h
 
 FORMS    += mainwindow.ui \
     ballpanel.ui \
-    foosmenpanel.ui
+    foosmenpanel.ui \
+    beginningpanel.ui
 
 QMAKE_CXXFLAGS += -std=c++14 -march=native -DBOOST_ALL_DYN_LINK
 QMAKE_LFLAGS += -lturbojpeg -lboost_log_setup -lboost_log -lboost_system -lboost_thread

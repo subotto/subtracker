@@ -16,7 +16,7 @@ class FoosmenPanel : public TreeSubFrame
 public:
     explicit FoosmenPanel(MainWindow *main, QWidget *parent = 0);
     ~FoosmenPanel();
-    virtual void receive_frame(QSharedPointer<FrameAnalysis> frame);
+    void receive_frame(QSharedPointer<FrameAnalysis> frame);
 
 private:
     Ui::FoosmenPanel *ui;

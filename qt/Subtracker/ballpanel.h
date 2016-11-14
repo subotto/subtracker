@@ -16,7 +16,7 @@ class BallPanel : public TreeSubFrame
 public:
     explicit BallPanel(MainWindow *main, QWidget *parent = 0);
     ~BallPanel();
-    virtual void receive_frame(QSharedPointer<FrameAnalysis> frame);
+    void receive_frame(QSharedPointer<FrameAnalysis> frame);
 
 private:
     Ui::BallPanel *ui;
