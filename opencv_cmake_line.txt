@@ -2,3 +2,9 @@ cmake -DOPENCV_EXTRA_MODULES_PATH=../../opencv_contrib/modules/ -DWITH_CUDA=off 
 
 20160620
 cmake -DOPENCV_EXTRA_MODULES_PATH=../../opencv_contrib/modules/ -DWITH_LIBV4L=off -DBUILD_opencv_hdf=off -DPLANTUML_JAR=/usr/share/plantuml/plantuml.jar -DENABLE_SSE=on -DENABLE_SSE2=on -DENABLE_SSE3=on -DENABLE_SSSE3=on -DENABLE_SSE41=on -DENABLE_SSE42=o~ -DENABLE_AVX=on -DENABLE_POPCNT=on -DBUILD_EXAMPLES=ON -DCMAKE_INSTALL_PREFIX=../../opencv_install ..
+
+20161115
+cmake -DOPENCV_EXTRA_MODULES_PATH=../../opencv_contrib/modules/ -DWITH_LIBV4L=off -DBUILD_opencv_hdf=off -DPLANTUML_JAR=/usr/share/plantuml/plantuml.jar -DENABLE_SSE=on -DENABLE_SSE2=on -DENABLE_SSE3=on -DENABLE_SSSE3=on -DENABLE_SSE41=on -DENABLE_SSE42=o~ -DENABLE_AVX=on -DENABLE_POPCNT=on -DBUILD_EXAMPLES=ON -DCMAKE_INSTALL_PREFIX=../../opencv_install -DCUDA_HOST_COMPILER=/usr/lib/ccache/gcc-5 ..
+
+20161116
+cmake -DOPENCV_EXTRA_MODULES_PATH=../../opencv_contrib/modules/ -DWITH_LIBV4L=off -DBUILD_opencv_hdf=off -DPLANTUML_JAR=/usr/share/plantuml/plantuml.jar -DENABLE_SSE=on -DENABLE_SSE2=on -DENABLE_SSE3=on -DENABLE_SSSE3=on -DENABLE_SSE41=on -DENABLE_SSE42=o~ -DENABLE_AVX=on -DENABLE_POPCNT=on -DBUILD_EXAMPLES=ON -DCMAKE_INSTALL_PREFIX=../../opencv_install -DWITH_CUDA=OFF ..

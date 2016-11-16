@@ -1,8 +1,3 @@
-#-------------------------------------------------
-#
-# Project created by QtCreator 2016-11-02T23:49:57
-#
-#-------------------------------------------------
 
 QT       += core gui
 
@@ -46,8 +41,9 @@ FORMS    += mainwindow.ui \
     foosmenpanel.ui \
     beginningpanel.ui
 
-QMAKE_CXXFLAGS += -std=c++14 -march=native -DBOOST_ALL_DYN_LINK
-QMAKE_LFLAGS += -lturbojpeg -lboost_log_setup -lboost_log -lboost_system -lboost_thread
+QMAKE_CXXFLAGS += -std=c++14 -march=native -DBOOST_ALL_DYN_LINK $$system(pkg-config --cflags opencv)
+QMAKE_LFLAGS += -lturbojpeg -lboost_log_setup -lboost_log -lboost_system -lboost_thread $$system(pkg-config --libs opencv)
 
-CONFIG += link_pkgconfig
-PKGCONFIG += opencv
+# We do not use qmake own system for interfacing with pkg-config, because I cannot make it honour PKG_CONFIG_PATH which is essential for using our own version of OpenCV
+#CONFIG += link_pkgconfig
+#PKGCONFIG += opencv
