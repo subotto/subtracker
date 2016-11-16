@@ -18,6 +18,7 @@ public:
     virtual void receive_settings(const FrameSettings &settings) = 0;
 
 protected:
+    void set_main_on_children();
     MainWindow *main;
 };
 

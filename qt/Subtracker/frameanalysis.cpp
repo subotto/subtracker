@@ -11,7 +11,7 @@ FrameAnalysis::FrameAnalysis(const cv::Mat &frame, int frame_num, const std::chr
 
 }
 
-void FrameAnalysis::phase1() {
+void FrameAnalysis::phase1(Phase1Context &ctx) {
     this->begin_time = system_clock::now();
     this->begin_phase1 = steady_clock::now();
 
@@ -53,7 +53,7 @@ void FrameAnalysis::phase2() {
     this->end_phase2 = steady_clock::now();
 }
 
-void FrameAnalysis::phase3() {
+void FrameAnalysis::phase3(Phase3Context &ctx) {
     this->begin_phase3 = steady_clock::now();
 
     this->end_phase3 = steady_clock::now();
@@ -62,4 +62,19 @@ void FrameAnalysis::phase3() {
 
 std::chrono::steady_clock::duration FrameAnalysis::total_processing_time() {
     return (this->end_phase1 - this->begin_phase1) + (this->end_phase2 - this->begin_phase2) + (this->end_phase3 - this->begin_phase3);
+}
+
+steady_clock::duration FrameAnalysis::phase1_time()
+{
+    return this->end_phase1 - this->begin_phase1;
+}
+
+steady_clock::duration FrameAnalysis::phase2_time()
+{
+    return this->end_phase2 - this->begin_phase2;
+}
+
+steady_clock::duration FrameAnalysis::phase3_time()
+{
+    return this->end_phase3 - this->begin_phase3;
 }

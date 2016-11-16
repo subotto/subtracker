@@ -45,10 +45,12 @@ private:
     std::mutex settings_mutex;
     FrameSettings settings;
     FrameProducer *producer;
+    Phase1Context phase1_ctx;
 
     // phase3 variables
     int phase3_frame_num;
     std::set< std::pair< int, FrameAnalysis* > > reorder_buf;
+    Phase3Context phase3_ctx;
 };
 
 #endif // CONTEXT_H

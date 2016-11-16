@@ -45,6 +45,7 @@ void Context::phase1_thread() {
 
     while (true) {
         FrameInfo info = this->producer->get();
+        auto acquisition_time = system_clock::now();
         if (!info.valid) {
             this->exausted = true;
             BOOST_LOG_TRIVIAL(debug) << "Found terminator";
@@ -55,6 +56,7 @@ void Context::phase1_thread() {
         {
             unique_lock< mutex > lock(this->settings_mutex);
             frame = new FrameAnalysis(info.data, this->frame_num++, info.time, this->settings);
+            frame->acquisitionTime = acquisition_time;
         }
 
         this->phase1_fn(frame);
@@ -186,7 +188,7 @@ FrameAnalysis *Context::maybe_get() {
 }
 
 void Context::phase1_fn(FrameAnalysis *frame) {
-    frame->phase1();
+    frame->phase1(this->phase1_ctx);
 }
 
 void Context::phase2_fn(FrameAnalysis *frame) {
@@ -194,5 +196,5 @@ void Context::phase2_fn(FrameAnalysis *frame) {
 }
 
 void Context::phase3_fn(FrameAnalysis *frame) {
-    frame->phase3();
+    frame->phase3(this->phase3_ctx);
 }

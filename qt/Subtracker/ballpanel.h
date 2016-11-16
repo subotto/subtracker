@@ -24,6 +24,8 @@ private slots:
     void on_ballG_valueChanged(int value);
     void on_ballB_valueChanged(int value);
 
+    void on_ballStdDev_valueChanged(int value);
+
 private:
     Ui::BallPanel *ui;
 };

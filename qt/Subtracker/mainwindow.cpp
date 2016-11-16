@@ -28,7 +28,7 @@ MainWindow::MainWindow(QWidget *parent) :
 }
 
 void MainWindow::add_all_frames() {
-    this->add_frame_to_tree(new BeginningPanel(this), "Beginning panel");
+    this->add_frame_to_tree(new BeginningPanel(this), "Table detection panel");
     this->add_frame_to_tree(new BallPanel(this), "Ball panel");
     this->add_frame_to_tree(new FoosmenPanel(this), "Foosmen panel");
 
@@ -47,6 +47,11 @@ void MainWindow::register_sub_frame(TreeSubFrame *sub_frame)
 {
     this->sub_frames.push_back(sub_frame);
     connect(&this->timer, SIGNAL(timeout()), sub_frame, SLOT(update()));
+}
+
+VideoWidget *MainWindow::get_main_video()
+{
+    return this->ui->mainVideo;
 }
 
 // Heavily copied from http://www.fancyaddress.com/blog/qt-2/create-something-like-the-widget-box-as-in-the-qt-designer/
@@ -82,6 +87,11 @@ void MainWindow::settings_modified() {
     }
 }
 
+FrameSettings &MainWindow::get_settings()
+{
+    return this->settings;
+}
+
 void MainWindow::on_actionStop_triggered()
 {
     this->ui->statusBar->showMessage("Stop!", 1000);
@@ -94,8 +104,8 @@ void MainWindow::pass_frame_to_video(VideoWidget *video, const Mat &frame) {
     video->set_current_frame(frame);
 }
 
-void MainWindow::pass_string_to_label(const QString &name, const QString &value) {
-    auto label = *this->findChildren< QLabel* >(name).begin();
+void MainWindow::pass_string_to_label(QLabel *label, const QString &value) {
+    //auto label = *this->findChildren< QLabel* >(name).begin();
     label->setText(value);
 }
 
@@ -121,10 +131,16 @@ void MainWindow::receive_frame(QSharedPointer<FrameAnalysis> frame)
 {
     BOOST_LOG_NAMED_SCOPE("when frame produced");
     //BOOST_LOG_TRIVIAL(debug) << "Received frame";
-    this->pass_frame_to_video(this->ui->mainVideo, frame->frame);
-    //this->pass_frame_to_video(this->ui->tableFrameOnMainVideo, frame->viz_foosmen_ll[1]);
-    this->pass_string_to_label("processingTime", duration_to_string(frame->total_processing_time()).c_str());
-    this->pass_string_to_label("frameTime", time_point_to_string(frame->time).c_str());
+    auto now = system_clock::now();
+    this->pass_string_to_label(this->ui->currentTime, time_point_to_string(now).c_str());
+    this->pass_string_to_label(this->ui->frameTime, time_point_to_string(frame->time).c_str());
+    this->pass_string_to_label(this->ui->totalFrameDelay, duration_to_string(now - frame->time).c_str());
+    this->pass_string_to_label(this->ui->acquisitionTime, time_point_to_string(frame->acquisitionTime).c_str());
+    this->pass_string_to_label(this->ui->localFrameDelay, duration_to_string(now - frame->acquisitionTime).c_str());
+    this->pass_string_to_label(this->ui->phase1Time, duration_to_string(frame->phase1_time()).c_str());
+    this->pass_string_to_label(this->ui->phase2Time, duration_to_string(frame->phase2_time()).c_str());
+    this->pass_string_to_label(this->ui->phase3Time, duration_to_string(frame->phase3_time()).c_str());
+    this->pass_string_to_label(this->ui->totalProcessingTime, duration_to_string(frame->total_processing_time()).c_str());
 
     for (auto &sub_frame : this->sub_frames) {
         sub_frame->receive_frame(frame);

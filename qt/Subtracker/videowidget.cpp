@@ -5,11 +5,18 @@
 #include <chrono>
 #include <cmath>
 
+#include "logging.h"
+
 using namespace std;
 using namespace chrono;
 using namespace cv;
 
-VideoWidget::VideoWidget(QWidget *parent) : QWidget(parent)
+VideoWidget::VideoWidget(VideoWidget *following, QWidget *parent) :
+    QWidget(parent), following(following), main(NULL)
+{
+}
+
+VideoWidget::VideoWidget(QWidget *parent) : VideoWidget(this, parent)
 {
 }
 
@@ -20,6 +27,18 @@ void VideoWidget::set_current_frame(Mat current_frame)
 {
     this->current_frame = current_frame;
     this->current_image = QImage();
+}
+
+void VideoWidget::set_following(VideoWidget *following)
+{
+    this->following = following;
+}
+
+void VideoWidget::set_main(MainWindow *main)
+{
+    BOOST_LOG_NAMED_SCOPE("VideoWidget::set_main()");
+    BOOST_LOG_TRIVIAL(debug) << "called " << main;
+    this->main = main;
 }
 
 static inline QImage mat_to_qimage(const Mat &mat) {
@@ -73,10 +92,20 @@ void VideoWidget::paintEvent(QPaintEvent *event) {
     painter.setPen(QColor(0, 0, 0));
     painter.fillRect(rect, QColor(0, 0, 0));
 
-    QImage &frame = this->get_current_image();
+    QImage &frame = this->following->get_current_image();
     QSize frame_size = frame.size();
     QRect draw_rect = fit_size(frame_size, rect);
     //painter.drawImage(0, 0, frame);
     painter.drawImage(draw_rect, frame);
 
+}
+
+void VideoWidget::mousePressEvent(QMouseEvent *event)
+{
+    BOOST_LOG_NAMED_SCOPE("VideoWidget::mousePressEvent()");
+    BOOST_LOG_TRIVIAL(debug) << "received " << this->main;
+    Q_UNUSED(event);
+    if (this->main != NULL) {
+        this->main->get_main_video()->set_following(this);
+    }
 }

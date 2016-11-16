@@ -6,6 +6,7 @@ FoosmenPanel::FoosmenPanel(MainWindow *main, QWidget *parent) :
     ui(new Ui::FoosmenPanel)
 {
     ui->setupUi(this);
+    this->set_main_on_children();
 }
 
 FoosmenPanel::~FoosmenPanel()

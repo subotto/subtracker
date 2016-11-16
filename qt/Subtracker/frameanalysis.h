@@ -6,6 +6,16 @@
 
 #include "framesettings.h"
 
+struct Phase1Context {
+    bool first_frame = true;
+    cv::Mat table_frame_mean;
+    cv::Mat table_frame_var;
+};
+
+struct Phase3Context {
+
+};
+
 class FrameAnalysis
 {
     friend class Context;
@@ -17,17 +27,20 @@ class FrameAnalysis
 public:
     FrameAnalysis(const cv::Mat &frame, int frame_num, const std::chrono::time_point< std::chrono::system_clock > &time, const FrameSettings &settings);
     std::chrono::steady_clock::duration total_processing_time();
+    std::chrono::steady_clock::duration phase1_time();
+    std::chrono::steady_clock::duration phase2_time();
+    std::chrono::steady_clock::duration phase3_time();
 
 private:
-    void phase1();
+    void phase1(Phase1Context &ctx);
     void phase2();
-    void phase3();
+    void phase3(Phase3Context &ctx);
 
     void compute_objects_ll(int color);
 
     cv::Mat frame;
     int frame_num;
-    std::chrono::time_point< std::chrono::system_clock > time;
+    std::chrono::time_point< std::chrono::system_clock > time, acquisitionTime;
     FrameSettings settings;
 
     std::chrono::time_point< std::chrono::system_clock > begin_time, end_time;
