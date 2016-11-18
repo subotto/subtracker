@@ -2,6 +2,14 @@
 <ui version="4.0">
  <class>BallPanel</class>
  <widget class="QFrame" name="BallPanel">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>200</width>
+    <height>304</height>
+   </rect>
+  </property>
   <property name="minimumSize">
    <size>
     <width>200</width>
@@ -19,15 +27,7 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="VideoWidget" name="ballLL" native="true">
-     <property name="minimumSize">
-      <size>
-       <width>0</width>
-       <height>200</height>
-      </size>
-     </property>
-     <zorder>ballR</zorder>
-    </widget>
+    <widget class="VideoWidget" name="ballLL" native="true"/>
    </item>
    <item>
     <widget class="QSlider" name="ballR">

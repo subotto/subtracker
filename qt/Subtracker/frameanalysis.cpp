@@ -15,6 +15,9 @@ void FrameAnalysis::phase1(Phase1Context &ctx) {
     this->begin_time = system_clock::now();
     this->begin_phase1 = steady_clock::now();
 
+    this->ref_image = this->settings.ref_image;
+    this->ref_mask = this->settings.ref_mask;
+
     this->end_phase1 = steady_clock::now();
 }
 

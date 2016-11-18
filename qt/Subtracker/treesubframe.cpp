@@ -9,5 +9,6 @@ TreeSubFrame::TreeSubFrame(MainWindow *main, QWidget *parent) :
 void TreeSubFrame::set_main_on_children() {
     for (auto &child : this->findChildren< VideoWidget* >()) {
         child->set_main(this->main);
+        child->setMinimumHeight(200);
     }
 }

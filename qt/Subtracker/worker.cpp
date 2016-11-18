@@ -25,17 +25,19 @@ void Worker::stop() {
     this->jpeg_reader.stop();
 }
 
+QSharedPointer< FrameAnalysis > Worker::maybe_get() {
+    return QSharedPointer< FrameAnalysis >(this->context.maybe_get());
+}
+
 void Worker::run() {
     BOOST_LOG_NAMED_SCOPE("worker run");
     this->jpeg_reader.start();
     while (this->running) {
-        FrameAnalysis *frame = this->context.get();
-        if (frame == NULL) {
+        this->context.wait();
+        if (this->context.is_finished()) {
             BOOST_LOG_TRIVIAL(debug) << "Worker ready to exit";
             break;
         }
-        QSharedPointer< FrameAnalysis > frame_ptr(frame);
-        //BOOST_LOG_TRIVIAL(debug) << "Emitting frame";
-        emit frame_produced(frame_ptr);
+        emit frame_produced();
     }
 }

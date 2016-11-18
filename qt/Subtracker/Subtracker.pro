@@ -19,7 +19,8 @@ SOURCES += main.cpp\
     ballpanel.cpp \
     treesubframe.cpp \
     foosmenpanel.cpp \
-    beginningpanel.cpp
+    beginningpanel.cpp \
+    memory.c
 
 HEADERS  += mainwindow.h \
     videowidget.h \
@@ -34,7 +35,8 @@ HEADERS  += mainwindow.h \
     ballpanel.h \
     treesubframe.h \
     foosmenpanel.h \
-    beginningpanel.h
+    beginningpanel.h \
+    memory.h
 
 FORMS    += mainwindow.ui \
     ballpanel.ui \

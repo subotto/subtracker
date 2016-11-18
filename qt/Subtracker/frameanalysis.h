@@ -46,6 +46,9 @@ private:
     std::chrono::time_point< std::chrono::system_clock > begin_time, end_time;
     std::chrono::time_point< std::chrono::steady_clock > begin_phase1, end_phase1, begin_phase2, end_phase2, begin_phase3, end_phase3;
 
+    // phase1
+    cv::Mat ref_image, ref_mask;
+
     // phase2
     cv::Mat table_frame, table_frame_on_main, float_table_frame;
     cv::Mat objects_ll[3];

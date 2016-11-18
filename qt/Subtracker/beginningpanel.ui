@@ -4,7 +4,7 @@
  <widget class="QFrame" name="BeginningPanel">
   <property name="minimumSize">
    <size>
-    <width>200</width>
+    <width>400</width>
     <height>0</height>
    </size>
   </property>
@@ -19,24 +19,48 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="VideoWidget" name="frame" native="true">
-     <property name="minimumSize">
-      <size>
-       <width>0</width>
-       <height>200</height>
-      </size>
-     </property>
-    </widget>
+    <widget class="VideoWidget" name="frame" native="true"/>
    </item>
    <item>
-    <widget class="VideoWidget" name="tableFrame" native="true">
-     <property name="minimumSize">
-      <size>
-       <width>0</width>
-       <height>200</height>
-      </size>
-     </property>
-    </widget>
+    <widget class="VideoWidget" name="tableFrame" native="true"/>
+   </item>
+   <item>
+    <widget class="VideoWidget" name="refImage" native="true"/>
+   </item>
+   <item>
+    <widget class="VideoWidget" name="refMask" native="true"/>
+   </item>
+   <item>
+    <layout class="QGridLayout" name="gridLayout" columnstretch="0,1">
+     <item row="0" column="0">
+      <widget class="QPushButton" name="refImageButton">
+       <property name="text">
+        <string>Reference image</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QLabel" name="refImageFilename">
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QLabel" name="refMaskFilename">
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QPushButton" name="refMaskButton">
+       <property name="text">
+        <string>Reference mask</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
   </layout>
  </widget>

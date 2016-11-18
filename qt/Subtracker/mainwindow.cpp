@@ -7,6 +7,7 @@
 #include "ballpanel.h"
 #include "foosmenpanel.h"
 #include "beginningpanel.h"
+#include "memory.h"
 
 #include <iomanip>
 
@@ -22,7 +23,11 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
     this->timer.setInterval(50);
+    this->mem_timer.setInterval(1000);
     connect(&this->timer, SIGNAL(timeout()), this, SLOT(update()));
+    connect(&this->mem_timer, SIGNAL(timeout()), this, SLOT(update_mem()));
+    this->mem_timer.start();
+    this->update_mem();
     qRegisterMetaType< QSharedPointer< FrameAnalysis > >();
     this->add_all_frames();
 }
@@ -73,7 +78,7 @@ void MainWindow::on_actionStart_triggered()
     bool res;
     this->ui->statusBar->showMessage("Start!", 1000);
     this->worker = new Worker(this->settings);
-    res = connect(this->worker, SIGNAL(frame_produced(QSharedPointer<FrameAnalysis>)), this, SLOT(receive_frame(QSharedPointer<FrameAnalysis>)), Qt::QueuedConnection);
+    res = connect(this->worker, SIGNAL(frame_produced()), this, SLOT(receive_frame()), Qt::QueuedConnection);
     assert(res);
     res = connect(this->worker, SIGNAL(finished()), this, SLOT(when_worker_finished()), Qt::QueuedConnection);
     assert(res);
@@ -127,10 +132,32 @@ static inline string duration_to_string(const system_clock::duration &dur) {
     return stream.str();
 }
 
-void MainWindow::receive_frame(QSharedPointer<FrameAnalysis> frame)
+// Partly taken from http://programanddesign.com/cpp/human-readable-file-size-in-c/
+static inline string size_to_string(size_t size) {
+    ostringstream stream;
+    int i = 0;
+    const char* units[] = {"B", "kiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"};
+    while (size > 1024) {
+        size /= 1024;
+        i++;
+    }
+    stream << fixed << setprecision(2) << size << " " << units[i];
+    return stream.str();
+}
+
+void MainWindow::receive_frame()
 {
     BOOST_LOG_NAMED_SCOPE("when frame produced");
     //BOOST_LOG_TRIVIAL(debug) << "Received frame";
+    QSharedPointer< FrameAnalysis > frame, temp;
+    // Consider the last available frame
+    while (!(temp = this->worker->maybe_get()).isNull()) {
+        frame = temp;
+    }
+    // There could be no frame if the queue has already been exhausted by a previous run
+    if (frame.isNull()) {
+        return;
+    }
     auto now = system_clock::now();
     this->pass_string_to_label(this->ui->currentTime, time_point_to_string(now).c_str());
     this->pass_string_to_label(this->ui->frameTime, time_point_to_string(frame->time).c_str());
@@ -145,6 +172,15 @@ void MainWindow::receive_frame(QSharedPointer<FrameAnalysis> frame)
     for (auto &sub_frame : this->sub_frames) {
         sub_frame->receive_frame(frame);
     }
+}
+
+void MainWindow::update_mem()
+{
+    this->current_rss = getCurrentRSS();
+    this->peak_rss = getPeakRSS();
+    this->pass_string_to_label(this->ui->currentMem, size_to_string(this->current_rss).c_str());
+    this->pass_string_to_label(this->ui->peakMem, size_to_string(this->peak_rss).c_str());
+    this->update();
 }
 
 void MainWindow::when_worker_finished() {

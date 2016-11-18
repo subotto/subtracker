@@ -18,9 +18,11 @@ class Context
 public:
     Context(int slave_num, FrameProducer *producer, const FrameSettings &settings);
     FrameAnalysis *get();
+    void wait();
     FrameAnalysis *maybe_get();
     ~Context();
     void set_settings(const FrameSettings &settings);
+    bool is_finished();
 
 private:
     void phase1_fn(FrameAnalysis *frame);

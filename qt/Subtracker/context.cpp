@@ -36,6 +36,11 @@ void Context::set_settings(const FrameSettings &settings) {
     this->settings = settings;
 }
 
+bool Context::is_finished()
+{
+    return (!this->running || (this->phase3_count == 0 && this->exausted));
+}
+
 void Context::phase1_thread() {
 
     BOOST_LOG_NAMED_SCOPE("phase1 thread");
@@ -173,6 +178,16 @@ FrameAnalysis *Context::get() {
     this->phase3_out = NULL;
     this->phase3_empty.notify_one();
     return frame;
+}
+
+void Context::wait() {
+    unique_lock< mutex > lock(this->phase3_mutex);
+    while (this->phase3_out == NULL) {
+        if (!this->running || (this->phase3_count == 0 && this->exausted)) {
+            return;
+        }
+        this->phase3_full.wait_for(lock, seconds(1));
+    }
 }
 
 FrameAnalysis *Context::maybe_get() {

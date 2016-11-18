@@ -27,14 +27,14 @@
        <widget class="VideoWidget" name="mainVideo" native="true">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
-          <horstretch>1</horstretch>
-          <verstretch>1</verstretch>
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
          </sizepolicy>
         </property>
         <property name="minimumSize">
          <size>
-          <width>640</width>
-          <height>480</height>
+          <width>350</width>
+          <height>300</height>
          </size>
         </property>
        </widget>
@@ -172,10 +172,44 @@
            </property>
           </widget>
          </item>
+         <item row="9" column="0">
+          <widget class="QLabel" name="label_9">
+           <property name="text">
+            <string>Current memory usage:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="9" column="1">
+          <widget class="QLabel" name="currentMem">
+           <property name="text">
+            <string/>
+           </property>
+          </widget>
+         </item>
+         <item row="10" column="0">
+          <widget class="QLabel" name="label_12">
+           <property name="text">
+            <string>Peak memory usage:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="10" column="1">
+          <widget class="QLabel" name="peakMem">
+           <property name="text">
+            <string/>
+           </property>
+          </widget>
+         </item>
         </layout>
        </widget>
       </widget>
       <widget class="QTreeWidget" name="tree">
+       <property name="minimumSize">
+        <size>
+         <width>400</width>
+         <height>600</height>
+        </size>
+       </property>
        <property name="verticalScrollBarPolicy">
         <enum>Qt::ScrollBarAlwaysOn</enum>
        </property>

@@ -40,19 +40,21 @@ public:
 private slots:
     void on_actionStart_triggered();
     void on_actionStop_triggered();
+    void update_mem();
 
 public slots:
-    void receive_frame(QSharedPointer< FrameAnalysis > frame);
+    void receive_frame();
     void when_worker_finished();
 
 private:
     Ui::MainWindow *ui;
 
     FrameCycle *frame_cycle;
-    QTimer timer;
+    QTimer timer, mem_timer;
     QPointer< Worker > worker;
     FrameSettings settings;
     std::vector< TreeSubFrame* > sub_frames;
+    size_t current_rss, peak_rss;
 
     void pass_string_to_label(QLabel *label, const QString &value);
     void pass_frame_to_video(VideoWidget *video, const cv::Mat &frame);

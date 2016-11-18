@@ -2,6 +2,9 @@
 #define BEGINNINGPANEL_H
 
 #include <QFrame>
+#include <QFutureWatcher>
+
+#include <opencv2/core/core.hpp>
 
 #include "treesubframe.h"
 
@@ -19,8 +22,18 @@ public:
     void receive_frame(QSharedPointer<FrameAnalysis> frame);
     void receive_settings(const FrameSettings &settings);
 
+private slots:
+    void on_refImageButton_clicked();
+    void on_refMaskButton_clicked();
+    void handle_future();
+
 private:
+    void add_future_watcher(const QFuture<std::pair<cv::Mat, std::string> > &future);
+    bool handle_one_future(QFutureWatcher<std::pair<cv::Mat, std::string> > *future);
+    void async_load_image(const std::string &variant);
+
     Ui::BeginningPanel *ui;
+    std::vector< QFutureWatcher< std::pair< cv::Mat, std::string > >* > watchers;
 };
 
 #endif // BEGINNINGPANEL_H

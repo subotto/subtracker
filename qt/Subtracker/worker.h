@@ -16,9 +16,10 @@ public:
     Worker(const FrameSettings &settings);
     void stop();
     void set_settings(const FrameSettings &settings);
+    QSharedPointer<FrameAnalysis> maybe_get();
 
 signals:
-    void frame_produced(QSharedPointer< FrameAnalysis > frame);
+    void frame_produced();
 
 private:
     void run();
