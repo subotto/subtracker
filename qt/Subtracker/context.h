@@ -25,10 +25,7 @@ public:
     bool is_finished();
 
 private:
-    void phase1_fn(FrameAnalysis *frame);
-    void phase2_fn(FrameAnalysis *frame);
-    void phase3_fn(FrameAnalysis *frame);
-
+    void phase0_thread();
     void phase1_thread();
     void phase2_thread();
     void phase3_thread();
@@ -36,10 +33,10 @@ private:
     std::atomic< bool > running;
     std::vector< std::thread > slaves;
 
-    std::mutex phase1_mutex, phase2_mutex, phase3_mutex;
-    std::condition_variable phase1_empty, phase2_empty, phase3_empty, phase1_full, phase2_full, phase3_full;
-    FrameAnalysis *phase1_out, *phase2_out, *phase3_out;
-    std::atomic< int > phase1_count, phase2_count, phase3_count;
+    std::mutex phase0_mutex, phase1_mutex, phase2_mutex, phase3_mutex;
+    std::condition_variable phase0_empty, phase0_full, phase1_empty, phase2_empty, phase3_empty, phase1_full, phase2_full, phase3_full;
+    FrameAnalysis *phase0_out, *phase1_out, *phase2_out, *phase3_out;
+    std::atomic< int > phase0_count, phase1_count, phase2_count, phase3_count;
     std::atomic< bool > exausted;
 
     // phase1 variables

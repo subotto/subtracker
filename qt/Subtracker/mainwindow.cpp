@@ -164,6 +164,7 @@ void MainWindow::receive_frame()
     this->pass_string_to_label(this->ui->totalFrameDelay, duration_to_string(now - frame->time).c_str());
     this->pass_string_to_label(this->ui->acquisitionTime, time_point_to_string(frame->acquisitionTime).c_str());
     this->pass_string_to_label(this->ui->localFrameDelay, duration_to_string(now - frame->acquisitionTime).c_str());
+    this->pass_string_to_label(this->ui->phase0Time, duration_to_string(frame->phase0_time()).c_str());
     this->pass_string_to_label(this->ui->phase1Time, duration_to_string(frame->phase1_time()).c_str());
     this->pass_string_to_label(this->ui->phase2Time, duration_to_string(frame->phase2_time()).c_str());
     this->pass_string_to_label(this->ui->phase3Time, duration_to_string(frame->phase3_time()).c_str());

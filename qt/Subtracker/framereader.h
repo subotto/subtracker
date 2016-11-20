@@ -19,12 +19,23 @@ struct FrameInfo {
   // The wall-clock time at which the frame is expected to be
   // processed by the program (only used internally by the queue
   // manager and only when performing live simulation)
-    std::chrono::time_point< std::chrono::system_clock > playback_time;
+  std::chrono::time_point< std::chrono::system_clock > playback_time;
+  // Raw data before they are decoded to an OpenCV image
+  std::shared_ptr< std::vector< char > > buffer;
   // The frame data itself
-    cv::Mat data;
+  cv::Mat data;
   // If false the frame could not be read (probably the video has
   // finished) and nothing else in this struct should be trusted
   bool valid;
+
+  bool decode_buffer(tjhandle tj_dec);
+};
+
+struct JPEGFrameInfo : public FrameInfo {
+public:
+    bool decode_buffer();
+private:
+    tjhandle tj_dec;
 };
 
 class FrameProducer {
@@ -87,7 +98,6 @@ public:
 class JPEGReader: public FrameCycle {
 private:
   cv::Ptr< std::istream > fin;
-  tjhandle tj_dec;
   std::chrono::time_point<std::chrono::system_clock> first_frame_time;
   bool first_frame_seen = false;
   bool from_file;

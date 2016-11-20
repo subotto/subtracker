@@ -11,14 +11,15 @@ FrameAnalysis::FrameAnalysis(const cv::Mat &frame, int frame_num, const std::chr
 
 }
 
+void FrameAnalysis::phase0() {
+
+}
+
 void FrameAnalysis::phase1(Phase1Context &ctx) {
-    this->begin_time = system_clock::now();
-    this->begin_phase1 = steady_clock::now();
 
     this->ref_image = this->settings.ref_image;
     this->ref_mask = this->settings.ref_mask;
 
-    this->end_phase1 = steady_clock::now();
 }
 
 void FrameAnalysis::compute_objects_ll(int color) {
@@ -32,7 +33,6 @@ void FrameAnalysis::compute_objects_ll(int color) {
 }
 
 void FrameAnalysis::phase2() {
-    this->begin_phase2 = steady_clock::now();
 
     Size &size = this->settings.intermediate_size;
     Point2f image_corners[4] = { { 0.0, (float) size.height },
@@ -53,18 +53,19 @@ void FrameAnalysis::phase2() {
         this->compute_objects_ll(color);
     }
 
-    this->end_phase2 = steady_clock::now();
 }
 
 void FrameAnalysis::phase3(Phase3Context &ctx) {
-    this->begin_phase3 = steady_clock::now();
 
-    this->end_phase3 = steady_clock::now();
-    this->end_time = system_clock::now();
 }
 
 std::chrono::steady_clock::duration FrameAnalysis::total_processing_time() {
-    return (this->end_phase1 - this->begin_phase1) + (this->end_phase2 - this->begin_phase2) + (this->end_phase3 - this->begin_phase3);
+    return (this->end_phase0 - this->begin_phase0) + (this->end_phase1 - this->begin_phase1) + (this->end_phase2 - this->begin_phase2) + (this->end_phase3 - this->begin_phase3);
+}
+
+steady_clock::duration FrameAnalysis::phase0_time()
+{
+    return this->end_phase0 - this->begin_phase0;
 }
 
 steady_clock::duration FrameAnalysis::phase1_time()

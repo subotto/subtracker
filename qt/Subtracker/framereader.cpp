@@ -25,9 +25,9 @@ bool FrameCycle::init_thread() {
 
 void FrameCycle::terminate() {
 
-    BOOST_LOG_TRIVIAL(debug) << "Enqueueing terminator";
-    this->push({ time_point< system_clock >(), time_point< system_clock >(), Mat(), false });
     this->finished = true;
+    unique_lock<mutex> lock(this->queue_mutex);
+    this->queue_not_empty.notify_all();
 
 }
 
@@ -147,8 +147,11 @@ void FrameCycle::push(FrameInfo info) {
 
 FrameInfo FrameCycle::get() {
   unique_lock<mutex> lock(queue_mutex);
-  while(queue.empty()) {
-    queue_not_empty.wait(lock);
+  while (queue.empty()) {
+      if (this->finished) {
+          return { time_point< system_clock >(), time_point< system_clock >(), NULL, Mat(), false };
+      }
+      queue_not_empty.wait(lock);
   }
   auto res = queue.front();
   queue.pop_front();
@@ -159,7 +162,7 @@ FrameInfo FrameCycle::get() {
 FrameInfo FrameCycle::maybe_get() {
   unique_lock<mutex> lock(this->queue_mutex);
   if (queue.empty()) {
-      return { time_point< system_clock >(), time_point< system_clock >(), Mat(), false };
+      return { time_point< system_clock >(), time_point< system_clock >(), NULL, Mat(), false };
   }
   auto res = queue.front();
   queue.pop_front();
@@ -169,7 +172,7 @@ FrameInfo FrameCycle::maybe_get() {
 
 FrameInfo FrameCycle::get_last() {
   unique_lock<mutex> lock(this->queue_mutex);
-  FrameInfo res = { time_point< system_clock >(), time_point< system_clock >(), Mat(), false };
+  FrameInfo res = { time_point< system_clock >(), time_point< system_clock >(), NULL, Mat(), false };
   while (!queue.empty()) {
     res = queue.front();
     queue.pop_front();
@@ -202,7 +205,7 @@ void FrameCycle::set_droppy(bool droppy) {
 }
 
 JPEGReader::JPEGReader(string file_name, bool from_file, bool simulate_live, int width, int height)
-  : FrameCycle(false), tj_dec(tjInitDecompress()), from_file(from_file), width(width), height(height) {
+  : FrameCycle(false), from_file(from_file), width(width), height(height) {
 
   BOOST_LOG_NAMED_SCOPE("jpeg open");
 
@@ -258,11 +261,12 @@ void JPEGReader::mangle_file_name(string &file_name, bool &from_file, bool &simu
 JPEGReader::~JPEGReader() {
 
   this->join_worker();
-  tjDestroy(this->tj_dec);
 
 }
 
 bool JPEGReader::process_frame() {
+
+  FrameInfo info;
 
   BOOST_LOG_NAMED_SCOPE("jpeg process");
 
@@ -281,33 +285,11 @@ bool JPEGReader::process_frame() {
   }
   length = ntohl(length);
   // See http://stackoverflow.com/a/30605295/807307
-  vector< char > buffer(length);
-  this->fin->read(&buffer[0], length);
+  info.buffer = shared_ptr< vector< char > >(new vector< char >(length));
+  this->fin->read(&(*info.buffer)[0], length);
   if (this->fin->gcount() != length) {
     BOOST_LOG_TRIVIAL(error) << "Cannot read data";
     return false;
-  }
-
-  // Actually decode image
-  FrameInfo info;
-  int width, height, subsamp, res;
-  res = tjDecompressHeader2(this->tj_dec, (unsigned char*) &buffer[0], length, &width, &height, &subsamp);
-  if (res) {
-    BOOST_LOG_TRIVIAL(warning) << "Cannot decompress JPEG header, skipping frame";
-    return true;
-  }
-  if (this->width >= 0) {
-    width = this->width;
-  }
-  if (this->height >= 0) {
-    height = this->height;
-  }
-  info.data = Mat(height, width, CV_8UC3);
-  assert(info.data.elemSize() == 3);
-  res = tjDecompress2(this->tj_dec, (unsigned char*) &buffer[0], length, info.data.data, width, info.data.step[0], height, TJPF_BGR, TJFLAG_ACCURATEDCT);
-  if (res) {
-    BOOST_LOG_TRIVIAL(warning) << "Cannot decompress JPEG image, skipping frame";
-    return true;
   }
 
   // Fill other satellite information and send frame
@@ -324,5 +306,29 @@ bool JPEGReader::process_frame() {
   }
   this->push(info);
   return true;
+
+}
+
+bool FrameInfo::decode_buffer(tjhandle tj_dec) {
+
+    BOOST_LOG_NAMED_SCOPE("jpeg decode buffer");
+
+    // Actually decode image
+    int width, height, subsamp, res;
+    int length = this->buffer->size();
+    res = tjDecompressHeader2(tj_dec, (unsigned char*) &(*this->buffer)[0], length, &width, &height, &subsamp);
+    if (res) {
+      BOOST_LOG_TRIVIAL(warning) << "Cannot decompress JPEG header (" << tjGetErrorStr() << ")";
+      return false;
+    }
+    this->data = Mat(height, width, CV_8UC3);
+    assert(this->data.elemSize() == 3);
+    res = tjDecompress2(tj_dec, (unsigned char*) &(*this->buffer)[0], length, this->data.data, width, this->data.step[0], height, TJPF_BGR, TJFLAG_ACCURATEDCT);
+    if (res) {
+      BOOST_LOG_TRIVIAL(warning) << "Cannot decompress JPEG image (" << tjGetErrorStr() << ")";
+      return false;
+    }
+
+    return true;
 
 }
