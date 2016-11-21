@@ -5,6 +5,7 @@
 #include <opencv2/core/core.hpp>
 
 #include "framesettings.h"
+#include "framewaiter.h"
 
 struct Phase1Context {
     bool first_frame = true;

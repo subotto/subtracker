@@ -36,7 +36,8 @@ HEADERS  += mainwindow.h \
     treesubframe.h \
     foosmenpanel.h \
     beginningpanel.h \
-    memory.h
+    memory.h \
+    framewaiter.h
 
 FORMS    += mainwindow.ui \
     ballpanel.ui \
