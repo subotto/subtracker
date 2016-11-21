@@ -28,12 +28,12 @@ private slots:
     void handle_future();
 
 private:
-    void add_future_watcher(const QFuture<std::pair<cv::Mat, std::string> > &future);
-    bool handle_one_future(QFutureWatcher<std::pair<cv::Mat, std::string> > *future);
+    void add_future_watcher(const QFuture<std::tuple<cv::Mat, std::string, std::string> > &future);
+    bool handle_one_future(QFutureWatcher<std::tuple<cv::Mat, std::string, std::string> > *future);
     void async_load_image(const std::string &variant);
 
     Ui::BeginningPanel *ui;
-    std::vector< QFutureWatcher< std::pair< cv::Mat, std::string > >* > watchers;
+    std::vector< QFutureWatcher< std::tuple< cv::Mat, std::string, std::string > >* > watchers;
 };
 
 #endif // BEGINNINGPANEL_H

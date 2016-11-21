@@ -26,8 +26,8 @@ BeginningPanel::~BeginningPanel()
     delete ui;
 }
 
-void BeginningPanel::add_future_watcher(const QFuture< pair< Mat, string > > &future) {
-    auto watcher = new QFutureWatcher< pair< Mat, string > >(this);
+void BeginningPanel::add_future_watcher(const QFuture< tuple< Mat, string, string > > &future) {
+    auto watcher = new QFutureWatcher< tuple< Mat, string, string > >(this);
     bool res;
     res = connect(watcher, SIGNAL(finished()), this, SLOT(handle_future()));
     assert(res);
@@ -35,15 +35,18 @@ void BeginningPanel::add_future_watcher(const QFuture< pair< Mat, string > > &fu
     this->watchers.push_back(watcher);
 }
 
-bool BeginningPanel::handle_one_future(QFutureWatcher< pair< Mat, string > > *future) {
+bool BeginningPanel::handle_one_future(QFutureWatcher< tuple<Mat, string, string> > *future) {
     if (future->isFinished()) {
-        auto image = future->result().first;
-        auto variant = future->result().second;
+        auto image = get<0>(future->result());
+        auto filename = get<1>(future->result());
+        auto variant = get<2>(future->result());
         assert(variant == "image" || variant == "mask");
         if (variant == "image") {
             this->main->get_settings().ref_image = image;
+            this->main->get_settings().ref_image_filename = filename;
         } else {
             this->main->get_settings().ref_mask = image;
+            this->main->get_settings().ref_mask_filename = filename;
         }
         this->main->settings_modified();
         delete future;
@@ -71,17 +74,20 @@ void BeginningPanel::receive_frame(QSharedPointer<FrameAnalysis> frame)
 }
 
 void BeginningPanel::receive_settings(const FrameSettings &settings) {
-
+    Q_UNUSED(settings);
+    // FIXME: implement some sane default
 }
 
-pair< Mat, string > load_image_thread(QString filename, string variant) {
-    return make_pair(imread(filename.toUtf8().constData()), variant);
+tuple< Mat, string, string > load_image_thread(QString filename, string variant) {
+    string cpp_filename = filename.toUtf8().constData();
+    return make_tuple(imread(cpp_filename), cpp_filename, variant);
 }
 
 void BeginningPanel::async_load_image(const string &variant) {
     assert(variant == "image" || variant == "mask");
     QString title = variant == "image" ? tr("Open reference image") : tr("Open reference mask");
     QString filename = QFileDialog::getOpenFileName(this, title, "", tr("Images (*.png *.xpm *.jpg)"));
+    (variant == "image" ? this->ui->refImageFilename : this->ui->refMaskFilename)->setText(filename.toUtf8().constData());
     auto future = QtConcurrent::run(load_image_thread, filename, variant);
     this->add_future_watcher(future);
 }

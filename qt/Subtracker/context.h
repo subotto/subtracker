@@ -3,6 +3,7 @@
 
 #include "frameanalysis.h"
 #include "framereader.h"
+#include "framewaiter.h"
 
 #include <chrono>
 #include <vector>
@@ -29,6 +30,8 @@ private:
     void phase1_thread();
     void phase2_thread();
     void phase3_thread();
+    template< class Function, class... Args >
+    void create_thread(std::string, Function &&f, Args &&... args);
 
     std::atomic< bool > running;
     std::vector< std::thread > slaves;
@@ -38,6 +41,9 @@ private:
     FrameAnalysis *phase0_out, *phase1_out, *phase2_out, *phase3_out;
     std::atomic< int > phase0_count, phase1_count, phase2_count, phase3_count;
     std::atomic< bool > exausted;
+
+    // phase0 variables
+    FrameWaiterContext settings_wait_ctx;
 
     // phase1 variables
     int frame_num;

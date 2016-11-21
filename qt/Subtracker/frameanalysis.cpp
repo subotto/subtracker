@@ -17,6 +17,8 @@ void FrameAnalysis::phase0() {
 
 void FrameAnalysis::phase1(Phase1Context &ctx) {
 
+    (void) ctx;
+
     this->ref_image = this->settings.ref_image;
     this->ref_mask = this->settings.ref_mask;
 
@@ -56,6 +58,8 @@ void FrameAnalysis::phase2() {
 }
 
 void FrameAnalysis::phase3(Phase3Context &ctx) {
+
+    (void) ctx;
 
 }
 

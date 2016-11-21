@@ -14,14 +14,23 @@ Context::Context(int slave_num, FrameProducer *producer, const FrameSettings &se
     exausted(false), frame_num(0), settings(settings),
     producer(producer), phase3_frame_num(0)
 {
-    this->slaves.emplace_back(&Context::phase1_thread, this);
-    this->slaves.emplace_back(&Context::phase3_thread, this);
+    this->create_thread("", &Context::phase1_thread, this);
+    this->create_thread("", &Context::phase3_thread, this);
     for (int i = 0; i < slave_num; i++) {
-        this->slaves.emplace_back(&Context::phase2_thread, this);
+        this->create_thread("", &Context::phase2_thread, this);
     }
     for (int i = 0; i < slave_num; i++) {
-        this->slaves.emplace_back(&Context::phase0_thread, this);
+        this->create_thread("", &Context::phase0_thread, this);
     }
+}
+
+template< class Function, class... Args >
+void Context::create_thread(string name, Function&& f, Args&&... args) {
+    this->slaves.emplace_back(f, args...);
+
+    // Comment out the following if pthreads is not the underlying thread implementation
+    pthread_t handle = this->slaves.back().native_handle();
+    pthread_setname_np(handle, name.c_str());
 }
 
 Context::~Context() {
@@ -71,14 +80,16 @@ void Context::phase0_thread() {
         FrameAnalysis *frame;
         FrameSettings settings;
         {
-            // FIXME: accesses to settings are not guaranteed to be in order
             unique_lock< mutex > lock(this->settings_mutex);
+            FrameWaiter waiter(this->settings_wait_ctx, this->frame_num);
+            assert(!waiter.interrupted_by_callback);
             settings = this->settings;
         }
-        frame = new FrameAnalysis(info.data, this->frame_num++, info.time, settings);
+        frame = new FrameAnalysis(info.data, this->frame_num, info.time, settings);
         frame->acquisitionTime = acquisition_time;
         frame->begin_time = begin_time;
         frame->begin_phase0 = begin_phase0;
+        this->frame_num++;
         frame->phase0();
         frame->end_phase0 = steady_clock::now();
 

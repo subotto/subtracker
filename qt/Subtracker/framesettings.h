@@ -12,7 +12,9 @@ struct FrameSettings {
     float objects_color_stddev[3] = { 0.15f, 0.15f, 0.075f };
 
     cv::Mat ref_image;
+    std::string ref_image_filename;
     cv::Mat ref_mask;
+    std::string ref_mask_filename;
 };
 
 #endif // FRAMESETTINGS_H

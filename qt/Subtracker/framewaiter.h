@@ -16,7 +16,7 @@ private:
 class FrameWaiter
 {
 public:
-    FrameWaiter(FrameWaiterContext &ctx, int current_frame_num, std::function<bool ()> stop_cb) :
+    FrameWaiter(FrameWaiterContext &ctx, int current_frame_num, std::function<bool ()> stop_cb = [](){ return false; }) :
         interrupted_by_callback(false),
         ctx(ctx),
         lock(ctx.mutex)

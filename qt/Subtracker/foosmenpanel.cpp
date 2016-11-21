@@ -21,5 +21,6 @@ void FoosmenPanel::receive_frame(QSharedPointer<FrameAnalysis> frame)
 }
 
 void FoosmenPanel::receive_settings(const FrameSettings &settings) {
-
+    Q_UNUSED(settings);
+    // FIXME: implement some sane default
 }
