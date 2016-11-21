@@ -46,8 +46,8 @@ private:
     FrameWaiterContext settings_wait_ctx;
 
     // phase1 variables
-    int frame_num;
-    std::mutex settings_mutex;
+    std::atomic< int > frame_num;
+    std::mutex get_frame_mutex, settings_mutex;
     FrameSettings settings;
     FrameProducer *producer;
     Phase1Context phase1_ctx;

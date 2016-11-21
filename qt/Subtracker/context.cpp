@@ -62,34 +62,48 @@ void Context::phase0_thread() {
     tjhandle tj_dec = tjInitDecompress();
 
     while (true) {
-        FrameInfo info = this->producer->get();
-        auto acquisition_time = system_clock::now();
-        if (!info.valid) {
-            this->exausted = true;
-            BOOST_LOG_TRIVIAL(debug) << "Found terminator";
-            goto free_tj;
-        }
-
-        auto begin_time = system_clock::now();
-        auto begin_phase0 = steady_clock::now();
-        bool res = info.decode_buffer(tj_dec);
-        if (!res) {
-            // The frame had some error, we just skip it
-            continue;
-        }
-        FrameAnalysis *frame;
+        int frame_num;
+        FrameInfo info;
         FrameSettings settings;
+        system_clock::time_point acquisition_time, begin_time;
+        steady_clock::time_point begin_phase0;
         {
-            unique_lock< mutex > lock(this->settings_mutex);
-            FrameWaiter waiter(this->settings_wait_ctx, this->frame_num);
-            assert(!waiter.interrupted_by_callback);
+            /* This lock is unfortunately rather long, because it contains the JPEG decoding procedure.
+             * This is due to the fact that we need to know if the decoding succeed before
+             * incrementing this->frame_num, in order to not increment it if the frame is invalid.
+             * However, frame_num incrementing must stay in the same critical region as producer->get(),
+             * otherwise the numbering monotonicity can file.
+             */
+            unique_lock< mutex > lock(this->get_frame_mutex);
+            info = this->producer->get();
+            acquisition_time = system_clock::now();
+            if (!info.valid) {
+                this->exausted = true;
+                BOOST_LOG_TRIVIAL(debug) << "Found terminator";
+                goto free_tj;
+            }
+            begin_time = system_clock::now();
+            begin_phase0 = steady_clock::now();
+            bool res = info.decode_buffer(tj_dec);
+            if (!res) {
+                /* The frame had some error, we just skip it (and we do not increment this->frame_num,
+                 * as later stages assume that frame_num are contiguous).
+                 */
+                continue;
+            }
+            frame_num = this->frame_num++;
+
+            /* The settings lock is acquired later, because it is used in the UI thread. Still it must
+             * stay in the get_frame lock, so that also settings are acquired monotonically.
+             */
+            unique_lock< mutex > lock2(this->settings_mutex);
             settings = this->settings;
         }
-        frame = new FrameAnalysis(info.data, this->frame_num, info.time, settings);
+
+        FrameAnalysis *frame = new FrameAnalysis(info.data, frame_num, info.time, settings);
         frame->acquisitionTime = acquisition_time;
         frame->begin_time = begin_time;
         frame->begin_phase0 = begin_phase0;
-        this->frame_num++;
         frame->phase0();
         frame->end_phase0 = steady_clock::now();
 
@@ -121,6 +135,7 @@ void Context::phase1_thread() {
     //BOOST_LOG_TRIVIAL(debug) << "Phase 1 counter: " << this->phase1_count;
 
     while (true) {
+        // FIXME: should reorder here
         FrameAnalysis *frame;
         {
             unique_lock< mutex > lock(this->phase0_mutex);
