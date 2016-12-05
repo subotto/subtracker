@@ -11,19 +11,6 @@ FrameAnalysis::FrameAnalysis(const cv::Mat &frame, int frame_num, const std::chr
 
 }
 
-void FrameAnalysis::phase0() {
-
-}
-
-void FrameAnalysis::phase1(Phase1Context &ctx) {
-
-    (void) ctx;
-
-    this->ref_image = this->settings.ref_image;
-    this->ref_mask = this->settings.ref_mask;
-
-}
-
 void FrameAnalysis::compute_objects_ll(int color) {
     Mat tmp;
     Mat diff = this->float_table_frame - this->settings.objects_colors[color];
@@ -34,8 +21,19 @@ void FrameAnalysis::compute_objects_ll(int color) {
     this->objects_ll[color].convertTo(this->viz_objects_ll[color], CV_8UC1, 10.0, 255.0);
 }
 
-void FrameAnalysis::phase2() {
+void FrameAnalysis::do_things(FrameContext &frame_ctx, ThreadContext &thread_ctx)
+{
+    (void) frame_ctx;
+    (void) thread_ctx;
 
+    this->begin_steady_time = steady_clock::now();
+    this->begin_time = system_clock::now();
+
+    // phase 1
+    this->ref_image = this->settings.ref_image;
+    this->ref_mask = this->settings.ref_mask;
+
+    // phase 2
     Size &size = this->settings.intermediate_size;
     Point2f image_corners[4] = { { 0.0, (float) size.height },
                                  { (float) size.width, (float) size.height },
@@ -55,41 +53,14 @@ void FrameAnalysis::phase2() {
         this->compute_objects_ll(color);
     }
 
-}
+    // phase 3
 
-void FrameAnalysis::phase3(Phase3Context &ctx) {
-
-    (void) ctx;
-
-}
-
-void FrameAnalysis::do_things(FrameContext &frame_ctx, ThreadContext &thread_ctx)
-{
-
+    this->end_steady_time = steady_clock::now();
+    this->end_time = system_clock::now();
 }
 
 std::chrono::steady_clock::duration FrameAnalysis::total_processing_time() {
-    return (this->end_phase0 - this->begin_phase0) + (this->end_phase1 - this->begin_phase1) + (this->end_phase2 - this->begin_phase2) + (this->end_phase3 - this->begin_phase3);
-}
-
-steady_clock::duration FrameAnalysis::phase0_time()
-{
-    return this->end_phase0 - this->begin_phase0;
-}
-
-steady_clock::duration FrameAnalysis::phase1_time()
-{
-    return this->end_phase1 - this->begin_phase1;
-}
-
-steady_clock::duration FrameAnalysis::phase2_time()
-{
-    return this->end_phase2 - this->begin_phase2;
-}
-
-steady_clock::duration FrameAnalysis::phase3_time()
-{
-    return this->end_phase3 - this->begin_phase3;
+    return this->end_steady_time - this->begin_steady_time;
 }
 
 ThreadContext::ThreadContext() : tj_dec(tjInitDecompress())

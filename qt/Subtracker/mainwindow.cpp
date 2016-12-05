@@ -158,12 +158,12 @@ void MainWindow::receive_frame()
     this->pass_string_to_label(this->ui->currentTime, time_point_to_string(now).c_str());
     this->pass_string_to_label(this->ui->frameTime, time_point_to_string(frame->time).c_str());
     this->pass_string_to_label(this->ui->totalFrameDelay, duration_to_string(now - frame->time).c_str());
-    this->pass_string_to_label(this->ui->acquisitionTime, time_point_to_string(frame->acquisitionTime).c_str());
-    this->pass_string_to_label(this->ui->localFrameDelay, duration_to_string(now - frame->acquisitionTime).c_str());
-    this->pass_string_to_label(this->ui->phase0Time, duration_to_string(frame->phase0_time()).c_str());
+    this->pass_string_to_label(this->ui->acquisitionTime, time_point_to_string(frame->acquisition_time).c_str());
+    this->pass_string_to_label(this->ui->localFrameDelay, duration_to_string(now - frame->acquisition_time).c_str());
+    /*this->pass_string_to_label(this->ui->phase0Time, duration_to_string(frame->phase0_time()).c_str());
     this->pass_string_to_label(this->ui->phase1Time, duration_to_string(frame->phase1_time()).c_str());
     this->pass_string_to_label(this->ui->phase2Time, duration_to_string(frame->phase2_time()).c_str());
-    this->pass_string_to_label(this->ui->phase3Time, duration_to_string(frame->phase3_time()).c_str());
+    this->pass_string_to_label(this->ui->phase3Time, duration_to_string(frame->phase3_time()).c_str());*/
     this->pass_string_to_label(this->ui->totalProcessingTime, duration_to_string(frame->total_processing_time()).c_str());
 
     for (auto &sub_frame : this->sub_frames) {

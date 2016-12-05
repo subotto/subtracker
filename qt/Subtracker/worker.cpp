@@ -3,6 +3,8 @@
 #include "logging.h"
 
 static int safe_ideal_thread_count() {
+    // debug and test
+    //return 1;
     int res = QThread::idealThreadCount();
     if (res < 0) {
         res = 1;
@@ -12,9 +14,8 @@ static int safe_ideal_thread_count() {
 
 Worker::Worker(const FrameSettings &settings) :
   jpeg_reader("test.gjpeg", true, true),
-  //context(safe_ideal_thread_count(), &jpeg_reader, settings),
-  context(1, &jpeg_reader, settings),
-  running(true)
+  context(safe_ideal_thread_count(), &jpeg_reader, settings),
+  last_frame(), running(true)
 {
 }
 

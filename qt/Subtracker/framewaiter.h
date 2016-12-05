@@ -10,7 +10,7 @@ class FrameWaiterContext {
 private:
     std::mutex mutex;
     std::condition_variable cond;
-    int frame_num;
+    int frame_num = 0;
 };
 
 class FrameWaiter

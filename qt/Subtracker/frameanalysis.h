@@ -9,18 +9,10 @@
 #include "framesettings.h"
 #include "framewaiter.h"
 
-struct Phase1Context {
+struct FrameContext {
     bool first_frame = true;
     cv::Mat table_frame_mean;
     cv::Mat table_frame_var;
-};
-
-struct Phase3Context {
-
-};
-
-struct FrameContext {
-
 };
 
 struct ThreadContext {
@@ -40,27 +32,19 @@ class FrameAnalysis
 public:
     FrameAnalysis(const cv::Mat &frame, int frame_num, const std::chrono::time_point< std::chrono::system_clock > &time, const FrameSettings &settings);
     std::chrono::steady_clock::duration total_processing_time();
-    std::chrono::steady_clock::duration phase0_time();
-    std::chrono::steady_clock::duration phase1_time();
-    std::chrono::steady_clock::duration phase2_time();
-    std::chrono::steady_clock::duration phase3_time();
 
 private:
-    void phase0();
-    void phase1(Phase1Context &ctx);
-    void phase2();
-    void phase3(Phase3Context &ctx);
     void do_things(FrameContext &frame_ctx, ThreadContext &thread_ctx);
 
     void compute_objects_ll(int color);
 
     cv::Mat frame;
     int frame_num;
-    std::chrono::time_point< std::chrono::system_clock > time, acquisitionTime;
+    std::chrono::time_point< std::chrono::system_clock > time;
     FrameSettings settings;
 
-    std::chrono::time_point< std::chrono::system_clock > begin_time, end_time;
-    std::chrono::time_point< std::chrono::steady_clock > begin_phase0, end_phase0, begin_phase1, end_phase1, begin_phase2, end_phase2, begin_phase3, end_phase3;
+    std::chrono::time_point< std::chrono::system_clock > acquisition_time, begin_time, end_time;
+    std::chrono::time_point< std::chrono::steady_clock > acquisition_steady_time, begin_steady_time, end_steady_time;
 
     // phase1
     cv::Mat ref_image, ref_mask;
