@@ -16,12 +16,12 @@
 
 auto consoleSink = boost::log::add_console_log(std::clog);
 
-void setup_logging() {
+void setup_logging(boost::log::v2_mt_posix::trivial::severity_level min_severity) {
   boost::log::add_common_attributes();
      boost::log::core::get()->add_global_attribute("Scope",
           boost::log::attributes::named_scope());
       boost::log::core::get()->set_filter(
-          boost::log::trivial::severity >= boost::log::trivial::trace
+          boost::log::trivial::severity >= min_severity
       );
 
       /* log formatter:

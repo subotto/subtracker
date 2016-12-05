@@ -149,12 +149,8 @@ void MainWindow::receive_frame()
 {
     BOOST_LOG_NAMED_SCOPE("when frame produced");
     //BOOST_LOG_TRIVIAL(debug) << "Received frame";
-    QSharedPointer< FrameAnalysis > frame, temp;
-    // Consider the last available frame
-    while (!(temp = this->worker->maybe_get()).isNull()) {
-        frame = temp;
-    }
-    // There could be no frame if the queue has already been exhausted by a previous run
+    QSharedPointer< FrameAnalysis > frame = this->worker->get_last_frame();
+    // There could be no frame if none has ever been produced (or maybe for other reasons)
     if (frame.isNull()) {
         return;
     }

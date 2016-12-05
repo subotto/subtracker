@@ -63,6 +63,11 @@ void FrameAnalysis::phase3(Phase3Context &ctx) {
 
 }
 
+void FrameAnalysis::do_things(FrameContext &frame_ctx, ThreadContext &thread_ctx)
+{
+
+}
+
 std::chrono::steady_clock::duration FrameAnalysis::total_processing_time() {
     return (this->end_phase0 - this->begin_phase0) + (this->end_phase1 - this->begin_phase1) + (this->end_phase2 - this->begin_phase2) + (this->end_phase3 - this->begin_phase3);
 }
@@ -85,4 +90,13 @@ steady_clock::duration FrameAnalysis::phase2_time()
 steady_clock::duration FrameAnalysis::phase3_time()
 {
     return this->end_phase3 - this->begin_phase3;
+}
+
+ThreadContext::ThreadContext() : tj_dec(tjInitDecompress())
+{
+}
+
+ThreadContext::~ThreadContext()
+{
+    tjDestroy(this->tj_dec);
 }

@@ -16,7 +16,7 @@ public:
     Worker(const FrameSettings &settings);
     void stop();
     void set_settings(const FrameSettings &settings);
-    QSharedPointer<FrameAnalysis> maybe_get();
+    QSharedPointer<FrameAnalysis> get_last_frame();
 
 signals:
     void frame_produced();
@@ -26,6 +26,8 @@ private:
 
     JPEGReader jpeg_reader;
     Context context;
+    // QT guarantees that QSharedPointer are atomic
+    QSharedPointer< FrameAnalysis > last_frame;
 
     std::atomic< bool > running;
 };

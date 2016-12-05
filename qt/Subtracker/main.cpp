@@ -10,14 +10,14 @@
 
 int main(int argc, char *argv[])
 {
-    setup_logging();
+    setup_logging(boost::log::trivial::info);
     BOOST_LOG_NAMED_SCOPE("main");
     BOOST_LOG_TRIVIAL(info) << "Starting Subtracker!";
 
     // Apparently this program may and up eating a lot of RAM and I don't want it to freeze my computer; therefore I set some limits
     struct rlimit limit;
     int res;
-    limit.rlim_cur = 1024 * 1024 * 1024;  // bytes
+    limit.rlim_cur = 2000 * 1024 * 1024;  // bytes
     limit.rlim_max = limit.rlim_cur;
     res = setrlimit(RLIMIT_DATA, &limit);
     assert(res == 0);

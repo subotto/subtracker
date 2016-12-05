@@ -104,7 +104,14 @@ void FrameCycle::push(FrameInfo info) {
 
   this->stats(info);
 
+  if(rate_limited && info.valid) {
+    BOOST_LOG_TRIVIAL(debug) << "rate limiting for " << duration_cast< duration< double > >(info.playback_time - system_clock::now()).count() << " seconds";
+    this_thread::sleep_until(info.playback_time);
+  }
+
+  BOOST_LOG_TRIVIAL(debug) << "Request lock";
   unique_lock<mutex> lock(queue_mutex);
+  BOOST_LOG_TRIVIAL(debug) << "Received lock";
 
   if (this->droppy) {
         queue.clear();
@@ -115,7 +122,9 @@ void FrameCycle::push(FrameInfo info) {
 
   if (!can_drop_frames && info.valid) {
     while (queue.size() >= buffer_size) {
+      BOOST_LOG_TRIVIAL(debug) << "Waiting";
       queue_not_full.wait(lock);
+      BOOST_LOG_TRIVIAL(debug) << "Wait finished";
       if (!this->running) {
         return;
       }
@@ -123,10 +132,7 @@ void FrameCycle::push(FrameInfo info) {
     }
   }
 
-  if(rate_limited && info.valid) {
-    //BOOST_LOG_TRIVIAL(debug) << "rate limiting for " << duration_cast< duration< double > >(info.playback_time - system_clock::now()).count() << " seconds";
-    this_thread::sleep_until(info.playback_time);
-  }
+  BOOST_LOG_TRIVIAL(debug) << "Can do";
 
   // Prende tutti i frames finchè queue.size() < buffer_size, un frame
   // su 2 se queue.size() < 2*buffer_size, uno su 3 se queue.size() <
@@ -142,20 +148,28 @@ void FrameCycle::push(FrameInfo info) {
     //BOOST_LOG_TRIVIAL(debug) << "frame dropped";
   }
   count++;
+  BOOST_LOG_TRIVIAL(debug) << "Finished";
 
 }
 
 FrameInfo FrameCycle::get() {
+  BOOST_LOG_NAMED_SCOPE("frame get");
+  BOOST_LOG_TRIVIAL(debug) << "Request lock";
   unique_lock<mutex> lock(queue_mutex);
+  BOOST_LOG_TRIVIAL(debug) << "Received lock";
   while (queue.empty()) {
       if (this->finished) {
           return { time_point< system_clock >(), time_point< system_clock >(), NULL, Mat(), false };
       }
+      BOOST_LOG_TRIVIAL(debug) << "Waiting";
       queue_not_empty.wait(lock);
+      BOOST_LOG_TRIVIAL(debug) << "Wait finished";
   }
+  BOOST_LOG_TRIVIAL(debug) << "Can do";
   auto res = queue.front();
   queue.pop_front();
   queue_not_full.notify_all();
+  BOOST_LOG_TRIVIAL(debug) << "Finished";
   return res;
 }
 

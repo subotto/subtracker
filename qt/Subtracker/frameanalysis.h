@@ -4,6 +4,8 @@
 #include <chrono>
 #include <opencv2/core/core.hpp>
 
+#include <turbojpeg.h>
+
 #include "framesettings.h"
 #include "framewaiter.h"
 
@@ -15,6 +17,16 @@ struct Phase1Context {
 
 struct Phase3Context {
 
+};
+
+struct FrameContext {
+
+};
+
+struct ThreadContext {
+    ThreadContext();
+    ~ThreadContext();
+    tjhandle tj_dec;
 };
 
 class FrameAnalysis
@@ -38,6 +50,7 @@ private:
     void phase1(Phase1Context &ctx);
     void phase2();
     void phase3(Phase3Context &ctx);
+    void do_things(FrameContext &frame_ctx, ThreadContext &thread_ctx);
 
     void compute_objects_ll(int color);
 
