@@ -16,6 +16,7 @@ public:
     Worker(const FrameSettings &settings);
     void stop();
     void set_settings(const FrameSettings &settings);
+    void add_commands(const FrameCommands &commands);
     QSharedPointer<FrameAnalysis> get_last_frame();
 
 signals:

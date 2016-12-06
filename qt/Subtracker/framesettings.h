@@ -17,4 +17,8 @@ struct FrameSettings {
     std::string ref_mask_filename;
 };
 
+struct FrameCommands {
+    bool retrack_table = false;
+};
+
 #endif // FRAMESETTINGS_H

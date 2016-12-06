@@ -43,6 +43,12 @@ void Context::set_settings(const FrameSettings &settings) {
     this->settings = settings;
 }
 
+void Context::add_commands(const FrameCommands &commands)
+{
+    unique_lock< mutex > lock(this->settings_mutex);
+    this->commands.push_back(commands);
+}
+
 bool Context::is_finished()
 {
     return this->exhausted && this->active_threads_num == 0;
@@ -62,6 +68,7 @@ void Context::working_thread()
         int frame_num;
         FrameInfo info;
         FrameSettings settings;
+        vector< FrameCommands > commands;
         system_clock::time_point acquisition_time;
         steady_clock::time_point acquisition_steady_time;
         {
@@ -98,14 +105,14 @@ void Context::working_thread()
              */
             unique_lock< mutex > lock2(this->settings_mutex);
             settings = this->settings;
+            commands.swap(this->commands);
         }
 
-        FrameAnalysis *frame = new FrameAnalysis(info.data, frame_num, info.time, settings);
-        frame->acquisition_time = acquisition_time;
+        FrameAnalysis *frame = new FrameAnalysis(info.data, frame_num, info.time, acquisition_time, acquisition_steady_time, settings, commands);
         frame->do_things(this->frame_ctx, thread_ctx);
 
         {
-            FrameWaiter waiter(this->output_waiter, frame->frame_num);
+            FrameWaiter waiter(this->output_waiter, frame_num);
             unique_lock< mutex > lock(this->output_mutex);
             while (this->output != NULL) {
                 this->output_empty.wait(lock);

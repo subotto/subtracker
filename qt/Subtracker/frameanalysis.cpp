@@ -6,8 +6,8 @@ using namespace std;
 using namespace chrono;
 using namespace cv;
 
-FrameAnalysis::FrameAnalysis(const cv::Mat &frame, int frame_num, const std::chrono::time_point< std::chrono::system_clock > &time, const FrameSettings &settings) :
-    frame(frame), frame_num(frame_num), time(time), settings(settings) {
+FrameAnalysis::FrameAnalysis(const cv::Mat &frame, int frame_num, const std::chrono::time_point< std::chrono::system_clock > &time, const std::chrono::time_point< std::chrono::system_clock > &acquisition_time, const std::chrono::time_point<steady_clock> &acquisition_steady_time, const FrameSettings &settings, const std::vector<FrameCommands> &commands) :
+    frame(frame), frame_num(frame_num), time(time), acquisition_time(acquisition_time), acquisition_steady_time(acquisition_steady_time), settings(settings), commands(commands) {
 
 }
 
@@ -54,7 +54,6 @@ void FrameAnalysis::do_things(FrameContext &frame_ctx, ThreadContext &thread_ctx
     }
 
     // phase 3
-
     this->end_steady_time = steady_clock::now();
     this->end_time = system_clock::now();
 }

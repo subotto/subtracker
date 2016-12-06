@@ -23,28 +23,34 @@ struct ThreadContext {
 
 class FrameAnalysis
 {
-    friend class Context;
     friend class MainWindow;
     friend class BallPanel;
     friend class FoosmenPanel;
     friend class BeginningPanel;
 
 public:
-    FrameAnalysis(const cv::Mat &frame, int frame_num, const std::chrono::time_point< std::chrono::system_clock > &time, const FrameSettings &settings);
+    FrameAnalysis(const cv::Mat &frame, int frame_num,
+                  const std::chrono::time_point< std::chrono::system_clock > &time,
+                  const std::chrono::time_point< std::chrono::system_clock > &acquisition_time,
+                  const std::chrono::time_point< std::chrono::steady_clock > &acquisition_steady_time,
+                  const FrameSettings &settings,
+                  const std::vector< FrameCommands > &commands);
     std::chrono::steady_clock::duration total_processing_time();
+    void do_things(FrameContext &frame_ctx, ThreadContext &thread_ctx);
 
 private:
-    void do_things(FrameContext &frame_ctx, ThreadContext &thread_ctx);
 
     void compute_objects_ll(int color);
 
     cv::Mat frame;
     int frame_num;
-    std::chrono::time_point< std::chrono::system_clock > time;
+    std::chrono::time_point< std::chrono::system_clock > time, acquisition_time;
+    std::chrono::time_point< std::chrono::steady_clock > acquisition_steady_time;
     FrameSettings settings;
+    std::vector< FrameCommands > commands;
 
-    std::chrono::time_point< std::chrono::system_clock > acquisition_time, begin_time, end_time;
-    std::chrono::time_point< std::chrono::steady_clock > acquisition_steady_time, begin_steady_time, end_steady_time;
+    std::chrono::time_point< std::chrono::system_clock > begin_time, end_time;
+    std::chrono::time_point< std::chrono::steady_clock > begin_steady_time, end_steady_time;
 
     // phase1
     cv::Mat ref_image, ref_mask;

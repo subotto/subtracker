@@ -23,6 +23,11 @@ void Worker::set_settings(const FrameSettings &settings) {
     this->context.set_settings(settings);
 }
 
+void Worker::add_commands(const FrameCommands &commands)
+{
+    this->context.add_commands(commands);
+}
+
 void Worker::stop() {
     this->jpeg_reader.stop();
 }

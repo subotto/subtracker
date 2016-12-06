@@ -23,6 +23,7 @@ public:
     FrameAnalysis *maybe_get();
     ~Context();
     void set_settings(const FrameSettings &settings);
+    void add_commands(const FrameCommands &commands);
     bool is_finished();
 
 private:
@@ -38,6 +39,7 @@ private:
     std::atomic< int > frame_num;
     std::mutex get_frame_mutex, settings_mutex;
     FrameSettings settings;
+    std::vector< FrameCommands > commands;
     FrameContext frame_ctx;
     FrameProducer *producer;
     std::mutex output_mutex;
