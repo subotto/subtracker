@@ -1,4 +1,5 @@
 #include "frameanalysis.h"
+#include "tabletracking.h"
 
 #include <opencv2/imgproc/imgproc.hpp>
 
@@ -21,6 +22,11 @@ void FrameAnalysis::compute_objects_ll(int color) {
     this->objects_ll[color].convertTo(this->viz_objects_ll[color], CV_8UC1, 10.0, 255.0);
 }
 
+void FrameAnalysis::track_table(FrameContext &frame_ctx, ThreadContext &thread_ctx)
+{
+    BFMatcher matcher;
+}
+
 void FrameAnalysis::do_things(FrameContext &frame_ctx, ThreadContext &thread_ctx)
 {
     (void) frame_ctx;
@@ -29,11 +35,11 @@ void FrameAnalysis::do_things(FrameContext &frame_ctx, ThreadContext &thread_ctx
     this->begin_steady_time = steady_clock::now();
     this->begin_time = system_clock::now();
 
-    // phase 1
     this->ref_image = this->settings.ref_image;
     this->ref_mask = this->settings.ref_mask;
 
-    // phase 2
+    this->track_table(frame_ctx, thread_ctx);
+
     Size &size = this->settings.intermediate_size;
     Point2f image_corners[4] = { { 0.0, (float) size.height },
                                  { (float) size.width, (float) size.height },

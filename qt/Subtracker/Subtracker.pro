@@ -20,7 +20,8 @@ SOURCES += main.cpp\
     treesubframe.cpp \
     foosmenpanel.cpp \
     beginningpanel.cpp \
-    memory.c
+    memory.c \
+    tabletracking.cpp
 
 HEADERS  += mainwindow.h \
     videowidget.h \
@@ -37,7 +38,8 @@ HEADERS  += mainwindow.h \
     foosmenpanel.h \
     beginningpanel.h \
     memory.h \
-    framewaiter.h
+    framewaiter.h \
+    tabletracking.h
 
 FORMS    += mainwindow.ui \
     ballpanel.ui \

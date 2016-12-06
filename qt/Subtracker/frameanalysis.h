@@ -41,6 +41,7 @@ public:
 private:
 
     void compute_objects_ll(int color);
+    void track_table(FrameContext &frame_ctx, ThreadContext &thread_ctx);
 
     cv::Mat frame;
     int frame_num;
