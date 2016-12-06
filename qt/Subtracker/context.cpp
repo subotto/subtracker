@@ -3,25 +3,20 @@
 #include "atomiccounter.h"
 
 #include <chrono>
+#include <sstream>
 
 using namespace std;
 using namespace chrono;
 
 Context::Context(size_t slave_num, FrameProducer *producer, const FrameSettings &settings) :
-    running(true),
+    active_threads_num(0), exhausted(false),
     frame_num(0), settings(settings),
     producer(producer), output(NULL)
 {
-    /*this->create_thread("", &Context::phase1_thread, this);
-    this->create_thread("", &Context::phase3_thread, this);
-    for (int i = 0; i < slave_num; i++) {
-        this->create_thread("", &Context::phase2_thread, this);
-    }
-    for (int i = 0; i < slave_num; i++) {
-        this->create_thread("", &Context::phase0_thread, this);
-    }*/
     for (size_t i = 0; i < slave_num; i++) {
-        this->create_thread("working thread", &Context::working_thread, this);
+        ostringstream oss;
+        oss << "worker " << i;
+        this->create_thread(oss.str(), &Context::working_thread, this);
     }
 }
 
@@ -30,12 +25,13 @@ void Context::create_thread(string name, Function&& f, Args&&... args) {
     this->slaves.emplace_back(f, args...);
 
     // Comment out the following if pthreads is not the underlying thread implementation
+    // Warning: thread names cannot be longer than 16 characters
+    // Failure is ignored
     pthread_t handle = this->slaves.back().native_handle();
     pthread_setname_np(handle, name.c_str());
 }
 
 Context::~Context() {
-    this->running = false;
     for (auto &thread : this->slaves) {
         thread.join();
     }
@@ -49,12 +45,17 @@ void Context::set_settings(const FrameSettings &settings) {
 
 bool Context::is_finished()
 {
-    return !this->running;
+    return this->exhausted && this->active_threads_num == 0;
 }
 
 void Context::working_thread()
 {
     BOOST_LOG_NAMED_SCOPE("working thread");
+    /* AtomicCounter automatically acquires the mutex and notifies the output_full condition,
+     * otherwise a race happens for get()-ing threads that have already acquired the lock
+     * but not yet waited for output_full.
+     */
+    AtomicCounter counter(this->active_threads_num, this->output_mutex, this->output_full);
     ThreadContext thread_ctx;
 
     while (true) {
@@ -76,6 +77,9 @@ void Context::working_thread()
             acquisition_steady_time = steady_clock::now();
             if (!info.valid) {
                 BOOST_LOG_TRIVIAL(debug) << "Found terminator";
+                unique_lock< mutex > lock(this->output_mutex);
+                this->exhausted = true;
+                this->output_full.notify_all();
                 return;
             }
             bool res = info.decode_buffer(thread_ctx.tj_dec);
@@ -104,10 +108,7 @@ void Context::working_thread()
             FrameWaiter waiter(this->output_waiter, frame->frame_num);
             unique_lock< mutex > lock(this->output_mutex);
             while (this->output != NULL) {
-                if (!this->running) {
-                    return;
-                }
-                this->output_empty.wait_for(lock, seconds(1));
+                this->output_empty.wait(lock);
             }
             this->output = frame;
             this->output_full.notify_one();
@@ -119,10 +120,10 @@ FrameAnalysis *Context::get() {
     FrameAnalysis *frame;
     unique_lock< mutex > lock(this->output_mutex);
     while (this->output == NULL) {
-        if (!this->running) {
+        if (this->is_finished()) {
             return NULL;
         }
-        this->output_full.wait_for(lock, seconds(1));
+        this->output_full.wait(lock);
     }
     frame = this->output;
     this->output = NULL;
@@ -133,10 +134,10 @@ FrameAnalysis *Context::get() {
 void Context::wait() {
     unique_lock< mutex > lock(this->output_mutex);
     while (this->output == NULL) {
-        if (!this->running) {
+        if (this->is_finished()) {
             return;
         }
-        this->output_full.wait_for(lock, seconds(1));
+        this->output_full.wait(lock);
     }
 }
 

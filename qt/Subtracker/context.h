@@ -30,7 +30,8 @@ private:
     template< class Function, class... Args >
     void create_thread(std::string, Function &&f, Args &&... args);
 
-    std::atomic< bool > running;
+    std::atomic< int > active_threads_num;
+    std::atomic< bool > exhausted;
     std::vector< std::thread > slaves;
 
     // working thread
