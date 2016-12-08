@@ -16,8 +16,9 @@ public:
     Worker(const FrameSettings &settings);
     void stop();
     void set_settings(const FrameSettings &settings);
-    void add_commands(const FrameCommands &commands);
+    std::pair<std::unique_lock<std::mutex>, FrameCommands *> edit_commands();
     QSharedPointer<FrameAnalysis> get_last_frame();
+    int get_queue_length();
 
 signals:
     void frame_produced();

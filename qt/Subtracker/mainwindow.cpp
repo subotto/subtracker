@@ -10,6 +10,7 @@
 #include "memory.h"
 
 #include <iomanip>
+#include <sstream>
 
 using namespace std;
 using namespace chrono;
@@ -97,6 +98,16 @@ FrameSettings &MainWindow::get_settings()
     return this->settings;
 }
 
+std::pair<std::unique_lock<mutex>, FrameCommands *> MainWindow::edit_commands()
+{
+    if (this->worker != NULL) {
+        return this->worker->edit_commands();
+    } else {
+        // We return something the caller can modified, but which is ignored since no worker is running
+        return make_pair(unique_lock< mutex >(), &this->dummy_commands);
+    }
+}
+
 void MainWindow::on_actionStop_triggered()
 {
     this->ui->statusBar->showMessage("Stop!", 1000);
@@ -112,6 +123,12 @@ void MainWindow::pass_frame_to_video(VideoWidget *video, const Mat &frame) {
 void MainWindow::pass_string_to_label(QLabel *label, const QString &value) {
     //auto label = *this->findChildren< QLabel* >(name).begin();
     label->setText(value);
+}
+
+void MainWindow::pass_int_to_label(QLabel *label, int value) {
+    ostringstream oss;
+    oss << value;
+    label->setText(oss.str().c_str());
 }
 
 static inline string time_point_to_string(const time_point< system_clock > &now) {
@@ -177,6 +194,11 @@ void MainWindow::update_mem()
     this->peak_rss = getPeakRSS();
     this->pass_string_to_label(this->ui->currentMem, size_to_string(this->current_rss).c_str());
     this->pass_string_to_label(this->ui->peakMem, size_to_string(this->peak_rss).c_str());
+    if (!this->worker.isNull()) {
+        this->pass_int_to_label(this->ui->queueLength, this->worker->get_queue_length());
+    } else {
+        this->pass_string_to_label(this->ui->queueLength, "");
+    }
     this->update();
 }
 

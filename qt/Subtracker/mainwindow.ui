@@ -203,12 +203,12 @@
          <item row="5" column="0">
           <widget class="QLabel" name="label_11">
            <property name="text">
-            <string>Phase 0 time:</string>
+            <string>Queue length:</string>
            </property>
           </widget>
          </item>
          <item row="5" column="1">
-          <widget class="QLabel" name="phase0Time">
+          <widget class="QLabel" name="queueLength">
            <property name="text">
             <string/>
            </property>
@@ -261,7 +261,7 @@
    </property>
    <widget class="QMenu" name="menuCommands">
     <property name="title">
-     <string>Commands</string>
+     <string>&amp;Commands</string>
     </property>
     <addaction name="actionStart"/>
     <addaction name="actionStop"/>
@@ -270,12 +270,12 @@
   </widget>
   <action name="actionStart">
    <property name="text">
-    <string>Start</string>
+    <string>&amp;Start</string>
    </property>
   </action>
   <action name="actionStop">
    <property name="text">
-    <string>Stop</string>
+    <string>St&amp;op</string>
    </property>
   </action>
  </widget>

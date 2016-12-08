@@ -208,7 +208,6 @@ void FrameCycle::join_worker() {
 }
 
 FrameCycle::~FrameCycle() {
-
   this->join_worker();
 }
 
@@ -216,6 +215,23 @@ void FrameCycle::set_droppy(bool droppy) {
 
   this->droppy = droppy;
 
+}
+
+int FrameCycle::get_queue_length()
+{
+    return this->queue.size();
+}
+
+void FrameCycle::kill_queue()
+{
+    // First swap the queue with a temporary one, so the lock is released as quickly as possible;
+    // then queue items are deallocated out of the lock, when this function returns.
+    // No conditions are notified, because this function is meant to be used when the FrameReader is not running.
+    deque< FrameInfo > queue_swap;
+    {
+        unique_lock<mutex> lock(this->queue_mutex);
+        this->queue.swap(queue_swap);
+    }
 }
 
 JPEGReader::JPEGReader(string file_name, bool from_file, bool simulate_live, int width, int height)

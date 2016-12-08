@@ -15,10 +15,16 @@ struct FrameSettings {
     std::string ref_image_filename;
     cv::Mat ref_mask;
     std::string ref_mask_filename;
+
+    int feats_hessian_threshold = 600;
+    int feats_n_octaves = 3;
 };
 
 struct FrameCommands {
     bool retrack_table = false;
+    bool regen_feature_detector = false;
+    bool new_ref = false;
+    bool new_mask = false;
 };
 
 #endif // FRAMESETTINGS_H

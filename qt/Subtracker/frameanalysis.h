@@ -3,6 +3,7 @@
 
 #include <chrono>
 #include <opencv2/core/core.hpp>
+#include <opencv2/xfeatures2d.hpp>
 
 #include <turbojpeg.h>
 
@@ -11,6 +12,15 @@
 
 struct FrameContext {
     bool first_frame = true;
+
+    FrameWaiterContext table_tracking_waiter;
+    cv::Ptr< cv::xfeatures2d::SURF > surf_detector;
+    bool have_fix = false;
+    cv::Mat ref_image, ref_mask;
+    std::vector< cv::KeyPoint > ref_kps;
+    cv::Mat ref_descr;
+
+    FrameWaiterContext table_frame_waiter;
     cv::Mat table_frame_mean;
     cv::Mat table_frame_var;
 };
@@ -18,6 +28,7 @@ struct FrameContext {
 struct ThreadContext {
     ThreadContext();
     ~ThreadContext();
+
     tjhandle tj_dec;
 };
 
@@ -34,29 +45,32 @@ public:
                   const std::chrono::time_point< std::chrono::system_clock > &acquisition_time,
                   const std::chrono::time_point< std::chrono::steady_clock > &acquisition_steady_time,
                   const FrameSettings &settings,
-                  const std::vector< FrameCommands > &commands);
+                  const FrameCommands &commands,
+                  FrameContext &frame_ctx,
+                  ThreadContext &thread_ctx);
     std::chrono::steady_clock::duration total_processing_time();
-    void do_things(FrameContext &frame_ctx, ThreadContext &thread_ctx);
+    void do_things();
 
 private:
 
     void compute_objects_ll(int color);
-    void track_table(FrameContext &frame_ctx, ThreadContext &thread_ctx);
+    void track_table();
 
     cv::Mat frame;
     int frame_num;
     std::chrono::time_point< std::chrono::system_clock > time, acquisition_time;
     std::chrono::time_point< std::chrono::steady_clock > acquisition_steady_time;
     FrameSettings settings;
-    std::vector< FrameCommands > commands;
+    FrameCommands commands;
+    FrameContext &frame_ctx;
+    ThreadContext &thread_ctx;
 
     std::chrono::time_point< std::chrono::system_clock > begin_time, end_time;
     std::chrono::time_point< std::chrono::steady_clock > begin_steady_time, end_steady_time;
 
-    // phase1
-    cv::Mat ref_image, ref_mask;
+    cv::Mat ref_image, ref_mask, ref_bn;
+    cv::Mat frame_bn, frame_keypoints;
 
-    // phase2
     cv::Mat table_frame, table_frame_on_main, float_table_frame;
     cv::Mat objects_ll[3];
     cv::Mat viz_objects_ll[3];

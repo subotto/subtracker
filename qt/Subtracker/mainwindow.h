@@ -36,6 +36,7 @@ public:
     VideoWidget *get_main_video();
     void settings_modified();
     FrameSettings &get_settings();
+    std::pair<std::unique_lock<std::mutex>, FrameCommands *> edit_commands();
 
 private slots:
     void on_actionStart_triggered();
@@ -53,12 +54,14 @@ private:
     QTimer timer, mem_timer;
     QPointer< Worker > worker;
     FrameSettings settings;
+    FrameCommands dummy_commands;
     std::vector< TreeSubFrame* > sub_frames;
     size_t current_rss, peak_rss;
 
     void pass_string_to_label(QLabel *label, const QString &value);
     void pass_frame_to_video(VideoWidget *video, const cv::Mat &frame);
     void add_frame_to_tree(QFrame *frame, const QString &button_text);
+    void pass_int_to_label(QLabel *label, int value);
     void add_all_frames();
 };
 

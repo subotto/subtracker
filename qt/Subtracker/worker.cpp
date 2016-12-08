@@ -23,17 +23,23 @@ void Worker::set_settings(const FrameSettings &settings) {
     this->context.set_settings(settings);
 }
 
-void Worker::add_commands(const FrameCommands &commands)
+std::pair<std::unique_lock<std::mutex>, FrameCommands *> Worker::edit_commands()
 {
-    this->context.add_commands(commands);
+    return this->context.edit_commands();
 }
 
 void Worker::stop() {
     this->jpeg_reader.stop();
+    this->jpeg_reader.kill_queue();
 }
 
 QSharedPointer< FrameAnalysis > Worker::get_last_frame() {
     return this->last_frame;
+}
+
+int Worker::get_queue_length()
+{
+    return this->jpeg_reader.get_queue_length();
 }
 
 void Worker::run() {

@@ -89,6 +89,8 @@ public:
   void stop();
   bool is_finished();
   void set_droppy(bool droppy);
+  int get_queue_length();
+  void kill_queue();
   FrameInfo get();
   FrameInfo maybe_get();
   FrameInfo get_last();

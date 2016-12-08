@@ -1,14 +1,16 @@
 #include "frameanalysis.h"
 #include "tabletracking.h"
+#include "logging.h"
 
 #include <opencv2/imgproc/imgproc.hpp>
 
 using namespace std;
 using namespace chrono;
 using namespace cv;
+using namespace xfeatures2d;
 
-FrameAnalysis::FrameAnalysis(const cv::Mat &frame, int frame_num, const std::chrono::time_point< std::chrono::system_clock > &time, const std::chrono::time_point< std::chrono::system_clock > &acquisition_time, const std::chrono::time_point<steady_clock> &acquisition_steady_time, const FrameSettings &settings, const std::vector<FrameCommands> &commands) :
-    frame(frame), frame_num(frame_num), time(time), acquisition_time(acquisition_time), acquisition_steady_time(acquisition_steady_time), settings(settings), commands(commands) {
+FrameAnalysis::FrameAnalysis(const cv::Mat &frame, int frame_num, const std::chrono::time_point< std::chrono::system_clock > &time, const std::chrono::time_point< std::chrono::system_clock > &acquisition_time, const std::chrono::time_point<steady_clock> &acquisition_steady_time, const FrameSettings &settings, const FrameCommands &commands, FrameContext &frame_ctx, ThreadContext &thread_ctx) :
+    frame(frame), frame_num(frame_num), time(time), acquisition_time(acquisition_time), acquisition_steady_time(acquisition_steady_time), settings(settings), commands(commands), frame_ctx(frame_ctx), thread_ctx(thread_ctx) {
 
 }
 
@@ -22,12 +24,41 @@ void FrameAnalysis::compute_objects_ll(int color) {
     this->objects_ll[color].convertTo(this->viz_objects_ll[color], CV_8UC1, 10.0, 255.0);
 }
 
-void FrameAnalysis::track_table(FrameContext &frame_ctx, ThreadContext &thread_ctx)
+void FrameAnalysis::track_table()
 {
-    BFMatcher matcher;
+    FrameWaiter waiter(frame_ctx.table_tracking_waiter, this->frame_num);
+    if (this->commands.regen_feature_detector || this->frame_ctx.surf_detector == NULL) {
+        this->frame_ctx.surf_detector = SURF::create(this->settings.feats_hessian_threshold, this->settings.feats_n_octaves);
+    }
+    bool redetect_ref = false;
+    if (this->commands.new_ref || (this->frame_ctx.ref_image.empty() && !this->settings.ref_image.empty())) {
+        this->frame_ctx.ref_image = this->settings.ref_image;
+        redetect_ref = true;
+    }
+    if (this->commands.new_mask || (this->frame_ctx.ref_mask.empty() && !this->settings.ref_mask.empty())) {
+        cvtColor(this->settings.ref_mask, this->frame_ctx.ref_mask, cv::COLOR_RGB2GRAY);
+        redetect_ref = true;
+    }
+    if (redetect_ref && !this->frame_ctx.ref_image.empty() && !this->frame_ctx.ref_mask.empty()) {
+        this->frame_ctx.ref_kps.clear();
+        this->frame_ctx.ref_descr = Mat();
+        this->frame_ctx.surf_detector->detectAndCompute(this->frame_ctx.ref_image, this->frame_ctx.ref_mask, this->frame_ctx.ref_kps, this->frame_ctx.ref_descr);
+    }
+    if ((this->commands.retrack_table || !this->frame_ctx.have_fix) && !this->frame_ctx.ref_image.empty() && ! this->frame_ctx.ref_mask.empty()) {
+        vector< KeyPoint > frame_kps;
+        Mat frame_descr;
+        this->frame_ctx.surf_detector->detectAndCompute(this->frame, Mat(), frame_kps, frame_descr);
+        //drawKeypoints(this->frame, frame_kps, this->frame_keypoints, Scalar::all(-1), DrawMatchesFlags::DEFAULT);
+        BFMatcher matcher(cv::NORM_L2);
+        vector< DMatch > matches;
+        matcher.match(frame_descr, this->frame_ctx.ref_descr, matches);
+        BOOST_LOG_TRIVIAL(info) << frame_kps.size() << " " << this->frame_ctx.ref_kps.size() << " " << matches.size();
+        drawMatches(this->frame, frame_kps, this->ref_image, this->frame_ctx.ref_kps, matches, this->frame_keypoints);
+        BOOST_LOG_TRIVIAL(info) << "after";
+    }
 }
 
-void FrameAnalysis::do_things(FrameContext &frame_ctx, ThreadContext &thread_ctx)
+void FrameAnalysis::do_things()
 {
     (void) frame_ctx;
     (void) thread_ctx;
@@ -35,10 +66,7 @@ void FrameAnalysis::do_things(FrameContext &frame_ctx, ThreadContext &thread_ctx
     this->begin_steady_time = steady_clock::now();
     this->begin_time = system_clock::now();
 
-    this->ref_image = this->settings.ref_image;
-    this->ref_mask = this->settings.ref_mask;
-
-    this->track_table(frame_ctx, thread_ctx);
+    this->track_table();
 
     Size &size = this->settings.intermediate_size;
     Point2f image_corners[4] = { { 0.0, (float) size.height },
@@ -59,7 +87,6 @@ void FrameAnalysis::do_things(FrameContext &frame_ctx, ThreadContext &thread_ctx
         this->compute_objects_ll(color);
     }
 
-    // phase 3
     this->end_steady_time = steady_clock::now();
     this->end_time = system_clock::now();
 }
@@ -68,7 +95,8 @@ std::chrono::steady_clock::duration FrameAnalysis::total_processing_time() {
     return this->end_steady_time - this->begin_steady_time;
 }
 
-ThreadContext::ThreadContext() : tj_dec(tjInitDecompress())
+ThreadContext::ThreadContext() :
+    tj_dec(tjInitDecompress())
 {
 }
 

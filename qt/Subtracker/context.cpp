@@ -4,6 +4,7 @@
 
 #include <chrono>
 #include <sstream>
+#include <utility>
 
 using namespace std;
 using namespace chrono;
@@ -43,10 +44,11 @@ void Context::set_settings(const FrameSettings &settings) {
     this->settings = settings;
 }
 
-void Context::add_commands(const FrameCommands &commands)
+std::pair<unique_lock< mutex >, FrameCommands*> Context::edit_commands()
 {
-    unique_lock< mutex > lock(this->settings_mutex);
-    this->commands.push_back(commands);
+    // We need to first manually lock the mutex, because the parameter evaluation order of the return clause is not specified
+    this->settings_mutex.lock();
+    return make_pair(unique_lock< mutex >(this->settings_mutex, adopt_lock), &this->commands);
 }
 
 bool Context::is_finished()
@@ -68,7 +70,7 @@ void Context::working_thread()
         int frame_num;
         FrameInfo info;
         FrameSettings settings;
-        vector< FrameCommands > commands;
+        FrameCommands commands;
         system_clock::time_point acquisition_time;
         steady_clock::time_point acquisition_steady_time;
         {
@@ -105,11 +107,12 @@ void Context::working_thread()
              */
             unique_lock< mutex > lock2(this->settings_mutex);
             settings = this->settings;
-            commands.swap(this->commands);
+            commands = this->commands;
+            this->commands = FrameCommands();
         }
 
-        FrameAnalysis *frame = new FrameAnalysis(info.data, frame_num, info.time, acquisition_time, acquisition_steady_time, settings, commands);
-        frame->do_things(this->frame_ctx, thread_ctx);
+        FrameAnalysis *frame = new FrameAnalysis(info.data, frame_num, info.time, acquisition_time, acquisition_steady_time, settings, commands, this->frame_ctx, thread_ctx);
+        frame->do_things();
 
         {
             FrameWaiter waiter(this->output_waiter, frame_num);
