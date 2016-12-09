@@ -77,7 +77,7 @@ void BeginningPanel::receive_frame(QSharedPointer<FrameAnalysis> frame)
     this->ui->tableFrame->set_current_frame(frame->table_frame);
     this->ui->refImage->set_current_frame(frame->ref_image);
     this->ui->refMask->set_current_frame(frame->ref_mask);
-    this->ui->frameKeypoints->set_current_frame(frame->frame_keypoints);
+    this->ui->frameKeypoints->set_current_frame(frame->frame_matches);
 }
 
 void BeginningPanel::receive_settings(const FrameSettings &settings) {

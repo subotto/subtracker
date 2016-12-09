@@ -39,22 +39,25 @@ void FrameAnalysis::track_table()
         cvtColor(this->settings.ref_mask, this->frame_ctx.ref_mask, cv::COLOR_RGB2GRAY);
         redetect_ref = true;
     }
-    if (redetect_ref && !this->frame_ctx.ref_image.empty() && !this->frame_ctx.ref_mask.empty()) {
+    this->ref_image = this->frame_ctx.ref_image;
+    this->ref_mask = this->frame_ctx.ref_mask;
+    if (this->ref_image.empty() || this->ref_mask.empty()) {
         this->frame_ctx.ref_kps.clear();
         this->frame_ctx.ref_descr = Mat();
-        this->frame_ctx.surf_detector->detectAndCompute(this->frame_ctx.ref_image, this->frame_ctx.ref_mask, this->frame_ctx.ref_kps, this->frame_ctx.ref_descr);
+    } else if (redetect_ref) {
+        this->frame_ctx.ref_kps.clear();
+        this->frame_ctx.ref_descr = Mat();
+        this->frame_ctx.surf_detector->detectAndCompute(this->ref_image, this->ref_mask, this->frame_ctx.ref_kps, this->frame_ctx.ref_descr);
     }
-    if ((this->commands.retrack_table || !this->frame_ctx.have_fix) && !this->frame_ctx.ref_image.empty() && ! this->frame_ctx.ref_mask.empty()) {
+    if ((this->commands.retrack_table || !this->frame_ctx.have_fix) && !this->frame_ctx.ref_kps.empty()) {
         vector< KeyPoint > frame_kps;
         Mat frame_descr;
         this->frame_ctx.surf_detector->detectAndCompute(this->frame, Mat(), frame_kps, frame_descr);
         //drawKeypoints(this->frame, frame_kps, this->frame_keypoints, Scalar::all(-1), DrawMatchesFlags::DEFAULT);
         BFMatcher matcher(cv::NORM_L2);
         vector< DMatch > matches;
-        matcher.match(frame_descr, this->frame_ctx.ref_descr, matches);
-        BOOST_LOG_TRIVIAL(info) << frame_kps.size() << " " << this->frame_ctx.ref_kps.size() << " " << matches.size();
-        drawMatches(this->frame, frame_kps, this->ref_image, this->frame_ctx.ref_kps, matches, this->frame_keypoints);
-        BOOST_LOG_TRIVIAL(info) << "after";
+        matcher.match(this->frame_ctx.ref_descr, frame_descr, matches);
+        drawMatches(this->ref_image, this->frame_ctx.ref_kps, this->frame, frame_kps, matches, this->frame_matches);
     }
 }
 

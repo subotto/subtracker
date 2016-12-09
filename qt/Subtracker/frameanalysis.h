@@ -69,7 +69,7 @@ private:
     std::chrono::time_point< std::chrono::steady_clock > begin_steady_time, end_steady_time;
 
     cv::Mat ref_image, ref_mask, ref_bn;
-    cv::Mat frame_bn, frame_keypoints;
+    cv::Mat frame_bn, frame_matches;
 
     cv::Mat table_frame, table_frame_on_main, float_table_frame;
     cv::Mat objects_ll[3];
