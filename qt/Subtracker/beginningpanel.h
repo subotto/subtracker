@@ -26,6 +26,7 @@ private slots:
     void on_refImageButton_clicked();
     void on_refMaskButton_clicked();
     void handle_future();
+    void on_retrackTableButton_clicked();
 
 private:
     void add_future_watcher(const QFuture<std::tuple<cv::Mat, std::string, std::string> > &future);

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>400</width>
-    <height>142</height>
+    <height>158</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -72,6 +72,13 @@
       </widget>
      </item>
     </layout>
+   </item>
+   <item>
+    <widget class="QPushButton" name="retrackTableButton">
+     <property name="text">
+      <string>Retrack table</string>
+     </property>
+    </widget>
    </item>
   </layout>
  </widget>

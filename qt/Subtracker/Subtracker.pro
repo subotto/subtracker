@@ -39,7 +39,8 @@ HEADERS  += mainwindow.h \
     beginningpanel.h \
     memory.h \
     framewaiter.h \
-    tabletracking.h
+    tabletracking.h \
+    coordinates.h
 
 FORMS    += mainwindow.ui \
     ballpanel.ui \

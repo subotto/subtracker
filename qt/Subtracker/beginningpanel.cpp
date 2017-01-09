@@ -113,3 +113,9 @@ void BeginningPanel::on_refMaskButton_clicked()
 {
     async_load_image("mask");
 }
+
+void BeginningPanel::on_retrackTableButton_clicked()
+{
+    auto cmds = this->main->edit_commands();
+    cmds.second->retrack_table = true;
+}

@@ -18,6 +18,10 @@ struct FrameSettings {
 
     int feats_hessian_threshold = 600;
     int feats_n_octaves = 3;
+
+    // Actual size in meters
+    float table_length = 1.15;
+    float table_width = 0.70;
 };
 
 struct FrameCommands {

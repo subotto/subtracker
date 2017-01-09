@@ -1,8 +1,13 @@
+
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/calib3d/calib3d.hpp>
+
+#include <algorithm>
+
 #include "frameanalysis.h"
 #include "tabletracking.h"
 #include "logging.h"
-
-#include <opencv2/imgproc/imgproc.hpp>
+#include "coordinates.h"
 
 using namespace std;
 using namespace chrono;
@@ -50,6 +55,7 @@ void FrameAnalysis::track_table()
         this->frame_ctx.surf_detector->detectAndCompute(this->ref_image, this->ref_mask, this->frame_ctx.ref_kps, this->frame_ctx.ref_descr);
     }
     if ((this->commands.retrack_table || !this->frame_ctx.have_fix) && !this->frame_ctx.ref_kps.empty()) {
+        // We have both sets of keypoints and we can try a matching
         vector< KeyPoint > frame_kps;
         Mat frame_descr;
         this->frame_ctx.surf_detector->detectAndCompute(this->frame, Mat(), frame_kps, frame_descr);
@@ -57,8 +63,26 @@ void FrameAnalysis::track_table()
         BFMatcher matcher(cv::NORM_L2);
         vector< DMatch > matches;
         matcher.match(this->frame_ctx.ref_descr, frame_descr, matches);
-        drawMatches(this->ref_image, this->frame_ctx.ref_kps, this->frame, frame_kps, matches, this->frame_matches);
+
+        // Select good matches, i.e., those with distance no bigger than 3 times the minimum distance, and draw them
+        double min_dist = min_element(matches.begin(), matches.end(), [](const DMatch &a, const DMatch &b)->bool{ return a.distance < b.distance; })->distance;
+        double thresh_dist = 3 * min_dist;
+        matches.erase(remove_if(matches.begin(), matches.end(), [&](const DMatch&a)->bool{ return a.distance > thresh_dist; }), matches.end());
+        drawMatches(this->ref_image, this->frame_ctx.ref_kps, this->frame, frame_kps, matches, this->frame_ctx.frame_matches);
+
+        // Run RANSAC to find the underlying homography
+        vector< Point2f > ref_points;
+        vector< Point2f > frame_points;
+        for (auto &match : matches) {
+            ref_points.push_back(this->frame_ctx.ref_kps[match.queryIdx].pt);
+            frame_points.push_back(frame_kps[match.trainIdx].pt);
+        }
+        Mat homography = findHomography(ref_points, frame_points, RANSAC);
+
+        // FIXME
+        this->frame_ctx.have_fix = true;
     }
+    this->frame_matches = this->frame_ctx.frame_matches;
 }
 
 void FrameAnalysis::do_things()

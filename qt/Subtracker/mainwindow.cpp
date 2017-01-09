@@ -24,7 +24,7 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
     this->timer.setInterval(50);
-    this->mem_timer.setInterval(1000);
+    this->mem_timer.setInterval(100);
     connect(&this->timer, SIGNAL(timeout()), this, SLOT(update()));
     connect(&this->mem_timer, SIGNAL(timeout()), this, SLOT(update_mem()));
     this->mem_timer.start();
