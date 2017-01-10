@@ -81,7 +81,13 @@ void Context::working_thread()
              * otherwise the numbering monotonicity can file.
              */
             unique_lock< mutex > lock(this->get_frame_mutex);
-            info = this->producer->get();
+            if (this->frame_ctx.have_fix) {
+                info = this->producer->get();
+            } else {
+                // If the anaysis has already lost the fix, processing will have to begin again anyway, so we can discard the queue
+                // FIXME - This does not wait for a frame if the queue is empty
+                info = this->producer->get_last_at_least_one();
+            }
             acquisition_time = system_clock::now();
             acquisition_steady_time = steady_clock::now();
             if (!info.valid) {

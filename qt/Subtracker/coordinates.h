@@ -41,4 +41,14 @@ inline std::vector< cv::Point2f > compute_work_rectangle(const FrameSettings &se
             { -1, +ratio }};
 }
 
+inline float avg(float a, float b) {
+    return (a+b)/2.0;
+}
+
+inline cv::Size2f compute_intermediate_size(const FrameSettings &settings) {
+    float alpha_root = sqrt(settings.intermediate_alpha);
+    return cv::Size2f(alpha_root * avg(norm(settings.ref_corners[0] - settings.ref_corners[1]), norm(settings.ref_corners[2] - settings.ref_corners[3])),
+                      alpha_root * avg(norm(settings.ref_corners[0] - settings.ref_corners[3]), norm(settings.ref_corners[1] - settings.ref_corners[2])));
+}
+
 #endif // COORDINATES_H

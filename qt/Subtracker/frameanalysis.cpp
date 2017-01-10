@@ -32,6 +32,9 @@ void FrameAnalysis::compute_objects_ll(int color) {
 void FrameAnalysis::track_table()
 {
     FrameWaiter waiter(frame_ctx.table_tracking_waiter, this->frame_num);
+    if (this->commands.retrack_table) {
+        this->frame_ctx.have_fix = false;
+    }
     if (this->commands.regen_feature_detector || this->frame_ctx.surf_detector == NULL) {
         this->frame_ctx.surf_detector = SURF::create(this->settings.feats_hessian_threshold, this->settings.feats_n_octaves);
     }
@@ -54,7 +57,7 @@ void FrameAnalysis::track_table()
         this->frame_ctx.ref_descr = Mat();
         this->frame_ctx.surf_detector->detectAndCompute(this->ref_image, this->ref_mask, this->frame_ctx.ref_kps, this->frame_ctx.ref_descr);
     }
-    if ((this->commands.retrack_table || !this->frame_ctx.have_fix) && !this->frame_ctx.ref_kps.empty()) {
+    if (!this->frame_ctx.have_fix && !this->frame_ctx.ref_kps.empty()) {
         // We have both sets of keypoints and we can try a matching
         vector< KeyPoint > frame_kps;
         Mat frame_descr;
@@ -70,17 +73,23 @@ void FrameAnalysis::track_table()
         matches.erase(remove_if(matches.begin(), matches.end(), [&](const DMatch&a)->bool{ return a.distance > thresh_dist; }), matches.end());
         drawMatches(this->ref_image, this->frame_ctx.ref_kps, this->frame, frame_kps, matches, this->frame_ctx.frame_matches);
 
-        // Run RANSAC to find the underlying homography
+        // Run RANSAC to find the underlying homography and finally project known reference corners
         vector< Point2f > ref_points;
         vector< Point2f > frame_points;
         for (auto &match : matches) {
             ref_points.push_back(this->frame_ctx.ref_kps[match.queryIdx].pt);
             frame_points.push_back(frame_kps[match.trainIdx].pt);
         }
-        Mat homography = findHomography(ref_points, frame_points, RANSAC);
+        Mat homography = findHomography(ref_points, frame_points, RANSAC, settings.ransac_threshold);
 
-        // FIXME
-        this->frame_ctx.have_fix = true;
+        // We expect the resuling matrix to be rather similar to the identity; it the determinant is too small we know that something has gone wrong and we reject the result
+        // OpenCV docs guarantees that the matrix is already normalized with h_33 = 1
+        float det = determinant(homography);
+        //BOOST_LOG_TRIVIAL(info) << "Found homography with determinant " << det;
+        if (det > settings.det_threshold) {
+            perspectiveTransform(this->settings.ref_corners, this->frame_ctx.frame_corners, homography);
+            this->frame_ctx.have_fix = true;
+        }
     }
     this->frame_matches = this->frame_ctx.frame_matches;
 }
@@ -95,23 +104,26 @@ void FrameAnalysis::do_things()
 
     this->track_table();
 
-    Size &size = this->settings.intermediate_size;
-    Point2f image_corners[4] = { { 0.0, (float) size.height },
-                                 { (float) size.width, (float) size.height },
-                                 { (float) size.width, 0.0 },
-                                 { 0.0, 0.0 } };
-    Mat trans = getPerspectiveTransform(image_corners, this->settings.table_corners);
-    warpPerspective(this->frame, this->table_frame, trans, size, INTER_NEAREST | WARP_INVERSE_MAP);
+    // If we do not have a fix, there is nothing useful we can do with this frame
+    if (this->frame_ctx.have_fix) {
+        Size intermediate_size = compute_intermediate_size(settings);
+        vector< Point2f > image_corners = { { 0.0, (float) intermediate_size.height },
+                                     { (float) intermediate_size.width, (float) intermediate_size.height },
+                                     { (float) intermediate_size.width, 0.0 },
+                                     { 0.0, 0.0 } };
+        Mat trans = getPerspectiveTransform(image_corners, this->frame_ctx.frame_corners);
+        warpPerspective(this->frame, this->table_frame, trans, intermediate_size, INTER_NEAREST | WARP_INVERSE_MAP);
 
-    this->table_frame_on_main = frame.clone();
-    for (int i = 0; i < 4; i++) {
-        line(this->table_frame_on_main, this->settings.table_corners[i], this->settings.table_corners[(i+1)%4], Scalar(0, 0, 255), 2);
-    }
+        this->table_frame_on_main = frame.clone();
+        for (int i = 0; i < 4; i++) {
+            line(this->table_frame_on_main, this->frame_ctx.frame_corners[i], this->frame_ctx.frame_corners[(i+1)%4], Scalar(0, 0, 255), 2);
+        }
 
-    this->table_frame.convertTo(this->float_table_frame, CV_32FC3, 1.0/255.0);
+        this->table_frame.convertTo(this->float_table_frame, CV_32FC3, 1.0/255.0);
 
-    for (int color = 0; color < 3; color++) {
-        this->compute_objects_ll(color);
+        for (int color = 0; color < 3; color++) {
+            this->compute_objects_ll(color);
+        }
     }
 
     this->end_steady_time = steady_clock::now();

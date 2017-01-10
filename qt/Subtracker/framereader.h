@@ -43,6 +43,7 @@ public:
   virtual FrameInfo get() = 0;
   virtual FrameInfo maybe_get() = 0;
   virtual FrameInfo get_last() = 0;
+  virtual FrameInfo get_last_at_least_one() = 0;
 };
 
 static const std::chrono::seconds frame_count_interval(5);
@@ -94,6 +95,7 @@ public:
   FrameInfo get();
   FrameInfo maybe_get();
   FrameInfo get_last();
+  FrameInfo get_last_at_least_one();
   virtual ~FrameCycle();
 };
 

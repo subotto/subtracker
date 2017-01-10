@@ -153,23 +153,23 @@ void FrameCycle::push(FrameInfo info) {
 }
 
 FrameInfo FrameCycle::get() {
-  BOOST_LOG_NAMED_SCOPE("frame get");
-  BOOST_LOG_TRIVIAL(debug) << "Request lock";
+  //BOOST_LOG_NAMED_SCOPE("frame get");
+  //BOOST_LOG_TRIVIAL(debug) << "Request lock";
   unique_lock<mutex> lock(queue_mutex);
-  BOOST_LOG_TRIVIAL(debug) << "Received lock";
+  //BOOST_LOG_TRIVIAL(debug) << "Received lock";
   while (queue.empty()) {
       if (this->finished) {
           return { time_point< system_clock >(), time_point< system_clock >(), NULL, Mat(), false };
       }
-      BOOST_LOG_TRIVIAL(debug) << "Waiting";
+      //BOOST_LOG_TRIVIAL(debug) << "Waiting";
       queue_not_empty.wait(lock);
-      BOOST_LOG_TRIVIAL(debug) << "Wait finished";
+      //BOOST_LOG_TRIVIAL(debug) << "Wait finished";
   }
-  BOOST_LOG_TRIVIAL(debug) << "Can do";
+  //BOOST_LOG_TRIVIAL(debug) << "Can do";
   auto res = queue.front();
   queue.pop_front();
   queue_not_full.notify_all();
-  BOOST_LOG_TRIVIAL(debug) << "Finished";
+  //BOOST_LOG_TRIVIAL(debug) << "Finished";
   return res;
 }
 
@@ -193,6 +193,28 @@ FrameInfo FrameCycle::get_last() {
   }
   queue_not_full.notify_all();
   return res;
+}
+
+FrameInfo FrameCycle::get_last_at_least_one()
+{
+    //BOOST_LOG_NAMED_SCOPE("frame get");
+    //BOOST_LOG_TRIVIAL(debug) << "Request lock";
+    unique_lock<mutex> lock(queue_mutex);
+    //BOOST_LOG_TRIVIAL(debug) << "Received lock";
+    while (queue.empty()) {
+        if (this->finished) {
+            return { time_point< system_clock >(), time_point< system_clock >(), NULL, Mat(), false };
+        }
+        //BOOST_LOG_TRIVIAL(debug) << "Waiting";
+        queue_not_empty.wait(lock);
+        //BOOST_LOG_TRIVIAL(debug) << "Wait finished";
+    }
+    //BOOST_LOG_TRIVIAL(debug) << "Can do";
+    auto res = queue.back();
+    queue.clear();
+    queue_not_full.notify_all();
+    //BOOST_LOG_TRIVIAL(debug) << "Finished";
+    return res;
 }
 
 void FrameCycle::stop() {
