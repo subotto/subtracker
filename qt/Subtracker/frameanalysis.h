@@ -10,6 +10,8 @@
 #include "framesettings.h"
 #include "framewaiter.h"
 
+std::string getImgType(int imgTypeInt);
+
 struct FrameContext {
     bool first_frame = true;
 
@@ -54,9 +56,9 @@ public:
     void do_things();
 
 private:
-
     void compute_objects_ll(int color);
     void track_table();
+    void check_table_inversion();
 
     cv::Mat frame;
     int frame_num;

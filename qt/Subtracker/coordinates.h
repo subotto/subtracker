@@ -21,8 +21,8 @@ inline const std::vector< cv::Point2f > &compute_frame_rectangle(const std::vect
 }
 
 inline std::vector< cv::Point2f > compute_table_frame_rectangle(const cv::Size2i &size) {
-    float width = (float) size.width;
-    float height = (float) size.height;
+    float width = (float) size.width - 1;
+    float height = (float) size.height - 1;
     return {{ 0, height }, { width, height }, { width, 0 }, { 0, 0 }};
 }
 
