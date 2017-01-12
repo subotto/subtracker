@@ -2,14 +2,6 @@
 <ui version="4.0">
  <class>BeginningPanel</class>
  <widget class="QFrame" name="BeginningPanel">
-  <property name="geometry">
-   <rect>
-    <x>0</x>
-    <y>0</y>
-    <width>400</width>
-    <height>158</height>
-   </rect>
-  </property>
   <property name="minimumSize">
    <size>
     <width>400</width>

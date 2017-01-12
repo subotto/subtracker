@@ -116,7 +116,16 @@ void FrameAnalysis::track_table()
         this->frame_ctx.have_fix = false;
     }
     if (this->commands.regen_feature_detector || this->frame_ctx.surf_detector == NULL) {
-        this->frame_ctx.surf_detector = SURF::create(this->settings.feats_hessian_threshold, this->settings.feats_n_octaves);
+        this->frame_ctx.surf_detector = SURF::create(this->settings.feats_hessian_threshold,
+                                                     this->settings.feats_n_octaves);
+    }
+    if (this->commands.refen_gtff_detector || this->frame_ctx.gftt_detector == NULL) {
+        this->frame_ctx.gftt_detector = GFTTDetector::create(this->settings.gftt_max_corners,
+                                                             this->settings.gftt_quality_level,
+                                                             this->settings.gftt_min_distance,
+                                                             this->settings.gftt_blockSize,
+                                                             this->settings.gftt_use_harris_detector,
+                                                             this->settings.gftt_k);
     }
     bool redetect_ref = false;
     if (this->commands.new_ref || (this->frame_ctx.ref_image.empty() && !this->settings.ref_image.empty())) {
@@ -132,10 +141,13 @@ void FrameAnalysis::track_table()
     if (this->ref_image.empty() || this->ref_mask.empty()) {
         this->frame_ctx.ref_kps.clear();
         this->frame_ctx.ref_descr = Mat();
+        this->frame_ctx.ref_gftt_kps.clear();
     } else if (redetect_ref) {
         this->frame_ctx.ref_kps.clear();
         this->frame_ctx.ref_descr = Mat();
+        this->frame_ctx.ref_gftt_kps.clear();
         this->frame_ctx.surf_detector->detectAndCompute(this->ref_image, this->ref_mask, this->frame_ctx.ref_kps, this->frame_ctx.ref_descr);
+        this->frame_ctx.gftt_detector->detect(this->ref_image, this->frame_ctx.ref_gftt_kps, this->ref_mask);
     }
 
     // Detection via features
@@ -178,8 +190,8 @@ void FrameAnalysis::track_table()
         }
     }
 
-    // Following via ECC maximization
-    if (this->frame_ctx.have_fix) {
+    // Following via ECC maximization (disabled, because it is too heavy)
+    if (false && this->frame_ctx.have_fix) {
         Mat frame_grey;
         Mat ref_grey;
         cvtColor(this->frame, frame_grey, CV_BGR2GRAY);
@@ -193,7 +205,13 @@ void FrameAnalysis::track_table()
         perspectiveTransform(this->settings.ref_corners, this->frame_ctx.frame_corners, float_homography);
     }
 
+    // Following via optical flow
+    if (this->frame_ctx.have_fix) {
+
+    }
+
     this->frame_matches = this->frame_ctx.frame_matches;
+    this->debug.push_back(this->frame_matches);
 }
 
 void FrameAnalysis::do_things()

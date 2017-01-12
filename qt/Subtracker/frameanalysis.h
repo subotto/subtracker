@@ -17,12 +17,14 @@ struct FrameContext {
 
     FrameWaiterContext table_tracking_waiter;
     cv::Ptr< cv::xfeatures2d::SURF > surf_detector;
+    cv::Ptr< cv::GFTTDetector > gftt_detector;
     bool have_fix = false;
     std::vector< cv::Point2f > frame_corners;
     cv::Mat frame_matches;
     cv::Mat ref_image, ref_mask;
     std::vector< cv::KeyPoint > ref_kps;
     cv::Mat ref_descr;
+    std::vector< cv::KeyPoint > ref_gftt_kps;
 
     FrameWaiterContext table_frame_waiter;
     cv::Mat table_frame_mean;
@@ -42,6 +44,7 @@ class FrameAnalysis
     friend class BallPanel;
     friend class FoosmenPanel;
     friend class BeginningPanel;
+    friend class DebugPanel;
 
 public:
     FrameAnalysis(const cv::Mat &frame, int frame_num,
@@ -78,6 +81,8 @@ private:
     cv::Mat table_frame, table_frame_on_main, float_table_frame;
     cv::Mat objects_ll[3];
     cv::Mat viz_objects_ll[3];
+
+    std::vector< cv::Mat > debug;
 };
 
 #endif // FRAMEANALYSIS_H

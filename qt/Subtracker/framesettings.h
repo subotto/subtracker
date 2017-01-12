@@ -18,10 +18,19 @@ struct FrameSettings {
     cv::Mat ref_mask;
     std::string ref_mask_filename;
 
+    // SURF
     int feats_hessian_threshold = 600;
     int feats_n_octaves = 10;
     int ransac_threshold = 20;
     float det_threshold = 0.1;
+
+    // Optical flow
+    int gftt_max_corners = 30;
+    double gftt_quality_level = 0.01;
+    double gftt_min_distance = 3.0;
+    int gftt_blockSize = 3;
+    bool gftt_use_harris_detector = false;
+    double gftt_k = 0.64;
 
     // Actual size in meters
     float table_length = 1.15;
@@ -31,6 +40,7 @@ struct FrameSettings {
 struct FrameCommands {
     bool retrack_table = false;
     bool regen_feature_detector = false;
+    bool refen_gtff_detector = false;
     bool new_ref = false;
     bool new_mask = false;
 };

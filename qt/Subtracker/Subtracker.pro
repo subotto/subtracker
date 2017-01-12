@@ -21,7 +21,8 @@ SOURCES += main.cpp\
     foosmenpanel.cpp \
     beginningpanel.cpp \
     memory.c \
-    tabletracking.cpp
+    tabletracking.cpp \
+    debugpanel.cpp
 
 HEADERS  += mainwindow.h \
     videowidget.h \
@@ -40,12 +41,14 @@ HEADERS  += mainwindow.h \
     memory.h \
     framewaiter.h \
     tabletracking.h \
-    coordinates.h
+    coordinates.h \
+    debugpanel.h
 
 FORMS    += mainwindow.ui \
     ballpanel.ui \
     foosmenpanel.ui \
-    beginningpanel.ui
+    beginningpanel.ui \
+    debugpanel.ui
 
 QMAKE_CXXFLAGS += -std=c++17 -march=native -DBOOST_ALL_DYN_LINK $$system(pkg-config --cflags opencv)
 QMAKE_LFLAGS += -lturbojpeg -lboost_log_setup -lboost_log -lboost_system -lboost_thread $$system(pkg-config --libs opencv)

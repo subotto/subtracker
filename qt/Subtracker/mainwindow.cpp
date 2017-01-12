@@ -7,6 +7,8 @@
 #include "ballpanel.h"
 #include "foosmenpanel.h"
 #include "beginningpanel.h"
+#include "debugpanel.h"
+
 #include "memory.h"
 
 #include <iomanip>
@@ -37,6 +39,7 @@ void MainWindow::add_all_frames() {
     this->add_frame_to_tree(new BeginningPanel(this), "Table detection panel");
     this->add_frame_to_tree(new BallPanel(this), "Ball panel");
     this->add_frame_to_tree(new FoosmenPanel(this), "Foosmen panel");
+    this->add_frame_to_tree(new DebugPanel(this), "Debug panel");
 
     for (auto &sub_frame : this->sub_frames) {
         sub_frame->receive_settings(this->settings);
