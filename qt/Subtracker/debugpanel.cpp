@@ -17,9 +17,11 @@ void DebugPanel::receive_frame(QSharedPointer<FrameAnalysis> frame)
 {
     for (size_t i = this->videos.size(); i < frame->debug.size(); i++) {
         auto video = QSharedPointer< VideoWidget >(new VideoWidget(this));
-        video->show();
         video->set_main(this->main);
         video->setMinimumHeight(200);
+        QLayout *layout = this->layout();
+        layout->addWidget(&*video);
+        this->update();
         this->videos.emplace_back(video);
     }
     for (size_t i = 0; i < frame->debug.size(); i++) {

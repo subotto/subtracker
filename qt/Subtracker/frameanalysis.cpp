@@ -109,6 +109,11 @@ void FrameAnalysis::check_table_inversion() {
     }
 }
 
+void FrameAnalysis::push_debug_frame(Mat &frame)
+{
+    this->debug.push_back(frame);
+}
+
 void FrameAnalysis::track_table()
 {
     FrameWaiter waiter(frame_ctx.table_tracking_waiter, this->frame_num);
@@ -189,6 +194,7 @@ void FrameAnalysis::track_table()
             this->check_table_inversion();
         }
     }
+    this->frame_matches = this->frame_ctx.frame_matches;
 
     // Following via ECC maximization (disabled, because it is too heavy)
     if (false && this->frame_ctx.have_fix) {
@@ -201,24 +207,40 @@ void FrameAnalysis::track_table()
         Mat float_homography;
         homography.convertTo(float_homography, CV_32F);
         //BOOST_LOG_TRIVIAL(debug) << "homography type: " << getImgType(float_homography.type());
-        findTransformECC(ref_grey, frame_grey, float_homography, MOTION_HOMOGRAPHY, TermCriteria(TermCriteria::COUNT+TermCriteria::EPS, 10, 0.1), this->frame_ctx.ref_mask);
+        findTransformECC(ref_grey, frame_grey, float_homography, MOTION_HOMOGRAPHY, TermCriteria(TermCriteria::COUNT+TermCriteria::EPS, 1, 0.1), this->frame_ctx.ref_mask);
         perspectiveTransform(this->settings.ref_corners, this->frame_ctx.frame_corners, float_homography);
     }
 
     // Following via optical flow
-    if (this->frame_ctx.have_fix) {
-
+    if (true && this->frame_ctx.have_fix) {
+        Mat homography = getPerspectiveTransform(this->settings.ref_corners,
+                                                 this->frame_ctx.frame_corners);
+        Mat warped;
+        warpPerspective(this->frame, warped, homography, this->ref_image.size(), WARP_INVERSE_MAP);
+        vector< Point2f > from_points, to_points;
+        vector< uchar > status;
+        for (const KeyPoint &kp : this->frame_ctx.ref_gftt_kps) {
+            from_points.push_back(kp.pt);
+        }
+        // TODO - Check that there are features
+        calcOpticalFlowPyrLK(this->ref_image, warped, from_points, to_points, status, noArray());
+        vector< Point2f > good_from_points, good_to_points;
+        for (size_t i = 0; i < from_points.size(); i++) {
+            if (status[i]) {
+                good_from_points.push_back(from_points[i]);
+                good_to_points.push_back(to_points[i]);
+            }
+        }
+        Mat flow_correction = Mat::eye(3, 3, CV_32F);
+        if (good_from_points.size() >= 6) {
+            flow_correction = findHomography(good_from_points, good_to_points, RANSAC);
+        }
+        perspectiveTransform(this->settings.ref_corners, this->frame_ctx.frame_corners, homography * flow_correction);
     }
-
-    this->frame_matches = this->frame_ctx.frame_matches;
-    this->debug.push_back(this->frame_matches);
 }
 
 void FrameAnalysis::do_things()
 {
-    (void) frame_ctx;
-    (void) thread_ctx;
-
     this->begin_steady_time = steady_clock::now();
     this->begin_time = system_clock::now();
 

@@ -62,6 +62,7 @@ private:
     void compute_objects_ll(int color);
     void track_table();
     void check_table_inversion();
+    void push_debug_frame(cv::Mat &frame);
 
     cv::Mat frame;
     int frame_num;
