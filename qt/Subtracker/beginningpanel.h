@@ -28,6 +28,8 @@ private slots:
     void handle_future();
     void on_retrackTableButton_clicked();
 
+    void on_redetectFeaturesButton_clicked();
+
 private:
     void add_future_watcher(const QFuture<std::tuple<cv::Mat, std::string, std::string> > &future);
     bool handle_one_future(QFutureWatcher<std::tuple<cv::Mat, std::string, std::string> > *future);

@@ -6,7 +6,6 @@
 #include <algorithm>
 
 #include "frameanalysis.h"
-#include "tabletracking.h"
 #include "logging.h"
 #include "coordinates.h"
 
@@ -43,6 +42,100 @@ string getImgType(int imgTypeInt)
     }
     return "unknown image type";
 }
+
+/*static double evaluate_ECC_rho(InputArray templateImage, InputArray inputImage, InputArray warpMatrix, int motionType, InputArray inputMask) {
+
+    Mat src = templateImage.getMat();//template iamge
+    Mat dst = inputImage.getMat(); //input image (to be warped)
+    Mat map = warpMatrix.getMat(); //warp (transformation)
+
+    CV_Assert(!src.empty());
+    CV_Assert(!dst.empty());
+
+
+    if( ! (src.type()==dst.type()))
+        CV_Error( Error::StsUnmatchedFormats, "Both input images must have the same data type" );
+
+    //accept only 1-channel images
+    if( src.type() != CV_8UC1 && src.type()!= CV_32FC1)
+        CV_Error( Error::StsUnsupportedFormat, "Images must have 8uC1 or 32fC1 type");
+
+    if( map.type() != CV_32FC1)
+        CV_Error( Error::StsUnsupportedFormat, "warpMatrix must be single-channel floating-point matrix");
+
+    CV_Assert (map.cols == 3);
+    CV_Assert (map.rows == 2 || map.rows ==3);
+
+    CV_Assert (motionType == MOTION_AFFINE || motionType == MOTION_HOMOGRAPHY ||
+        motionType == MOTION_EUCLIDEAN || motionType == MOTION_TRANSLATION);
+
+    if (motionType == MOTION_HOMOGRAPHY){
+        CV_Assert (map.rows ==3);
+    }
+
+    const int ws = src.cols;
+    const int hs = src.rows;
+    const int wd = dst.cols;
+    const int hd = dst.rows;
+
+    Mat templateZM    = Mat(hs, ws, CV_32F);// to store the (smoothed)zero-mean version of template
+    Mat templateFloat = Mat(hs, ws, CV_32F);// to store the (smoothed) template
+    Mat imageFloat    = Mat(hd, wd, CV_32F);// to store the (smoothed) input image
+    Mat imageWarped   = Mat(hs, ws, CV_32F);// to store the warped zero-mean input image
+    Mat imageMask		= Mat(hs, ws, CV_8U); //to store the final mask
+
+    //to use it for mask warping
+    Mat preMask;
+    if(inputMask.empty())
+        preMask = Mat::ones(hd, wd, CV_8U);
+    else
+        threshold(inputMask, preMask, 0, 1, THRESH_BINARY);
+
+    //gaussian filtering is optional
+    src.convertTo(templateFloat, templateFloat.type());
+    GaussianBlur(templateFloat, templateFloat, Size(5, 5), 0, 0);
+
+    Mat preMaskFloat;
+    preMask.convertTo(preMaskFloat, CV_32F);
+    GaussianBlur(preMaskFloat, preMaskFloat, Size(5, 5), 0, 0);
+    // Change threshold.
+    preMaskFloat *= (0.5/0.95);
+    // Rounding conversion.
+    preMaskFloat.convertTo(preMask, preMask.type());
+    preMask.convertTo(preMaskFloat, preMaskFloat.type());
+
+    dst.convertTo(imageFloat, imageFloat.type());
+    GaussianBlur(imageFloat, imageFloat, Size(5, 5), 0, 0);
+
+    const int imageFlags = INTER_LINEAR  + WARP_INVERSE_MAP;
+    const int maskFlags  = INTER_NEAREST + WARP_INVERSE_MAP;
+
+    if (motionType != MOTION_HOMOGRAPHY)
+    {
+        warpAffine(imageFloat, imageWarped,     map, imageWarped.size(),     imageFlags);
+        warpAffine(preMask,    imageMask,       map, imageMask.size(),       maskFlags);
+    }
+    else
+    {
+        warpPerspective(imageFloat, imageWarped,     map, imageWarped.size(),     imageFlags);
+        warpPerspective(preMask,    imageMask,       map, imageMask.size(),       maskFlags);
+    }
+
+    Scalar imgMean, imgStd, tmpMean, tmpStd;
+    meanStdDev(imageWarped,   imgMean, imgStd, imageMask);
+    meanStdDev(templateFloat, tmpMean, tmpStd, imageMask);
+
+    subtract(imageWarped,   imgMean, imageWarped, imageMask);//zero-mean input
+    templateZM = Mat::zeros(templateZM.rows, templateZM.cols, templateZM.type());
+    subtract(templateFloat, tmpMean, templateZM,  imageMask);//zero-mean template
+
+    const double tmpNorm = std::sqrt(countNonZero(imageMask)*(tmpStd.val[0])*(tmpStd.val[0]));
+    const double imgNorm = std::sqrt(countNonZero(imageMask)*(imgStd.val[0])*(imgStd.val[0]));
+    const double correlation = templateZM.dot(imageWarped);
+    double rho = correlation/(imgNorm*tmpNorm);
+
+    return rho;
+}*/
 
 FrameAnalysis::FrameAnalysis(const cv::Mat &frame, int frame_num, const std::chrono::time_point< std::chrono::system_clock > &time, const std::chrono::time_point< std::chrono::system_clock > &acquisition_time, const std::chrono::time_point<steady_clock> &acquisition_steady_time, const FrameSettings &settings, const FrameCommands &commands, FrameContext &frame_ctx, ThreadContext &thread_ctx) :
     frame(frame), frame_num(frame_num), time(time), acquisition_time(acquisition_time), acquisition_steady_time(acquisition_steady_time), settings(settings), commands(commands), frame_ctx(frame_ctx), thread_ctx(thread_ctx) {
@@ -132,7 +225,7 @@ void FrameAnalysis::track_table()
                                                              this->settings.gftt_use_harris_detector,
                                                              this->settings.gftt_k);
     }
-    bool redetect_ref = false;
+    bool redetect_ref = this->commands.redetect_features;
     if (this->commands.new_ref || (this->frame_ctx.ref_image.empty() && !this->settings.ref_image.empty())) {
         this->frame_ctx.ref_image = this->settings.ref_image;
         redetect_ref = true;
@@ -152,8 +245,12 @@ void FrameAnalysis::track_table()
         this->frame_ctx.ref_descr = Mat();
         this->frame_ctx.ref_gftt_kps.clear();
         this->frame_ctx.surf_detector->detectAndCompute(this->ref_image, this->ref_mask, this->frame_ctx.ref_kps, this->frame_ctx.ref_descr);
+        drawKeypoints(this->ref_image, this->frame_ctx.ref_kps, this->frame_ctx.surf_frame_kps);
         this->frame_ctx.gftt_detector->detect(this->ref_image, this->frame_ctx.ref_gftt_kps, this->ref_mask);
+        drawKeypoints(this->ref_image, this->frame_ctx.ref_gftt_kps, this->frame_ctx.gftt_frame_kps);
     }
+    this->push_debug_frame(this->frame_ctx.surf_frame_kps);
+    this->push_debug_frame(this->frame_ctx.gftt_frame_kps);
 
     // Detection via features
     if (!this->frame_ctx.have_fix && !this->frame_ctx.ref_kps.empty()) {
@@ -179,7 +276,7 @@ void FrameAnalysis::track_table()
             ref_points.push_back(this->frame_ctx.ref_kps[match.queryIdx].pt);
             frame_points.push_back(frame_kps[match.trainIdx].pt);
         }
-        Mat homography = findHomography(ref_points, frame_points, RANSAC, settings.ransac_threshold);
+        Mat homography = findHomography(ref_points, frame_points, RANSAC, settings.feats_ransac_threshold);
 
         // We expect the resuling matrix to be rather similar to the identity; it the determinant is too small we know that something has gone wrong and we reject the result
         // OpenCV docs guarantees that the matrix is already normalized with h_33 = 1
@@ -207,6 +304,7 @@ void FrameAnalysis::track_table()
         Mat float_homography;
         homography.convertTo(float_homography, CV_32F);
         //BOOST_LOG_TRIVIAL(debug) << "homography type: " << getImgType(float_homography.type());
+        // FIXME - The mask is applied to the input image, not to the reference image
         findTransformECC(ref_grey, frame_grey, float_homography, MOTION_HOMOGRAPHY, TermCriteria(TermCriteria::COUNT+TermCriteria::EPS, 1, 0.1), this->frame_ctx.ref_mask);
         perspectiveTransform(this->settings.ref_corners, this->frame_ctx.frame_corners, float_homography);
     }
@@ -217,13 +315,16 @@ void FrameAnalysis::track_table()
                                                  this->frame_ctx.frame_corners);
         Mat warped;
         warpPerspective(this->frame, warped, homography, this->ref_image.size(), WARP_INVERSE_MAP);
+        this->push_debug_frame(warped);
         vector< Point2f > from_points, to_points;
         vector< uchar > status;
         for (const KeyPoint &kp : this->frame_ctx.ref_gftt_kps) {
             from_points.push_back(kp.pt);
         }
         // TODO - Check that there are features
-        calcOpticalFlowPyrLK(this->ref_image, warped, from_points, to_points, status, noArray());
+        calcOpticalFlowPyrLK(this->ref_image, warped, from_points, to_points, status, noArray(),
+                             Size(this->settings.of_win_side, this->settings.of_win_side), this->settings.of_max_level,
+                             TermCriteria(TermCriteria::COUNT + TermCriteria::EPS, this->settings.of_term_count, this->settings.of_term_eps));
         vector< Point2f > good_from_points, good_to_points;
         for (size_t i = 0; i < from_points.size(); i++) {
             if (status[i]) {
@@ -231,9 +332,22 @@ void FrameAnalysis::track_table()
                 good_to_points.push_back(to_points[i]);
             }
         }
-        Mat flow_correction = Mat::eye(3, 3, CV_32F);
+        if (true) {
+            Mat of_matches;
+            vector< KeyPoint > warped_kps;
+            vector< DMatch > matches;
+            for (size_t i = 0; i < from_points.size(); i++) {
+                if (status[i]) {
+                    matches.push_back(DMatch(i, warped_kps.size(), 1.0));
+                    warped_kps.push_back(KeyPoint(to_points[i], 1.0));
+                }
+            }
+            drawMatches(this->ref_image, this->frame_ctx.ref_gftt_kps, warped, warped_kps, matches, of_matches, Scalar::all(-1), Scalar::all(-1), {}, DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
+            this->push_debug_frame(of_matches);
+        }
+        Mat flow_correction = Mat::eye(3, 3, CV_64F);
         if (good_from_points.size() >= 6) {
-            flow_correction = findHomography(good_from_points, good_to_points, RANSAC);
+            //flow_correction = findHomography(good_from_points, good_to_points, RANSAC, this->settings.of_ransac_threshold);
         }
         perspectiveTransform(this->settings.ref_corners, this->frame_ctx.frame_corners, homography * flow_correction);
     }

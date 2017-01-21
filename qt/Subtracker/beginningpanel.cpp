@@ -119,3 +119,9 @@ void BeginningPanel::on_retrackTableButton_clicked()
     auto cmds = this->main->edit_commands();
     cmds.second->retrack_table = true;
 }
+
+void BeginningPanel::on_redetectFeaturesButton_clicked()
+{
+    auto cmds = this->main->edit_commands();
+    cmds.second->redetect_features = true;
+}

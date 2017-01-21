@@ -21,16 +21,23 @@ struct FrameSettings {
     // SURF
     int feats_hessian_threshold = 600;
     int feats_n_octaves = 10;
-    int ransac_threshold = 20;
+    int feats_ransac_threshold = 20;
     float det_threshold = 0.1;
 
-    // Optical flow
-    int gftt_max_corners = 30;
+    // Optical flow features
+    int gftt_max_corners = 100;
     double gftt_quality_level = 0.01;
     double gftt_min_distance = 3.0;
     int gftt_blockSize = 3;
     bool gftt_use_harris_detector = false;
     double gftt_k = 0.64;
+
+    // Optical flow
+    double of_win_side = 21;
+    int of_max_level = 3;
+    int of_term_count = 30;
+    int of_term_eps = 0.01;
+    int of_ransac_threshold = 3;
 
     // Actual size in meters
     float table_length = 1.15;
@@ -38,11 +45,12 @@ struct FrameSettings {
 };
 
 struct FrameCommands {
-    bool retrack_table = false;
-    bool regen_feature_detector = false;
-    bool refen_gtff_detector = false;
     bool new_ref = false;
     bool new_mask = false;
+    bool regen_feature_detector = false;
+    bool refen_gtff_detector = false;
+    bool redetect_features = false;
+    bool retrack_table = false;
 };
 
 #endif // FRAMESETTINGS_H

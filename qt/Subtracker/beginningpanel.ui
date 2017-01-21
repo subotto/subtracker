@@ -66,6 +66,13 @@
     </layout>
    </item>
    <item>
+    <widget class="QPushButton" name="redetectFeaturesButton">
+     <property name="text">
+      <string>Redetect features</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QPushButton" name="retrackTableButton">
      <property name="text">
       <string>Retrack table</string>

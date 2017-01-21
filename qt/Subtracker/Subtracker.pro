@@ -21,7 +21,6 @@ SOURCES += main.cpp\
     foosmenpanel.cpp \
     beginningpanel.cpp \
     memory.c \
-    tabletracking.cpp \
     debugpanel.cpp
 
 HEADERS  += mainwindow.h \
@@ -40,7 +39,6 @@ HEADERS  += mainwindow.h \
     beginningpanel.h \
     memory.h \
     framewaiter.h \
-    tabletracking.h \
     coordinates.h \
     debugpanel.h
 

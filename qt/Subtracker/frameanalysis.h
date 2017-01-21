@@ -17,6 +17,8 @@ struct FrameContext {
 
     FrameWaiterContext table_tracking_waiter;
     cv::Ptr< cv::xfeatures2d::SURF > surf_detector;
+    cv::Mat surf_frame_kps;
+    cv::Mat gftt_frame_kps;
     cv::Ptr< cv::GFTTDetector > gftt_detector;
     bool have_fix = false;
     std::vector< cv::Point2f > frame_corners;
