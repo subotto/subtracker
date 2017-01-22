@@ -21,7 +21,8 @@ SOURCES += main.cpp\
     foosmenpanel.cpp \
     beginningpanel.cpp \
     memory.c \
-    debugpanel.cpp
+    debugpanel.cpp \
+    cv.cpp
 
 HEADERS  += mainwindow.h \
     videowidget.h \
@@ -40,7 +41,8 @@ HEADERS  += mainwindow.h \
     memory.h \
     framewaiter.h \
     coordinates.h \
-    debugpanel.h
+    debugpanel.h \
+    cv.h
 
 FORMS    += mainwindow.ui \
     ballpanel.ui \

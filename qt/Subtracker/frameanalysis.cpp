@@ -8,134 +8,12 @@
 #include "frameanalysis.h"
 #include "logging.h"
 #include "coordinates.h"
+#include "cv.h"
 
 using namespace std;
 using namespace chrono;
 using namespace cv;
 using namespace xfeatures2d;
-
-// Taken from http://stackoverflow.com/a/12336381/807307
-// take number image type number (from cv::Mat.type()), get OpenCV's enum string.
-string getImgType(int imgTypeInt)
-{
-    int numImgTypes = 35; // 7 base types, with five channel options each (none or C1, ..., C4)
-
-    int enum_ints[] =       {CV_8U,  CV_8UC1,  CV_8UC2,  CV_8UC3,  CV_8UC4,
-                             CV_8S,  CV_8SC1,  CV_8SC2,  CV_8SC3,  CV_8SC4,
-                             CV_16U, CV_16UC1, CV_16UC2, CV_16UC3, CV_16UC4,
-                             CV_16S, CV_16SC1, CV_16SC2, CV_16SC3, CV_16SC4,
-                             CV_32S, CV_32SC1, CV_32SC2, CV_32SC3, CV_32SC4,
-                             CV_32F, CV_32FC1, CV_32FC2, CV_32FC3, CV_32FC4,
-                             CV_64F, CV_64FC1, CV_64FC2, CV_64FC3, CV_64FC4};
-
-    string enum_strings[] = {"CV_8U",  "CV_8UC1",  "CV_8UC2",  "CV_8UC3",  "CV_8UC4",
-                             "CV_8S",  "CV_8SC1",  "CV_8SC2",  "CV_8SC3",  "CV_8SC4",
-                             "CV_16U", "CV_16UC1", "CV_16UC2", "CV_16UC3", "CV_16UC4",
-                             "CV_16S", "CV_16SC1", "CV_16SC2", "CV_16SC3", "CV_16SC4",
-                             "CV_32S", "CV_32SC1", "CV_32SC2", "CV_32SC3", "CV_32SC4",
-                             "CV_32F", "CV_32FC1", "CV_32FC2", "CV_32FC3", "CV_32FC4",
-                             "CV_64F", "CV_64FC1", "CV_64FC2", "CV_64FC3", "CV_64FC4"};
-
-    for(int i=0; i<numImgTypes; i++)
-    {
-        if(imgTypeInt == enum_ints[i]) return enum_strings[i];
-    }
-    return "unknown image type";
-}
-
-/*static double evaluate_ECC_rho(InputArray templateImage, InputArray inputImage, InputArray warpMatrix, int motionType, InputArray inputMask) {
-
-    Mat src = templateImage.getMat();//template iamge
-    Mat dst = inputImage.getMat(); //input image (to be warped)
-    Mat map = warpMatrix.getMat(); //warp (transformation)
-
-    CV_Assert(!src.empty());
-    CV_Assert(!dst.empty());
-
-
-    if( ! (src.type()==dst.type()))
-        CV_Error( Error::StsUnmatchedFormats, "Both input images must have the same data type" );
-
-    //accept only 1-channel images
-    if( src.type() != CV_8UC1 && src.type()!= CV_32FC1)
-        CV_Error( Error::StsUnsupportedFormat, "Images must have 8uC1 or 32fC1 type");
-
-    if( map.type() != CV_32FC1)
-        CV_Error( Error::StsUnsupportedFormat, "warpMatrix must be single-channel floating-point matrix");
-
-    CV_Assert (map.cols == 3);
-    CV_Assert (map.rows == 2 || map.rows ==3);
-
-    CV_Assert (motionType == MOTION_AFFINE || motionType == MOTION_HOMOGRAPHY ||
-        motionType == MOTION_EUCLIDEAN || motionType == MOTION_TRANSLATION);
-
-    if (motionType == MOTION_HOMOGRAPHY){
-        CV_Assert (map.rows ==3);
-    }
-
-    const int ws = src.cols;
-    const int hs = src.rows;
-    const int wd = dst.cols;
-    const int hd = dst.rows;
-
-    Mat templateZM    = Mat(hs, ws, CV_32F);// to store the (smoothed)zero-mean version of template
-    Mat templateFloat = Mat(hs, ws, CV_32F);// to store the (smoothed) template
-    Mat imageFloat    = Mat(hd, wd, CV_32F);// to store the (smoothed) input image
-    Mat imageWarped   = Mat(hs, ws, CV_32F);// to store the warped zero-mean input image
-    Mat imageMask		= Mat(hs, ws, CV_8U); //to store the final mask
-
-    //to use it for mask warping
-    Mat preMask;
-    if(inputMask.empty())
-        preMask = Mat::ones(hd, wd, CV_8U);
-    else
-        threshold(inputMask, preMask, 0, 1, THRESH_BINARY);
-
-    //gaussian filtering is optional
-    src.convertTo(templateFloat, templateFloat.type());
-    GaussianBlur(templateFloat, templateFloat, Size(5, 5), 0, 0);
-
-    Mat preMaskFloat;
-    preMask.convertTo(preMaskFloat, CV_32F);
-    GaussianBlur(preMaskFloat, preMaskFloat, Size(5, 5), 0, 0);
-    // Change threshold.
-    preMaskFloat *= (0.5/0.95);
-    // Rounding conversion.
-    preMaskFloat.convertTo(preMask, preMask.type());
-    preMask.convertTo(preMaskFloat, preMaskFloat.type());
-
-    dst.convertTo(imageFloat, imageFloat.type());
-    GaussianBlur(imageFloat, imageFloat, Size(5, 5), 0, 0);
-
-    const int imageFlags = INTER_LINEAR  + WARP_INVERSE_MAP;
-    const int maskFlags  = INTER_NEAREST + WARP_INVERSE_MAP;
-
-    if (motionType != MOTION_HOMOGRAPHY)
-    {
-        warpAffine(imageFloat, imageWarped,     map, imageWarped.size(),     imageFlags);
-        warpAffine(preMask,    imageMask,       map, imageMask.size(),       maskFlags);
-    }
-    else
-    {
-        warpPerspective(imageFloat, imageWarped,     map, imageWarped.size(),     imageFlags);
-        warpPerspective(preMask,    imageMask,       map, imageMask.size(),       maskFlags);
-    }
-
-    Scalar imgMean, imgStd, tmpMean, tmpStd;
-    meanStdDev(imageWarped,   imgMean, imgStd, imageMask);
-    meanStdDev(templateFloat, tmpMean, tmpStd, imageMask);
-
-    subtract(imageWarped,   imgMean, imageWarped, imageMask);//zero-mean input
-    templateZM = Mat::zeros(templateZM.rows, templateZM.cols, templateZM.type());
-    subtract(templateFloat, tmpMean, templateZM,  imageMask);//zero-mean template
-
-    const double tmpNorm = std::sqrt(countNonZero(imageMask)*(tmpStd.val[0])*(tmpStd.val[0]));
-    const double imgNorm = std::sqrt(countNonZero(imageMask)*(imgStd.val[0])*(imgStd.val[0]));
-    const double correlation = templateZM.dot(imageWarped);
-    double rho = correlation/(imgNorm*tmpNorm);
-
-    return rho;
-}*/
 
 FrameAnalysis::FrameAnalysis(const cv::Mat &frame, int frame_num, const std::chrono::time_point< std::chrono::system_clock > &time, const std::chrono::time_point< std::chrono::system_clock > &acquisition_time, const std::chrono::time_point<steady_clock> &acquisition_steady_time, const FrameSettings &settings, const FrameCommands &commands, FrameContext &frame_ctx, ThreadContext &thread_ctx) :
     frame(frame), frame_num(frame_num), time(time), acquisition_time(acquisition_time), acquisition_steady_time(acquisition_steady_time), settings(settings), commands(commands), frame_ctx(frame_ctx), thread_ctx(thread_ctx) {
@@ -294,23 +172,22 @@ void FrameAnalysis::track_table()
     this->frame_matches = this->frame_ctx.frame_matches;
 
     // Following via ECC maximization (disabled, because it is too heavy)
-    if (false && this->frame_ctx.have_fix) {
+    if (true && this->frame_ctx.have_fix) {
         Mat frame_grey;
         Mat ref_grey;
         cvtColor(this->frame, frame_grey, CV_BGR2GRAY);
         cvtColor(this->frame_ctx.ref_image, ref_grey, CV_BGR2GRAY);
-        Mat homography = getPerspectiveTransform(this->settings.ref_corners,
-                                                 this->frame_ctx.frame_corners);
-        Mat float_homography;
-        homography.convertTo(float_homography, CV_32F);
-        //BOOST_LOG_TRIVIAL(debug) << "homography type: " << getImgType(float_homography.type());
-        // FIXME - The mask is applied to the input image, not to the reference image
-        findTransformECC(ref_grey, frame_grey, float_homography, MOTION_HOMOGRAPHY, TermCriteria(TermCriteria::COUNT+TermCriteria::EPS, 1, 0.1), this->frame_ctx.ref_mask);
-        perspectiveTransform(this->settings.ref_corners, this->frame_ctx.frame_corners, float_homography);
+        Mat inv_homography = getPerspectiveTransform(this->frame_ctx.frame_corners, this->settings.ref_corners);
+        Mat float_inv_homography;
+        inv_homography.convertTo(float_inv_homography, CV_32F);
+        // OpenCV wants to apply the mask to the input image, not to the reference one; therefore we invert everything
+        double ecc = findTransformECC(frame_grey, ref_grey, float_inv_homography, MOTION_HOMOGRAPHY, TermCriteria(TermCriteria::COUNT, 1, 0.1), this->frame_ctx.ref_mask);
+        perspectiveTransform(this->settings.ref_corners, this->frame_ctx.frame_corners, float_inv_homography.inv());
+        BOOST_LOG_TRIVIAL(info) << "ECC coeff: " << ecc << " " << evaluate_ECC_rho(frame_grey, ref_grey, float_inv_homography, MOTION_HOMOGRAPHY, this->frame_ctx.ref_mask);
     }
 
     // Following via optical flow
-    if (true && this->frame_ctx.have_fix) {
+    if (false && this->frame_ctx.have_fix) {
         Mat homography = getPerspectiveTransform(this->settings.ref_corners,
                                                  this->frame_ctx.frame_corners);
         Mat warped;
