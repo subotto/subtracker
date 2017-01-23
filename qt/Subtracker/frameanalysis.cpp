@@ -25,9 +25,27 @@ void FrameAnalysis::push_debug_frame(Mat &frame)
     this->debug.push_back(frame);
 }
 
+void FrameAnalysis::compute_table_ll() {
+    // FIXME - Can this be expressed in terms of optimized lower level operations?
+    // First addend is easy, but I do not know how to multiply components in the second
+    this->table_ll = Mat(this->table_frame.size(), CV_32F);
+    assert(this->table_ll.isContinuous());
+    auto it = this->table_ll.begin< float >();
+    auto it_end = this->table_ll.end< float >();
+    auto it2 = this->table_frame_diff2.begin< Vec< float, 3 > >();
+    auto it3 = this->table_frame_var.begin< Vec< float, 3 > >();
+    for (; it != it_end; ++it) {
+        //*it = -0.5 * ((*it2)[0] + (*it2)[1] + (*it2)[2]);
+        *it = -0.5 * ((*it2)[0] / (*it3)[0] + (*it2)[1] / (*it3)[1] + (*it2)[2] / (*it3)[2]) - 0.5 * log(2 * M_PI * (*it3)[0] * (*it3)[1] * (*it3)[2]);
+        ++it2;
+        ++it3;
+    }
+    this->push_debug_frame(this->table_ll);
+}
+
 void FrameAnalysis::compute_objects_ll(int color) {
     Mat tmp;
-    Mat diff = this->float_table_frame - this->settings.objects_colors[color];
+    auto diff = this->float_table_frame - this->settings.objects_colors[color];
     float factor = -0.5f / (this->settings.objects_color_stddev[color] * this->settings.objects_color_stddev[color]);
     Matx< float, 1, 3 > t = { factor, factor, factor };
     transform(diff.mul(diff), tmp, t);
@@ -35,6 +53,7 @@ void FrameAnalysis::compute_objects_ll(int color) {
     //this->objects_ll[color].convertTo(this->viz_objects_ll[color], CV_8UC1, 10.0, 255.0);
 }
 
+// TODO - Implement rot estimation
 void FrameAnalysis::find_foosmen() {
     for (uint8_t rod = 0; rod < this->settings.rod_num; rod++) {
         FrameSettings::RodParams &params = this->settings.rod_configuration[rod];
@@ -63,13 +82,51 @@ void FrameAnalysis::find_foosmen() {
         Point max_point;
         minMaxLoc(replicated_strip, NULL, NULL, NULL, &max_point);
         this->rods[rod].shift = convert_table_frame_to_phys_y(settings, this->intermediate_size, max_point.y) - foosman_y(this->settings, rod, 0);
-        if (rod == 3) {
+        if (false && rod == 3) {
             this->push_debug_frame(strip);
             this->push_debug_frame(reduced_strip);
             this->push_debug_frame(blurred_strip);
             this->push_debug_frame(replicated_strip);
         }
     }
+}
+
+void FrameAnalysis::update_mean() {
+    FrameWaiter waiter(frame_ctx.table_frame_waiter, this->frame_num);
+    if (!this->frame_ctx.mean_started) {
+        this->frame_ctx.table_frame_mean = Mat(this->intermediate_size, CV_32FC3, this->settings.initial_mean);
+        this->frame_ctx.table_frame_var = Mat(this->intermediate_size, CV_32FC3, this->settings.initial_var);
+        this->frame_ctx.mean_started = true;
+    }
+
+    // Compute a foosmen mask, so that we don't spoil the background with them
+    Mat foosmen_mask = Mat(this->intermediate_size, CV_8U, Scalar(255));
+    //Mat temp2 = this->table_frame.clone();
+    double rect_length = 2.0 * (convert_phys_to_table_frame_x(this->settings, this->intermediate_size, this->settings.foosman_foot) - convert_phys_to_table_frame_x(this->settings, this->intermediate_size, 0.0));
+    double rect_width = 2.0 * (convert_phys_to_table_frame_y(this->settings, this->intermediate_size, this->settings.foosman_width) - convert_phys_to_table_frame_y(this->settings, this->intermediate_size, 0.0));
+    for (uint8_t rod = 0; rod < this->settings.rod_num; rod++) {
+        FrameSettings::RodParams &params = this->settings.rod_configuration[rod];
+        for (uint8_t fm = 0; fm < params.num; fm++) {
+            Point fm_center = transform_point(foosman_coords(this->settings, rod, fm) + Point2f(0.0, this->rods[rod].shift), compute_physical_rectangle(this->settings), compute_table_frame_rectangle(this->intermediate_size));
+            Point displ = Point(0.5 * rect_length, 0.5 * rect_width);
+            rectangle(foosmen_mask, fm_center - displ, fm_center + displ, Scalar(0), CV_FILLED);
+            //rectangle(temp2, fm_center - displ, fm_center + displ, Scalar(0.0, 0.0, 0.0), CV_FILLED);
+        }
+    }
+
+    // Update the running average
+    // FIXME - The accumulation coefficient should be expressed in terms of absolute time, not frame number
+    accumulateWeighted(this->float_table_frame, this->frame_ctx.table_frame_mean, this->settings.accumul_coeff, foosmen_mask);
+    auto diff = this->float_table_frame - this->frame_ctx.table_frame_mean;
+    this->table_frame_diff2 = diff.mul(diff);
+    accumulateWeighted(this->table_frame_diff2, this->frame_ctx.table_frame_var, this->settings.accumul_coeff, foosmen_mask);
+
+    this->table_frame_mean = this->frame_ctx.table_frame_mean;
+    this->table_frame_var = this->frame_ctx.table_frame_var;
+    this->push_debug_frame(this->table_frame_mean);
+    /*Mat temp = 10.0 * (foosmen_mask - 1.0);
+    this->push_debug_frame(temp);
+    this->push_debug_frame(temp2);*/
 }
 
 void FrameAnalysis::do_things()
@@ -83,41 +140,41 @@ void FrameAnalysis::do_things()
     if (this->frame_ctx.have_fix) {
         // Warp table frame
         this->intermediate_size = compute_intermediate_size(settings);
-        Mat homography = getPerspectiveTransform(compute_table_frame_rectangle(this->intermediate_size), compute_frame_rectangle(this->frame_ctx.frame_corners));
+        Mat homography = getPerspectiveTransform(compute_table_frame_rectangle(this->intermediate_size), compute_frame_rectangle(this->frame_corners));
         warpPerspective(this->frame, this->table_frame, homography, this->intermediate_size, INTER_LINEAR | WARP_INVERSE_MAP);
         this->table_frame.convertTo(this->float_table_frame, CV_32FC3, 1.0/255.0);
 
-        // Compute likelihoods
         for (int color = 0; color < 3; color++) {
             this->compute_objects_ll(color);
         }
-
         this->find_foosmen();
+        this->update_mean();
+        this->compute_table_ll();
 
         // Draw rendering
         this->frame.copyTo(this->frame_rendering);
         this->table_frame.copyTo(this->table_frame_rendering);
         for (int i = 0; i < 4; i++) {
-            line(this->frame_rendering, this->frame_ctx.frame_corners[i], this->frame_ctx.frame_corners[(i+1)%4], Scalar(0, 0, 255), 2);
+            line(this->frame_rendering, this->frame_corners[i], this->frame_corners[(i+1)%4], Scalar(0, 0, 255), 2);
         }
         for (uint8_t rod = 0; rod < this->settings.rod_num; rod++) {
             auto coords = transform_pair(rod_coords(this->settings, rod), compute_physical_rectangle(this->settings), compute_table_frame_rectangle(intermediate_size));
             line(this->table_frame_rendering, coords.first, coords.second, Scalar(0, 0, 255), 1);
-            coords = transform_pair(rod_coords(this->settings, rod), compute_physical_rectangle(this->settings), compute_frame_rectangle(this->frame_ctx.frame_corners));
+            coords = transform_pair(rod_coords(this->settings, rod), compute_physical_rectangle(this->settings), compute_frame_rectangle(this->frame_corners));
             line(this->frame_rendering, coords.first, coords.second, Scalar(0, 0, 255), 1);
             for (uint8_t fm = 0; fm < this->settings.rod_configuration[rod].num; fm++) {
                 auto orig_point = foosman_coords(this->settings, rod, fm);
                 orig_point += Point2f(0.0, this->rods[rod].shift);
                 auto point = transform_point(orig_point, compute_physical_rectangle(this->settings), compute_table_frame_rectangle(intermediate_size));
                 circle(this->table_frame_rendering, point, 3, Scalar(255, 0, 0), -1);
-                point = transform_point(orig_point, compute_physical_rectangle(this->settings), compute_frame_rectangle(this->frame_ctx.frame_corners));
+                point = transform_point(orig_point, compute_physical_rectangle(this->settings), compute_frame_rectangle(this->frame_corners));
                 circle(this->frame_rendering, point, 3, Scalar(255, 0, 0), -1);
             }
         }
         if (this->ball_is_present) {
             auto point = transform_point(this->ball, compute_physical_rectangle(this->settings), compute_table_frame_rectangle(intermediate_size));
             circle(this->table_frame_rendering, point, 3, Scalar(0, 255, 0), -1);
-            point = transform_point(this->ball, compute_physical_rectangle(this->settings), compute_frame_rectangle(this->frame_ctx.frame_corners));
+            point = transform_point(this->ball, compute_physical_rectangle(this->settings), compute_frame_rectangle(this->frame_corners));
             circle(this->frame_rendering, point, 3, Scalar(0, 255, 0), -1);
         }
         this->push_debug_frame(this->frame_rendering);

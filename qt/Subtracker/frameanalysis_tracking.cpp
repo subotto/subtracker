@@ -209,4 +209,6 @@ void FrameAnalysis::track_table()
         }
         perspectiveTransform(this->settings.ref_corners, this->frame_ctx.frame_corners, homography * flow_correction);
     }
+
+    this->frame_corners = this->frame_ctx.frame_corners;
 }

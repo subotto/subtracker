@@ -33,6 +33,7 @@ struct FrameContext {
     FrameClock::time_point last_of;
 
     FrameWaiterContext table_frame_waiter;
+    bool mean_started = false;
     cv::Mat table_frame_mean;
     cv::Mat table_frame_var;
 };
@@ -67,10 +68,12 @@ public:
 
 private:
     void push_debug_frame(cv::Mat &frame);
+    void compute_table_ll();
     void compute_objects_ll(int color);
     void track_table();
     void check_table_inversion();
     void find_foosmen();
+    void update_mean();
 
     cv::Mat frame;
     int frame_num;
@@ -87,10 +90,15 @@ private:
 
     cv::Mat ref_image, ref_mask, ref_bn;
     cv::Mat frame_bn, frame_matches;
+    std::vector< cv::Point2f > frame_corners;
 
     cv::Size intermediate_size;
     cv::Mat table_frame, float_table_frame;
     cv::Mat objects_ll[3];
+    cv::Mat table_frame_mean;
+    cv::Mat table_frame_var;
+    cv::Mat table_frame_diff2;
+    cv::Mat table_ll;
 
     // Output data
     struct RodPos {

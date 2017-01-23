@@ -17,6 +17,8 @@ struct FrameSettings {
     // OpenCV uses BGR colors; indexes are: 0 -> red foosmen, 1 -> blue foosmen, 2 -> ball
     cv::Scalar objects_colors[3] = { { 0.0f, 0.0f, 1.0f}, { 1.0f, 0.0f, 0.0f }, { 0.85f, 0.85f, 0.85f } };
     float objects_color_stddev[3] = { 0.15f, 0.15f, 0.075f };
+    cv::Scalar initial_mean = { 135.0/255.0, 150.0/255.0, 120.0/255.0 };
+    cv::Scalar initial_var = { (20.0/255.0)*(20.0/255.0), (20.0/255.0)*(20.0/255.0), (20.0/255.0)*(20.0/255.0) };
 
     cv::Mat ref_image;
     std::string ref_image_filename;
@@ -51,6 +53,8 @@ struct FrameSettings {
     // Foosmen detection
     double foosmen_strip_width = 0.1;
     int foosmen_blur_size = 10;
+
+    float accumul_coeff = 0.002f;
 
     // Actual size in meters (not all of them are actually used in computation)
     float table_length = 1.135;
