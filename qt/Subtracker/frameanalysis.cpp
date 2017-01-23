@@ -4,6 +4,7 @@
 #include <opencv2/video/video.hpp>
 
 #include <algorithm>
+#include <iomanip>
 
 #include "frameanalysis.h"
 #include "logging.h"
@@ -126,8 +127,8 @@ void FrameAnalysis::track_table()
         this->frame_ctx.gftt_detector->detect(this->ref_image, this->frame_ctx.ref_gftt_kps, this->ref_mask);
         drawKeypoints(this->ref_image, this->frame_ctx.ref_gftt_kps, this->frame_ctx.gftt_frame_kps);
     }
-    this->push_debug_frame(this->frame_ctx.surf_frame_kps);
-    this->push_debug_frame(this->frame_ctx.gftt_frame_kps);
+    //this->push_debug_frame(this->frame_ctx.surf_frame_kps);
+    //this->push_debug_frame(this->frame_ctx.gftt_frame_kps);
 
     // Detection via features
     if (!this->frame_ctx.have_fix && !this->frame_ctx.ref_kps.empty()) {
@@ -191,8 +192,7 @@ void FrameAnalysis::track_table()
         Mat homography = getPerspectiveTransform(this->settings.ref_corners,
                                                  this->frame_ctx.frame_corners);
         Mat warped;
-        warpPerspective(this->frame, warped, homography, this->ref_image.size(), WARP_INVERSE_MAP);
-        this->push_debug_frame(warped);
+        warpPerspective(this->frame, warped, homography, this->ref_image.size(), INTER_LINEAR | WARP_INVERSE_MAP);
         vector< Point2f > from_points, to_points;
         vector< uchar > status;
         for (const KeyPoint &kp : this->frame_ctx.ref_gftt_kps) {
@@ -219,8 +219,8 @@ void FrameAnalysis::track_table()
                     warped_kps.push_back(KeyPoint(to_points[i], 1.0));
                 }
             }
-            drawMatches(this->ref_image, this->frame_ctx.ref_gftt_kps, warped, warped_kps, matches, of_matches, Scalar::all(-1), Scalar::all(-1), {}, DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
-            this->push_debug_frame(of_matches);
+            //drawMatches(this->ref_image, this->frame_ctx.ref_gftt_kps, warped, warped_kps, matches, of_matches, Scalar::all(-1), Scalar::all(-1), {}, DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
+            //this->push_debug_frame(of_matches);
         }
         Mat flow_correction = Mat::eye(3, 3, CV_64F);
         if (good_from_points.size() >= 6) {
@@ -239,28 +239,78 @@ void FrameAnalysis::do_things()
 
     // If we do not have a fix, there is nothing useful we can do with this frame
     if (this->frame_ctx.have_fix) {
+        // Warp table frame
         Size intermediate_size = compute_intermediate_size(settings);
-        vector< Point2f > image_corners = { { 0.0, (float) intermediate_size.height },
-                                     { (float) intermediate_size.width, (float) intermediate_size.height },
-                                     { (float) intermediate_size.width, 0.0 },
-                                     { 0.0, 0.0 } };
-        Mat trans = getPerspectiveTransform(image_corners, this->frame_ctx.frame_corners);
-        warpPerspective(this->frame, this->table_frame, trans, intermediate_size, INTER_NEAREST | WARP_INVERSE_MAP);
-
-        this->table_frame_on_main = frame.clone();
-        for (int i = 0; i < 4; i++) {
-            line(this->table_frame_on_main, this->frame_ctx.frame_corners[i], this->frame_ctx.frame_corners[(i+1)%4], Scalar(0, 0, 255), 2);
-        }
-
+        Mat homography = getPerspectiveTransform(compute_table_frame_rectangle(intermediate_size), compute_frame_rectangle(this->frame_ctx.frame_corners));
+        warpPerspective(this->frame, this->table_frame, homography, intermediate_size, INTER_LINEAR | WARP_INVERSE_MAP);
         this->table_frame.convertTo(this->float_table_frame, CV_32FC3, 1.0/255.0);
 
+        // Compute likelihoods
         for (int color = 0; color < 3; color++) {
             this->compute_objects_ll(color);
         }
+
+        // Test data
+        this->ball_is_present = true;
+        this->ball = { 0.2, 0.0 };
+        this->rods[0].shift = 0.2;
+        this->rods[1].rot = 3.14 / 2;
+        this->rods[2].rot = 3.14 / 4;
+        this->rods[3].rot = -3.14 / 2;
+
+        // Draw rendering
+        this->frame.copyTo(this->frame_rendering);
+        this->table_frame.copyTo(this->table_frame_rendering);
+        for (int i = 0; i < 4; i++) {
+            line(this->frame_rendering, this->frame_ctx.frame_corners[i], this->frame_ctx.frame_corners[(i+1)%4], Scalar(0, 0, 255), 2);
+        }
+        for (uint8_t rod = 0; rod < this->settings.rod_num; rod++) {
+            auto coords = transform_pair(rod_coords(this->settings, rod), compute_physical_rectangle(this->settings), compute_table_frame_rectangle(intermediate_size));
+            line(this->table_frame_rendering, coords.first, coords.second, Scalar(0, 0, 255), 1);
+            coords = transform_pair(rod_coords(this->settings, rod), compute_physical_rectangle(this->settings), compute_frame_rectangle(this->frame_ctx.frame_corners));
+            line(this->frame_rendering, coords.first, coords.second, Scalar(0, 0, 255), 1);
+            for (uint8_t fm = 0; fm < this->settings.rod_configuration[rod].num; fm++) {
+                auto orig_point = foosman_coords(this->settings, rod, fm);
+                orig_point += Point2f(0.0, this->rods[rod].shift);
+                auto point = transform_point(orig_point, compute_physical_rectangle(this->settings), compute_table_frame_rectangle(intermediate_size));
+                circle(this->table_frame_rendering, point, 3, Scalar(255, 0, 0), -1);
+                point = transform_point(orig_point, compute_physical_rectangle(this->settings), compute_frame_rectangle(this->frame_ctx.frame_corners));
+                circle(this->frame_rendering, point, 3, Scalar(255, 0, 0), -1);
+            }
+        }
+        if (this->ball_is_present) {
+            auto point = transform_point(this->ball, compute_physical_rectangle(this->settings), compute_table_frame_rectangle(intermediate_size));
+            circle(this->table_frame_rendering, point, 3, Scalar(0, 255, 0), -1);
+            point = transform_point(this->ball, compute_physical_rectangle(this->settings), compute_frame_rectangle(this->frame_ctx.frame_corners));
+            circle(this->frame_rendering, point, 3, Scalar(0, 255, 0), -1);
+        }
+        this->push_debug_frame(this->frame_rendering);
+        this->push_debug_frame(this->table_frame_rendering);
     }
 
     this->end_steady_time = steady_clock::now();
     this->end_time = system_clock::now();
+}
+
+// For historical reasons, the actual CSV format we use is pretty funny; here we make the necessary conversions
+string FrameAnalysis::gen_csv_line() const
+{
+    stringstream buf;
+    buf << setiosflags(ios::fixed) << setprecision(5);
+
+    buf << this->time.to_double();
+    if (this->ball_is_present) {
+        buf << "," << this->ball.x << "," << this->ball.y;
+    } else {
+        buf << ",,";
+    }
+    for (uint8_t team = 0; team < FrameSettings::team_num; team++) {
+        for (uint8_t num = 0; num < FrameSettings::rod_per_team; num++) {
+            const RodPos &rod = this->rods[this->settings.resolve_rod(team, team == 0 ? num : 3 - num)];
+            buf << "," << rod.shift << "," << rod.rot;
+        }
+    }
+    return buf.str();
 }
 
 std::chrono::steady_clock::duration FrameAnalysis::total_processing_time() {

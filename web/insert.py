@@ -16,6 +16,7 @@ def my_float(x):
 
 if __name__ == '__main__':
     session = Session()
+    retime = 'retime' in sys.argv[1:]
 
     last_commit = time.time()
     last_interesting = 0.0
@@ -25,6 +26,8 @@ if __name__ == '__main__':
             if line == '':
                 break
             data = [my_float(x) for x in line.strip().split(",")]
+            if retime:
+                data[0] = time.time()
             timestamp = float(data[0])
             log = Log.from_tuple(data)
             if timestamp - last_interesting >= 1.0 / INTERESTING_FPS:

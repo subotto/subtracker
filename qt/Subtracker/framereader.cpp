@@ -400,6 +400,11 @@ FrameClockTimePoint FrameClockTimePoint::from_system_clock(const system_clock::t
     return FrameClockTimePoint(duration_cast< FrameClock::duration >(x.time_since_epoch()));
 }
 
+double FrameClockTimePoint::to_double() const
+{
+    return duration_cast< FrameClock::duration >(this->time_since_epoch()).count();
+}
+
 FrameClockTimePoint FrameClockTimePoint::from_double(double x)
 {
     return FrameClockTimePoint(FrameClock::duration(x));

@@ -48,9 +48,63 @@ struct FrameSettings {
     int of_term_eps = 0.01;
     int of_ransac_threshold = 3;
 
-    // Actual size in meters
-    float table_length = 1.15;
+    // Actual size in meters (not all of them are actually used in computation)
+    float table_length = 1.135;
     float table_width = 0.70;
+    float ball_diameter = 0.035;
+    float rod_diameter = 0.015;
+    float rod_height = 0.085;
+    float rod_distance = 0.15;
+    struct RodParams {
+        uint8_t num;
+        bool gk;
+        float dist;
+        uint8_t side;
+    };
+    RodParams rod_configuration[8] = {
+        { 3, true, 0.2, 0 },
+        { 2, false, 0.24, 0 },
+        { 3, false, 0.21, 1 },
+        { 5, false, 0.12, 0 },
+        { 5, false, 0.12, 1 },
+        { 3, false, 0.21, 0 },
+        { 2, false, 0.24, 1 },
+        { 3, true, 0.2, 1 }
+    };
+    static constexpr size_t rod_num = sizeof(rod_configuration) / sizeof(rod_configuration[0]);
+    static constexpr uint8_t team_num = 2;
+    static constexpr uint8_t rod_per_team = 4;
+    static_assert(rod_num == team_num * rod_per_team);
+    inline uint8_t resolve_rod(uint8_t team, uint8_t num) const {
+        uint8_t res;
+        switch (num) {
+        case 0: res = 0; break;
+        case 1: res = 1; break;
+        case 2: res = 3; break;
+        case 3: res = 5; break;
+        default: throw "Wrong rod num";
+        }
+        if (team != 0) {
+            res = 7 - res;
+        }
+        return res;
+    }
+    inline std::pair< uint8_t, uint8_t > rresolve_rod(uint8_t num) const {
+        switch (num) {
+        case 0: return std::make_pair(0, 0);
+        case 1: return std::make_pair(0, 1);
+        case 2: return std::make_pair(1, 3);
+        case 3: return std::make_pair(0, 2);
+        case 4: return std::make_pair(1, 2);
+        case 5: return std::make_pair(0, 4);
+        case 6: return std::make_pair(1, 1);
+        case 7: return std::make_pair(1, 0);
+        default: throw "Wrong team rod num";
+        }
+    }
+    float foosman_width = 0.03;
+    float foosman_head = 0.02;
+    float foosman_foot = 0.08;
 };
 
 struct FrameCommands {

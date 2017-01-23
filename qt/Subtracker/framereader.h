@@ -41,6 +41,7 @@ struct FrameClockTimePoint : public std::chrono::time_point< FrameClock > {
     }
     std::chrono::system_clock::time_point to_system_clock() const;
     static FrameClockTimePoint from_system_clock(const std::chrono::system_clock::time_point &x);
+    double to_double() const;
     static FrameClockTimePoint from_double(double x);
 };
 

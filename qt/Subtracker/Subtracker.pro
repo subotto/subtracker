@@ -22,7 +22,8 @@ SOURCES += main.cpp\
     beginningpanel.cpp \
     memory.c \
     debugpanel.cpp \
-    cv.cpp
+    cv.cpp \
+    coordinates.cpp
 
 HEADERS  += mainwindow.h \
     videowidget.h \

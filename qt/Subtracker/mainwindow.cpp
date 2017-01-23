@@ -13,6 +13,7 @@
 
 #include <iomanip>
 #include <sstream>
+#include <iostream>
 
 using namespace std;
 using namespace chrono;
@@ -81,7 +82,7 @@ void MainWindow::on_actionStart_triggered()
 {
     bool res;
     this->ui->statusBar->showMessage("Start!", 1000);
-    this->worker = new Worker(this->settings);
+    this->worker = new Worker(this->settings, cout);
     res = connect(this->worker, SIGNAL(frame_produced()), this, SLOT(receive_frame()), Qt::QueuedConnection);
     assert(res);
     res = connect(this->worker, SIGNAL(finished()), this, SLOT(when_worker_finished()), Qt::QueuedConnection);

@@ -4,6 +4,7 @@
 #include <QThread>
 #include <QSharedPointer>
 #include <atomic>
+#include <ostream>
 
 #include "context.h"
 #include "framereader.h"
@@ -13,7 +14,7 @@ class Worker : public QThread
     Q_OBJECT
 
 public:
-    Worker(const FrameSettings &settings);
+    Worker(const FrameSettings &settings, std::ostream &out_stream);
     void stop();
     void set_settings(const FrameSettings &settings);
     std::pair<std::unique_lock<std::mutex>, FrameCommands *> edit_commands();
@@ -32,6 +33,8 @@ private:
     QSharedPointer< FrameAnalysis > last_frame;
 
     std::atomic< bool > running;
+
+    std::ostream &out_stream;
 };
 
 #endif // WORKER_H

@@ -20,8 +20,8 @@ from objlib import read_obj
 
 from monotonic_time import monotonic_time
 
-REQUEST_URL = 'http://uz.sns.it/subtracker/?last_timestamp=%(last_timestamp)f&convert_units=0'
-#REQUEST_URL = 'http://localhost:8000/24ore/tracking.json?last_timestamp=%(last_timestamp)f&convert_units=0'
+#REQUEST_URL = 'http://uz.sns.it/subtracker/?last_timestamp=%(last_timestamp)f&convert_units=0'
+REQUEST_URL = 'http://localhost:8000/24ore/tracking.json?last_timestamp=%(last_timestamp)f&convert_units=0'
 REQUEST_TIMEOUT = 2.0
 REQUEST_SLEEP = 0.5
 
@@ -152,8 +152,8 @@ def render(time, current_frame, objects):
 
     glMatrixMode(GL_MODELVIEW)
     glLoadIdentity()
-    gluLookAt(0.8 * math.cos(time / 10.0), 0.8 * math.sin(time / 10.0), 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
-    #gluLookAt(0.0, -0.8, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
+    #gluLookAt(0.8 * math.cos(time / 10.0), 0.8 * math.sin(time / 10.0), 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
+    gluLookAt(0.0, -0.8, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
 
     glLight(GL_LIGHT0, GL_POSITION, (0.4, 0.6, 1.2))
 
@@ -182,7 +182,7 @@ def render(time, current_frame, objects):
             if current_frame[shift_str] is not None:
                 glTranslate(0.0, current_frame[shift_str], 0.0)
             if current_frame[angle_str] is not None:
-                glRotate(-90.0 / math.pi * current_frame[angle_str], 0.0, 1.0, 0.0)
+                glRotate(-180.0 / math.pi * current_frame[angle_str], 0.0, 1.0, 0.0)
 
             for j in xrange(foosmen_num):
                 glPushMatrix()

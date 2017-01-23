@@ -63,6 +63,7 @@ public:
                   ThreadContext &thread_ctx);
     std::chrono::steady_clock::duration total_processing_time();
     void do_things();
+    std::string gen_csv_line() const;
 
 private:
     void compute_objects_ll(int color);
@@ -86,9 +87,20 @@ private:
     cv::Mat ref_image, ref_mask, ref_bn;
     cv::Mat frame_bn, frame_matches;
 
-    cv::Mat table_frame, table_frame_on_main, float_table_frame;
+    cv::Mat table_frame, float_table_frame;
     cv::Mat objects_ll[3];
     cv::Mat viz_objects_ll[3];
+
+    // Output data
+    struct RodPos {
+        float shift = 0.0;
+        float rot = 0.0;
+    };
+    bool ball_is_present = false;
+    cv::Point2f ball = { 0.0, 0.0 };
+    RodPos rods[FrameSettings::rod_num];
+
+    cv::Mat frame_rendering, table_frame_rendering;
 
     std::vector< cv::Mat > debug;
 };

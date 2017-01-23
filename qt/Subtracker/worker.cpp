@@ -12,10 +12,11 @@ static int safe_ideal_thread_count() {
     return res;
 }
 
-Worker::Worker(const FrameSettings &settings) :
+Worker::Worker(const FrameSettings &settings, std::ostream &out_stream) :
   jpeg_reader("test.gjpeg", true, true),
   context(safe_ideal_thread_count(), &jpeg_reader, settings),
-  last_frame(), running(true)
+  last_frame(), running(true),
+  out_stream(out_stream)
 {
 }
 
@@ -53,6 +54,7 @@ void Worker::run() {
             BOOST_LOG_TRIVIAL(debug) << "Worker ready to exit";
             break;
         }
+        this->out_stream << frame->gen_csv_line() << "\n";
         this->last_frame = QSharedPointer<FrameAnalysis>(frame);
         emit frame_produced();
     }
