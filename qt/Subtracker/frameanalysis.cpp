@@ -15,9 +15,8 @@ using namespace chrono;
 using namespace cv;
 using namespace xfeatures2d;
 
-FrameAnalysis::FrameAnalysis(const cv::Mat &frame, int frame_num, const std::chrono::time_point< std::chrono::system_clock > &time, const std::chrono::time_point< std::chrono::system_clock > &acquisition_time, const std::chrono::time_point<steady_clock> &acquisition_steady_time, const FrameSettings &settings, const FrameCommands &commands, FrameContext &frame_ctx, ThreadContext &thread_ctx) :
+FrameAnalysis::FrameAnalysis(const cv::Mat &frame, int frame_num, const std::chrono::time_point<FrameClock> &time, const std::chrono::time_point< std::chrono::system_clock > &acquisition_time, const std::chrono::time_point<steady_clock> &acquisition_steady_time, const FrameSettings &settings, const FrameCommands &commands, FrameContext &frame_ctx, ThreadContext &thread_ctx) :
     frame(frame), frame_num(frame_num), time(time), acquisition_time(acquisition_time), acquisition_steady_time(acquisition_steady_time), settings(settings), commands(commands), frame_ctx(frame_ctx), thread_ctx(thread_ctx) {
-
 }
 
 void FrameAnalysis::compute_objects_ll(int color) {
@@ -171,8 +170,8 @@ void FrameAnalysis::track_table()
     }
     this->frame_matches = this->frame_ctx.frame_matches;
 
-    // Following via ECC maximization (disabled, because it is too heavy)
-    if (true && this->frame_ctx.have_fix) {
+    // Following via ECC maximization
+    if (false && this->frame_ctx.have_fix) {
         Mat frame_grey;
         Mat ref_grey;
         cvtColor(this->frame, frame_grey, CV_BGR2GRAY);
@@ -187,7 +186,8 @@ void FrameAnalysis::track_table()
     }
 
     // Following via optical flow
-    if (false && this->frame_ctx.have_fix) {
+    if (this->time - this->frame_ctx.last_of >= this->settings.of_interval && this->frame_ctx.have_fix) {
+        this->frame_ctx.last_of = this->time;
         Mat homography = getPerspectiveTransform(this->settings.ref_corners,
                                                  this->frame_ctx.frame_corners);
         Mat warped;
@@ -224,7 +224,7 @@ void FrameAnalysis::track_table()
         }
         Mat flow_correction = Mat::eye(3, 3, CV_64F);
         if (good_from_points.size() >= 6) {
-            //flow_correction = findHomography(good_from_points, good_to_points, RANSAC, this->settings.of_ransac_threshold);
+            flow_correction = findHomography(good_from_points, good_to_points, RANSAC, this->settings.of_ransac_threshold);
         }
         perspectiveTransform(this->settings.ref_corners, this->frame_ctx.frame_corners, homography * flow_correction);
     }

@@ -8,6 +8,7 @@
 #include <turbojpeg.h>
 
 #include "framesettings.h"
+#include "framereader.h"
 #include "framewaiter.h"
 
 std::string getImgType(int imgTypeInt);
@@ -27,6 +28,9 @@ struct FrameContext {
     std::vector< cv::KeyPoint > ref_kps;
     cv::Mat ref_descr;
     std::vector< cv::KeyPoint > ref_gftt_kps;
+
+    FrameClock::time_point last_surf;
+    FrameClock::time_point last_of;
 
     FrameWaiterContext table_frame_waiter;
     cv::Mat table_frame_mean;
@@ -50,7 +54,7 @@ class FrameAnalysis
 
 public:
     FrameAnalysis(const cv::Mat &frame, int frame_num,
-                  const std::chrono::time_point< std::chrono::system_clock > &time,
+                  const std::chrono::time_point< FrameClock > &time,
                   const std::chrono::time_point< std::chrono::system_clock > &acquisition_time,
                   const std::chrono::time_point< std::chrono::steady_clock > &acquisition_steady_time,
                   const FrameSettings &settings,
@@ -68,7 +72,8 @@ private:
 
     cv::Mat frame;
     int frame_num;
-    std::chrono::time_point< std::chrono::system_clock > time, acquisition_time;
+    FrameClockTimePoint time;
+    std::chrono::time_point< std::chrono::system_clock > acquisition_time;
     std::chrono::time_point< std::chrono::steady_clock > acquisition_steady_time;
     FrameSettings settings;
     FrameCommands commands;

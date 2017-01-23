@@ -176,8 +176,8 @@ void MainWindow::receive_frame()
     }
     auto now = system_clock::now();
     this->pass_string_to_label(this->ui->currentTime, time_point_to_string(now).c_str());
-    this->pass_string_to_label(this->ui->frameTime, time_point_to_string(frame->time).c_str());
-    this->pass_string_to_label(this->ui->totalFrameDelay, duration_to_string(now - frame->time).c_str());
+    this->pass_string_to_label(this->ui->frameTime, time_point_to_string(frame->time.to_system_clock()).c_str());
+    this->pass_string_to_label(this->ui->totalFrameDelay, duration_to_string(now - frame->time.to_system_clock()).c_str());
     this->pass_string_to_label(this->ui->acquisitionTime, time_point_to_string(frame->acquisition_time).c_str());
     this->pass_string_to_label(this->ui->localFrameDelay, duration_to_string(now - frame->acquisition_time).c_str());
     /*this->pass_string_to_label(this->ui->phase0Time, duration_to_string(frame->phase0_time()).c_str());

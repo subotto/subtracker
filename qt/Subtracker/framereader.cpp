@@ -159,7 +159,7 @@ FrameInfo FrameCycle::get() {
   //BOOST_LOG_TRIVIAL(debug) << "Received lock";
   while (queue.empty()) {
       if (this->finished) {
-          return { time_point< system_clock >(), time_point< system_clock >(), NULL, Mat(), false };
+          return { time_point< FrameClock >(), time_point< system_clock >(), NULL, Mat(), false };
       }
       //BOOST_LOG_TRIVIAL(debug) << "Waiting";
       queue_not_empty.wait(lock);
@@ -176,7 +176,7 @@ FrameInfo FrameCycle::get() {
 FrameInfo FrameCycle::maybe_get() {
   unique_lock<mutex> lock(this->queue_mutex);
   if (queue.empty()) {
-      return { time_point< system_clock >(), time_point< system_clock >(), NULL, Mat(), false };
+      return { time_point< FrameClock >(), time_point< system_clock >(), NULL, Mat(), false };
   }
   auto res = queue.front();
   queue.pop_front();
@@ -186,7 +186,7 @@ FrameInfo FrameCycle::maybe_get() {
 
 FrameInfo FrameCycle::get_last() {
   unique_lock<mutex> lock(this->queue_mutex);
-  FrameInfo res = { time_point< system_clock >(), time_point< system_clock >(), NULL, Mat(), false };
+  FrameInfo res = { time_point< FrameClock >(), time_point< system_clock >(), NULL, Mat(), false };
   while (!queue.empty()) {
     res = queue.front();
     queue.pop_front();
@@ -203,7 +203,7 @@ FrameInfo FrameCycle::get_last_at_least_one()
     //BOOST_LOG_TRIVIAL(debug) << "Received lock";
     while (queue.empty()) {
         if (this->finished) {
-            return { time_point< system_clock >(), time_point< system_clock >(), NULL, Mat(), false };
+            return { time_point< FrameClock >(), time_point< system_clock >(), NULL, Mat(), false };
         }
         //BOOST_LOG_TRIVIAL(debug) << "Waiting";
         queue_not_empty.wait(lock);
@@ -346,15 +346,15 @@ bool JPEGReader::process_frame() {
 
   // Fill other satellite information and send frame
   info.valid = true;
-  info.time = time_point< system_clock >(duration_cast< time_point< system_clock >::duration >(duration< double >(timestamp)));
+  info.time = FrameClockTimePoint::from_double(timestamp);
   if (!this->first_frame_seen) {
     this->first_frame_seen = true;
     this->first_frame_time = info.time;
   }
   if (this->from_file) {
-    info.playback_time = this->video_start_playback_time + (info.time - this->first_frame_time);
+    info.playback_time = this->video_start_playback_time + duration_cast< system_clock::duration >(info.time - this->first_frame_time);
   } else {
-    info.playback_time = info.time;
+    info.playback_time = info.time.to_system_clock();
   }
   this->push(info);
   return true;
@@ -383,4 +383,24 @@ bool FrameInfo::decode_buffer(tjhandle tj_dec) {
 
     return true;
 
+}
+
+FrameClock::time_point FrameClock::now() noexcept
+{
+    return FrameClockTimePoint::from_system_clock(system_clock::now());
+}
+
+system_clock::time_point FrameClockTimePoint::to_system_clock() const
+{
+    return system_clock::time_point(duration_cast< system_clock::duration >(this->time_since_epoch()));
+}
+
+FrameClockTimePoint FrameClockTimePoint::from_system_clock(const system_clock::time_point &x)
+{
+    return FrameClockTimePoint(duration_cast< FrameClock::duration >(x.time_since_epoch()));
+}
+
+FrameClockTimePoint FrameClockTimePoint::from_double(double x)
+{
+    return FrameClockTimePoint(FrameClock::duration(x));
 }

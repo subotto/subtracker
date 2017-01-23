@@ -13,9 +13,40 @@
 #include <opencv2/core/core.hpp>
 #include <turbojpeg.h>
 
+class FrameClockTimePoint;
+
+// Inspired to http://stackoverflow.com/a/17138183/807307
+struct FrameClock {
+    typedef std::chrono::duration< double > duration;
+    typedef duration::rep rep;
+    typedef duration::period period;
+    typedef FrameClockTimePoint time_point;
+    static const bool is_steady = false;
+
+    static time_point now() noexcept;
+};
+
+struct FrameClockTimePoint : public std::chrono::time_point< FrameClock > {
+    constexpr FrameClockTimePoint() :
+        time_point< FrameClock >()
+    {
+    }
+    constexpr FrameClockTimePoint(const FrameClock::duration &d) :
+        time_point< FrameClock >(d)
+    {
+    }
+    constexpr FrameClockTimePoint(const std::chrono::time_point< FrameClock > &x) :
+        time_point< FrameClock >(x)
+    {
+    }
+    std::chrono::system_clock::time_point to_system_clock() const;
+    static FrameClockTimePoint from_system_clock(const std::chrono::system_clock::time_point &x);
+    static FrameClockTimePoint from_double(double x);
+};
+
 struct FrameInfo {
   // The wall-clock time at which the frame was grabbed
-  std::chrono::time_point< std::chrono::system_clock > time;
+  FrameClockTimePoint time;
   // The wall-clock time at which the frame is expected to be
   // processed by the program (only used internally by the queue
   // manager and only when performing live simulation)
@@ -102,7 +133,7 @@ public:
 class JPEGReader: public FrameCycle {
 private:
   cv::Ptr< std::istream > fin;
-  std::chrono::time_point<std::chrono::system_clock> first_frame_time;
+  std::chrono::time_point< FrameClock > first_frame_time;
   bool first_frame_seen = false;
   bool from_file;
 
