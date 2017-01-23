@@ -66,10 +66,11 @@ public:
     std::string gen_csv_line() const;
 
 private:
+    void push_debug_frame(cv::Mat &frame);
     void compute_objects_ll(int color);
     void track_table();
     void check_table_inversion();
-    void push_debug_frame(cv::Mat &frame);
+    void find_foosmen();
 
     cv::Mat frame;
     int frame_num;
@@ -87,9 +88,9 @@ private:
     cv::Mat ref_image, ref_mask, ref_bn;
     cv::Mat frame_bn, frame_matches;
 
+    cv::Size intermediate_size;
     cv::Mat table_frame, float_table_frame;
     cv::Mat objects_ll[3];
-    cv::Mat viz_objects_ll[3];
 
     // Output data
     struct RodPos {

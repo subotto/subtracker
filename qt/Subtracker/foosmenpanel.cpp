@@ -16,8 +16,8 @@ FoosmenPanel::~FoosmenPanel()
 
 void FoosmenPanel::receive_frame(QSharedPointer<FrameAnalysis> frame)
 {
-    this->ui->redFoosmenLL->set_current_frame(frame->viz_objects_ll[0]);
-    this->ui->blueFoosmenLL->set_current_frame(frame->viz_objects_ll[1]);
+    this->ui->redFoosmenLL->set_current_frame(frame->objects_ll[0]);
+    this->ui->blueFoosmenLL->set_current_frame(frame->objects_ll[1]);
 }
 
 void FoosmenPanel::receive_settings(const FrameSettings &settings) {

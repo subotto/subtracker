@@ -48,6 +48,10 @@ struct FrameSettings {
     int of_term_eps = 0.01;
     int of_ransac_threshold = 3;
 
+    // Foosmen detection
+    double foosmen_strip_width = 0.1;
+    int foosmen_blur_size = 10;
+
     // Actual size in meters (not all of them are actually used in computation)
     float table_length = 1.135;
     float table_width = 0.70;

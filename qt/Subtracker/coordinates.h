@@ -56,9 +56,17 @@ inline cv::Size2f compute_intermediate_size(const FrameSettings &settings) {
 cv::Point2f transform_point(const cv::Point2f &p, const RefRect &from, const RefRect &to);
 std::pair< cv::Point2f, cv::Point2f > transform_pair(const std::pair<cv::Point2f, cv::Point2f> &p, const RefRect &from, const RefRect &to);
 
-double rod_x(const FrameSettings &settings, uint8_t rod);
-double foosman_y(const FrameSettings &settings, uint8_t rod, uint8_t num);
-std::pair< cv::Point2f, cv::Point2f > rod_coords(const FrameSettings &settings, uint8_t rod);
-cv::Point2f foosman_coords(const FrameSettings &settings, uint8_t rod, uint8_t num);
+double rod_x(const FrameSettings &settings, float rod);
+double foosman_y(const FrameSettings &settings, uint8_t rod, float fm);
+std::pair< cv::Point2f, cv::Point2f > rod_coords(const FrameSettings &settings, float rod);
+cv::Point2f foosman_coords(const FrameSettings &settings, uint8_t rod, float fm);
+
+double table_frame_rod_x(const FrameSettings &settings, const cv::Size2i &size, float rod);
+double table_frame_foosman_y(const FrameSettings &settings, const cv::Size2i &size, uint8_t rod, float fm);
+
+double convert_phys_to_table_frame_x(const FrameSettings &settings, const cv::Size2i &size, double phys);
+double convert_phys_to_table_frame_y(const FrameSettings &settings, const cv::Size2i &size, double phys);
+double convert_table_frame_to_phys_x(const FrameSettings &settings, const cv::Size2i &size, double phys);
+double convert_table_frame_to_phys_y(const FrameSettings &settings, const cv::Size2i &size, double phys);
 
 #endif // COORDINATES_H

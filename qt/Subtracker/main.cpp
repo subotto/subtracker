@@ -3,10 +3,13 @@
 #include <QApplication>
 
 #include <chrono>
+#include <string>
 #include <thread>
 
 #include <sys/time.h>
 #include <sys/resource.h>
+
+using namespace std;
 
 int main(int argc, char *argv[])
 {
@@ -30,5 +33,9 @@ int main(int argc, char *argv[])
     MainWindow w;
     w.show();
 
-    return a.exec();
+    try {
+        return a.exec();
+    } catch(string s) {
+        BOOST_LOG_TRIVIAL(error) << "Dying with exception: " << s;
+    }
 }

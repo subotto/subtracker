@@ -23,7 +23,8 @@ SOURCES += main.cpp\
     memory.c \
     debugpanel.cpp \
     cv.cpp \
-    coordinates.cpp
+    coordinates.cpp \
+    frameanalysis_tracking.cpp
 
 HEADERS  += mainwindow.h \
     videowidget.h \

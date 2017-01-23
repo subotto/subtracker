@@ -16,7 +16,7 @@ BallPanel::~BallPanel()
 
 void BallPanel::receive_frame(QSharedPointer<FrameAnalysis> frame)
 {
-    this->ui->ballLL->set_current_frame(frame->viz_objects_ll[2]);
+    this->ui->ballLL->set_current_frame(frame->objects_ll[2]);
 }
 
 static void set_color_slider(QSlider *slider, float value) {

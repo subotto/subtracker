@@ -42,12 +42,23 @@ void VideoWidget::set_main(MainWindow *main)
 }
 
 static inline QImage mat_to_qimage(const Mat &mat) {
-    if (mat.type() == CV_8UC3) {
-        return QImage(mat.data, mat.cols, mat.rows, mat.step, QImage::Format_RGB888).rgbSwapped();
-    } else if (mat.type() == CV_8UC1) {
-        return QImage(mat.data, mat.cols, mat.rows, mat.step, QImage::Format_Grayscale8);
+    const Mat *matp = &mat;
+    Mat temp;
+    if (matp->cols == 1) {
+        repeat(*matp, 1, 15, temp);
+        matp = &temp;
+    }
+    const Mat &mat2 = *matp;
+    if (mat2.type() == CV_8UC3) {
+        return QImage(mat2.data, mat2.cols, mat2.rows, mat2.step, QImage::Format_RGB888).rgbSwapped().copy();
+    } else if (mat2.type() == CV_8UC1) {
+        return QImage(mat2.data, mat2.cols, mat2.rows, mat2.step, QImage::Format_Grayscale8).copy();
+    } else if (mat2.type() == CV_32F || mat2.type() == CV_64F) {
+        Mat temp;
+        mat2.convertTo(temp, CV_8UC1, 15.0, 255.0);
+        return QImage(temp.data, temp.cols, temp.rows, temp.step, QImage::Format_Grayscale8).copy();
     } else {
-        assert("Unsupported matrix type" == 0);
+        throw string("Unsupported matrix type: ") + getImgType(mat2.type());
     }
 }
 
