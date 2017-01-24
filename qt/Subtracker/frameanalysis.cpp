@@ -50,10 +50,13 @@ void FrameAnalysis::compute_objects_ll(int color) {
     Matx< float, 1, 3 > t = { factor, factor, factor };
     transform(diff.mul(diff), tmp, t);
     this->objects_ll[color] = tmp - 3.0f/2.0f * log(2 * M_PI * this->settings.objects_color_stddev[color]);
-    //this->objects_ll[color].convertTo(this->viz_objects_ll[color], CV_8UC1, 10.0, 255.0);
+    if (color == 2) {
+        auto threshold_mask = this->objects_ll[color] <= this->settings.ball_threshold;
+        this->objects_ll[color].setTo(Scalar(numeric_limits< float >::lowest()), threshold_mask);
+    }
 }
 
-// TODO - Implement rot estimation
+// TODO - Implement rotation estimation
 void FrameAnalysis::find_foosmen() {
     for (uint8_t rod = 0; rod < this->settings.rod_num; rod++) {
         FrameSettings::RodParams &params = this->settings.rod_configuration[rod];
@@ -72,17 +75,14 @@ void FrameAnalysis::find_foosmen() {
         for (uint8_t i = 1; i < params.num; i++) {
             Mat translated_strip;
             Mat trans_mat = Mat(Matx< float, 2, 3 >(1.0, 0.0, 0.0, 0.0, 1.0, i*translation_len));
-            // FIXME - Use infinity, so we do not depend on another constant
-            //static_assert(numeric_limits< float >::has_infinity);
-            //warpAffine(blurred_strip, translated_strip, trans_mat, blurred_strip.size(), INTER_LINEAR | WARP_INVERSE_MAP, BORDER_CONSTANT, Scalar(numeric_limits< float >::infinity()));
-            warpAffine(blurred_strip, translated_strip, trans_mat, blurred_strip.size(), INTER_LINEAR | WARP_INVERSE_MAP, BORDER_CONSTANT, Scalar(-1000000.0));
+            warpAffine(blurred_strip, translated_strip, trans_mat, blurred_strip.size(), INTER_LINEAR | WARP_INVERSE_MAP, BORDER_CONSTANT, Scalar(numeric_limits< float >::lowest()));
             replicated_strip += translated_strip;
         }
         replicated_strip /= params.num;
         Point max_point;
         minMaxLoc(replicated_strip, NULL, NULL, NULL, &max_point);
         this->rods[rod].shift = convert_table_frame_to_phys_y(settings, this->intermediate_size, max_point.y) - foosman_y(this->settings, rod, 0);
-        if (false && rod == 3) {
+        if (true && rod == 3) {
             this->push_debug_frame(strip);
             this->push_debug_frame(reduced_strip);
             this->push_debug_frame(blurred_strip);

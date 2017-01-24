@@ -55,6 +55,7 @@ struct FrameSettings {
     int foosmen_blur_size = 10;
 
     float accumul_coeff = 0.002f;
+    float ball_threshold = -50.0;
 
     // Actual size in meters (not all of them are actually used in computation)
     float table_length = 1.135;
