@@ -50,10 +50,6 @@ void FrameAnalysis::compute_objects_ll(int color) {
     Matx< float, 1, 3 > t = { factor, factor, factor };
     transform(diff.mul(diff), tmp, t);
     this->objects_ll[color] = tmp - 3.0f/2.0f * log(2 * M_PI * this->settings.objects_color_stddev[color]);
-    if (color == 2) {
-        auto threshold_mask = this->objects_ll[color] <= this->settings.ball_threshold;
-        this->objects_ll[color].setTo(Scalar(numeric_limits< float >::lowest()), threshold_mask);
-    }
 }
 
 // TODO - Implement rotation estimation
@@ -129,6 +125,24 @@ void FrameAnalysis::update_mean() {
     this->push_debug_frame(temp2);*/
 }
 
+void FrameAnalysis::find_ball() {
+    /*auto threshold_mask = this->objects_ll[color] <= this->settings.ball_threshold;
+    this->objects_ll[color].setTo(Scalar(numeric_limits< float >::lowest()), threshold_mask);*/
+    Mat thresholded_table_ll;
+    threshold(-this->table_ll, thresholded_table_ll, 20.0, 0.0, THRESH_TRUNC);
+    Mat ball_ll = this->objects_ll[2] + thresholded_table_ll;
+    //Mat ball_ll2 = ball_ll - this->objects_ll[0] - this->objects_ll[1];
+    this->push_debug_frame(ball_ll);
+    //this->push_debug_frame(ball_ll2);
+    Mat blurred_ball_ll;
+    blur(ball_ll, blurred_ball_ll, Size(6, 6));
+    this->push_debug_frame(blurred_ball_ll);
+    Point maxPoint;
+    minMaxLoc(blurred_ball_ll, NULL, NULL, NULL, &maxPoint);
+    this->ball = transform_point(maxPoint, compute_table_frame_rectangle(this->intermediate_size), compute_physical_rectangle(this->settings));
+    this->ball_is_present = true;
+}
+
 void FrameAnalysis::do_things()
 {
     this->begin_steady_time = steady_clock::now();
@@ -150,6 +164,7 @@ void FrameAnalysis::do_things()
         this->find_foosmen();
         this->update_mean();
         this->compute_table_ll();
+        this->find_ball();
 
         // Draw rendering
         this->frame.copyTo(this->frame_rendering);
@@ -204,6 +219,11 @@ string FrameAnalysis::gen_csv_line() const
         }
     }
     return buf.str();
+}
+
+bool FrameAnalysis::does_have_fix() const
+{
+    return this->have_fix;
 }
 
 std::chrono::steady_clock::duration FrameAnalysis::total_processing_time() {

@@ -54,7 +54,9 @@ void Worker::run() {
             BOOST_LOG_TRIVIAL(debug) << "Worker ready to exit";
             break;
         }
-        this->out_stream << frame->gen_csv_line() << "\n";
+        if (frame->does_have_fix()) {
+            this->out_stream << frame->gen_csv_line() << "\n";
+        }
         this->last_frame = QSharedPointer<FrameAnalysis>(frame);
         emit frame_produced();
     }

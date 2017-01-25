@@ -65,6 +65,7 @@ public:
     std::chrono::steady_clock::duration total_processing_time();
     void do_things();
     std::string gen_csv_line() const;
+    bool does_have_fix() const;
 
 private:
     void push_debug_frame(cv::Mat &frame);
@@ -74,6 +75,7 @@ private:
     void check_table_inversion();
     void find_foosmen();
     void update_mean();
+    void find_ball();
 
     cv::Mat frame;
     int frame_num;
@@ -88,6 +90,7 @@ private:
     std::chrono::time_point< std::chrono::system_clock > begin_time, end_time;
     std::chrono::time_point< std::chrono::steady_clock > begin_steady_time, end_steady_time;
 
+    bool have_fix;
     cv::Mat ref_image, ref_mask, ref_bn;
     cv::Mat frame_bn, frame_matches;
     std::vector< cv::Point2f > frame_corners;

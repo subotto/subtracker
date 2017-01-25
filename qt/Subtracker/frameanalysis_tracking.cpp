@@ -151,6 +151,7 @@ void FrameAnalysis::track_table()
         }
     }
     this->frame_matches = this->frame_ctx.frame_matches;
+    this->have_fix = this->frame_ctx.have_fix;
 
     // Following via ECC maximization
     if (false && this->frame_ctx.have_fix) {
