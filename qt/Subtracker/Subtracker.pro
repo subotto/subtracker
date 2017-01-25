@@ -24,7 +24,8 @@ SOURCES += main.cpp\
     debugpanel.cpp \
     cv.cpp \
     coordinates.cpp \
-    frameanalysis_tracking.cpp
+    frameanalysis_tracking.cpp \
+    spotstracker.cpp
 
 HEADERS  += mainwindow.h \
     videowidget.h \
@@ -44,7 +45,8 @@ HEADERS  += mainwindow.h \
     framewaiter.h \
     coordinates.h \
     debugpanel.h \
-    cv.h
+    cv.h \
+    spotstracker.h
 
 FORMS    += mainwindow.ui \
     ballpanel.ui \

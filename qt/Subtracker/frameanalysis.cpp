@@ -137,16 +137,27 @@ void FrameAnalysis::find_ball() {
     Mat blurred_ball_ll;
     blur(ball_ll, blurred_ball_ll, Size(this->settings.ball_blur_size, this->settings.ball_blur_size));
     this->push_debug_frame(blurred_ball_ll);
-    Point maxPoint;
+    auto spots = find_local_maxima(blurred_ball_ll, this->settings.maxima_radius, this->settings.maxima_radius, this->settings.maxima_count);
+    for (const auto &spot : spots) {
+        this->spots.push_back(make_pair(transform_point(spot.first, compute_table_frame_rectangle(this->intermediate_size), compute_physical_rectangle(this->settings)), spot.second));
+    }
+
+    /*Point maxPoint;
     minMaxLoc(blurred_ball_ll, NULL, NULL, NULL, &maxPoint);
     this->ball = transform_point(maxPoint, compute_table_frame_rectangle(this->intermediate_size), compute_physical_rectangle(this->settings));
-    this->ball_is_present = true;
+    this->ball_is_present = true;*/
 }
 
 void FrameAnalysis::do_things()
 {
     this->begin_steady_time = steady_clock::now();
     this->begin_time = system_clock::now();
+
+    // Undistort the input frame (disabled)
+    if (false) {
+        Mat tmp = this->frame.clone();
+        remap(tmp, this->frame, this->settings.calibration_map1, this->settings.calibration_map2, INTER_LINEAR);
+    }
 
     this->track_table();
 
@@ -186,10 +197,11 @@ void FrameAnalysis::do_things()
                 circle(this->frame_rendering, point, 3, Scalar(255, 0, 0), -1);
             }
         }
-        if (this->ball_is_present) {
-            auto point = transform_point(this->ball, compute_physical_rectangle(this->settings), compute_table_frame_rectangle(intermediate_size));
+        for (const auto &x : this->spots) {
+            const Point2f &p = x.first;
+            auto point = transform_point(p, compute_physical_rectangle(this->settings), compute_table_frame_rectangle(intermediate_size));
             circle(this->table_frame_rendering, point, 3, Scalar(0, 255, 0), -1);
-            point = transform_point(this->ball, compute_physical_rectangle(this->settings), compute_frame_rectangle(this->frame_corners));
+            point = transform_point(p, compute_physical_rectangle(this->settings), compute_frame_rectangle(this->frame_corners));
             circle(this->frame_rendering, point, 3, Scalar(0, 255, 0), -1);
         }
         this->push_debug_frame(this->frame_rendering);

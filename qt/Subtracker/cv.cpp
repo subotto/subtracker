@@ -1,9 +1,10 @@
 
-#include "cv.h"
-
 #include <opencv2/video/video.hpp>
 
 #include <string>
+
+#include "cv.h"
+#include "logging.h"
 
 using namespace std;
 using namespace cv;
@@ -138,14 +139,12 @@ vector<pair<Point, float>> find_local_maxima(Mat density, int x_rad, int y_rad, 
 
     Mat localMaxMask = (density >= dilatedDensity);
 
-    Mat_<Point> nonZero;
+    vector<Point> nonZero;
     findNonZero(localMaxMask, nonZero);
 
     vector<pair<Point, float>> localMaxima;
-    for(int i = 0; i < nonZero.rows; i++) {
-        Point p = *nonZero[i];
+    for (const auto &p : nonZero) {
         float w = density.at<float>(p);
-
         localMaxima.push_back(make_pair(p, w));
     }
 

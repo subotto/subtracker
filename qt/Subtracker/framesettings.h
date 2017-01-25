@@ -24,6 +24,8 @@ struct FrameSettings {
     std::string ref_image_filename;
     cv::Mat ref_mask;
     std::string ref_mask_filename;
+    cv::Mat camera_matrix, distortion_coefficients, calibration_map1, calibration_map2;
+    std::string camera_parameters_filename;
 
     // Retracking times
     FrameClock::duration surf_interval = std::chrono::milliseconds(5000);
@@ -60,6 +62,8 @@ struct FrameSettings {
     // Ball detection
     float table_nll_threshold = 20.0;
     uint8_t ball_blur_size = 6;
+    uint8_t maxima_count = 5;
+    uint8_t maxima_radius = 15;
 
     // Actual size in meters (not all of them are actually used in computation)
     float table_length = 1.135;

@@ -102,6 +102,7 @@ private:
     cv::Mat table_frame_var;
     cv::Mat table_frame_diff2;
     cv::Mat table_ll;
+    std::vector< std::pair< cv::Point2f, float > > spots;
 
     // Output data
     struct RodPos {
