@@ -131,3 +131,29 @@ double evaluate_ECC_rho(InputArray templateImage, InputArray inputImage, InputAr
 
     return rho;
 }
+
+vector<pair<Point, float>> find_local_maxima(Mat density, int x_rad, int y_rad, int max_count) {
+    Mat dilatedDensity;
+    dilate(density, dilatedDensity, Mat::ones(2 * y_rad + 1, 2 * x_rad + 1, CV_8U));
+
+    Mat localMaxMask = (density >= dilatedDensity);
+
+    Mat_<Point> nonZero;
+    findNonZero(localMaxMask, nonZero);
+
+    vector<pair<Point, float>> localMaxima;
+    for(int i = 0; i < nonZero.rows; i++) {
+        Point p = *nonZero[i];
+        float w = density.at<float>(p);
+
+        localMaxima.push_back(make_pair(p, w));
+    }
+
+    int count = min(localMaxima.size(), size_t(max_count));
+    nth_element(localMaxima.begin(), localMaxima.begin() + count, localMaxima.end(), [](const auto &a, const auto &b) {
+        return a.second > b.second;
+    });
+    localMaxima.resize(count);
+
+    return localMaxima;
+}

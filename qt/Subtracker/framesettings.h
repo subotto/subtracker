@@ -54,8 +54,12 @@ struct FrameSettings {
     double foosmen_strip_width = 0.1;
     int foosmen_blur_size = 10;
 
+    // Running average
     float accumul_coeff = 0.002f;
-    float ball_threshold = -50.0;
+
+    // Ball detection
+    float table_nll_threshold = 20.0;
+    uint8_t ball_blur_size = 6;
 
     // Actual size in meters (not all of them are actually used in computation)
     float table_length = 1.135;

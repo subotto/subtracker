@@ -128,14 +128,14 @@ void FrameAnalysis::update_mean() {
 void FrameAnalysis::find_ball() {
     /*auto threshold_mask = this->objects_ll[color] <= this->settings.ball_threshold;
     this->objects_ll[color].setTo(Scalar(numeric_limits< float >::lowest()), threshold_mask);*/
-    Mat thresholded_table_ll;
-    threshold(-this->table_ll, thresholded_table_ll, 20.0, 0.0, THRESH_TRUNC);
-    Mat ball_ll = this->objects_ll[2] + thresholded_table_ll;
+    Mat thresholded_table_nll;
+    threshold(-this->table_ll, thresholded_table_nll, this->settings.table_nll_threshold, 0.0, THRESH_TRUNC);
+    Mat ball_ll = this->objects_ll[2] + thresholded_table_nll;
     //Mat ball_ll2 = ball_ll - this->objects_ll[0] - this->objects_ll[1];
     this->push_debug_frame(ball_ll);
     //this->push_debug_frame(ball_ll2);
     Mat blurred_ball_ll;
-    blur(ball_ll, blurred_ball_ll, Size(6, 6));
+    blur(ball_ll, blurred_ball_ll, Size(this->settings.ball_blur_size, this->settings.ball_blur_size));
     this->push_debug_frame(blurred_ball_ll);
     Point maxPoint;
     minMaxLoc(blurred_ball_ll, NULL, NULL, NULL, &maxPoint);
