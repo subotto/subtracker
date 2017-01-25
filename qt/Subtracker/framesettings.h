@@ -66,17 +66,17 @@ struct FrameSettings {
     uint8_t maxima_radius = 15;
 
     // Actual size in meters (not all of them are actually used in computation)
-    float table_length = 1.14;
-    float table_width = 0.71;
-    float ball_diameter = 0.035;
-    float rod_diameter = 0.017;
-    float rod_height = 0.085;
-    float rod_distance = 0.151;
-    float foosman_width = 0.034;
-    float foosman_head = 0.040;
-    float foosman_foot = 0.073;
-    float camera_heigth = 1.93;
+    float table_length = 1.14f;
+    float table_width = 0.71f;
+    float camera_heigth = 1.93f;
+    float rod_height = 0.085f;
     float field_rods_dist_coeff = camera_heigth / (camera_heigth - rod_height);
+    float ball_diameter = 0.035f;
+    float rod_diameter = field_rods_dist_coeff * 0.017f;
+    float rod_distance = field_rods_dist_coeff * 0.151f;
+    float foosman_width = field_rods_dist_coeff * 0.034f;
+    float foosman_head = 0.040f;
+    float foosman_foot = 0.073f;
     struct RodParams {
         uint8_t num;
         bool gk;
