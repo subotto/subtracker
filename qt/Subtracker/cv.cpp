@@ -149,9 +149,7 @@ vector<pair<Point, float>> find_local_maxima(Mat density, int x_rad, int y_rad, 
     }
 
     int count = min(localMaxima.size(), size_t(max_count));
-    nth_element(localMaxima.begin(), localMaxima.begin() + count, localMaxima.end(), [](const auto &a, const auto &b) {
-        return a.second > b.second;
-    });
+    nth_element(localMaxima.begin(), localMaxima.begin() + count, localMaxima.end(), [](const auto &a, const auto &b){ return a.second > b.second; });
     localMaxima.resize(count);
 
     return localMaxima;

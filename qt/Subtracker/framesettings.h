@@ -66,12 +66,17 @@ struct FrameSettings {
     uint8_t maxima_radius = 15;
 
     // Actual size in meters (not all of them are actually used in computation)
-    float table_length = 1.135;
-    float table_width = 0.70;
+    float table_length = 1.14;
+    float table_width = 0.71;
     float ball_diameter = 0.035;
-    float rod_diameter = 0.015;
+    float rod_diameter = 0.017;
     float rod_height = 0.085;
-    float rod_distance = 0.15;
+    float rod_distance = 0.151;
+    float foosman_width = 0.034;
+    float foosman_head = 0.040;
+    float foosman_foot = 0.073;
+    float camera_heigth = 1.93;
+    float field_rods_dist_coeff = camera_heigth / (camera_heigth - rod_height);
     struct RodParams {
         uint8_t num;
         bool gk;
@@ -79,14 +84,14 @@ struct FrameSettings {
         uint8_t side;
     };
     RodParams rod_configuration[8] = {
-        { 3, true, 0.2, 0 },
-        { 2, false, 0.24, 0 },
-        { 3, false, 0.21, 1 },
-        { 5, false, 0.12, 0 },
-        { 5, false, 0.12, 1 },
-        { 3, false, 0.21, 0 },
-        { 2, false, 0.24, 1 },
-        { 3, true, 0.2, 1 }
+        { 3, true, field_rods_dist_coeff * 0.415f / 2.0f, 0 },
+        { 2, false, field_rods_dist_coeff * 0.238f, 0 },
+        { 3, false, field_rods_dist_coeff * 0.416f / 2.0f, 1 },
+        { 5, false, field_rods_dist_coeff * 0.476f / 4.0f, 0 },
+        { 5, false, field_rods_dist_coeff * 0.476f / 4.0f, 1 },
+        { 3, false, field_rods_dist_coeff * 0.416f / 2.0f, 0 },
+        { 2, false, field_rods_dist_coeff * 0.238f, 1 },
+        { 3, true, field_rods_dist_coeff * 0.415f / 2.0f, 1 }
     };
     static constexpr size_t rod_num = sizeof(rod_configuration) / sizeof(rod_configuration[0]);
     static constexpr uint8_t team_num = 2;
@@ -119,9 +124,6 @@ struct FrameSettings {
         default: throw "Wrong team rod num";
         }
     }
-    float foosman_width = 0.03;
-    float foosman_head = 0.02;
-    float foosman_foot = 0.08;
 };
 
 struct FrameCommands {

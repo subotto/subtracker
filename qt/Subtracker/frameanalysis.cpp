@@ -78,7 +78,7 @@ void FrameAnalysis::find_foosmen() {
         Point max_point;
         minMaxLoc(replicated_strip, NULL, NULL, NULL, &max_point);
         this->rods[rod].shift = convert_table_frame_to_phys_y(settings, this->intermediate_size, max_point.y) - foosman_y(this->settings, rod, 0);
-        if (true && rod == 3) {
+        if (false && rod == 3) {
             this->push_debug_frame(strip);
             this->push_debug_frame(reduced_strip);
             this->push_debug_frame(blurred_strip);
@@ -177,6 +177,11 @@ void FrameAnalysis::do_things()
         this->compute_table_ll();
         this->find_ball();
 
+        // Assume that the best maximum is the ball
+        nth_element(this->spots.begin(), this->spots.begin()+1, this->spots.end(), [](const auto &a, const auto &b){ return a.second > b.second; });
+        this->ball_is_present = true;
+        this->ball = this->spots[0].first;
+
         // Draw rendering
         this->frame.copyTo(this->frame_rendering);
         this->table_frame.copyTo(this->table_frame_rendering);
@@ -203,6 +208,13 @@ void FrameAnalysis::do_things()
             circle(this->table_frame_rendering, point, 3, Scalar(0, 255, 0), -1);
             point = transform_point(p, compute_physical_rectangle(this->settings), compute_frame_rectangle(this->frame_corners));
             circle(this->frame_rendering, point, 3, Scalar(0, 255, 0), -1);
+        }
+        if (this->ball_is_present) {
+            const Point2f &p = this->ball;
+            auto point = transform_point(p, compute_physical_rectangle(this->settings), compute_table_frame_rectangle(intermediate_size));
+            circle(this->table_frame_rendering, point, 5, Scalar(0, 255, 0), -1);
+            point = transform_point(p, compute_physical_rectangle(this->settings), compute_frame_rectangle(this->frame_corners));
+            circle(this->frame_rendering, point, 5, Scalar(0, 255, 0), -1);
         }
         this->push_debug_frame(this->frame_rendering);
         this->push_debug_frame(this->table_frame_rendering);
