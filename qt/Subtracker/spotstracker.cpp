@@ -8,7 +8,7 @@ using namespace cv;
 
 const double INFTY = 1e100;
 
-SpotNode::SpotNode(Spot spot, float time, int num, bool present)
+SpotNode::SpotNode(Spot spot, double time, int num, bool present)
   : spot(spot), badness(INFTY), time(time), num(num), prev(NULL), present(present) {
 
 }
@@ -39,7 +39,7 @@ SpotsTracker::SpotsTracker()
 
 }
 
-std::tuple<bool, float> SpotsTracker::jump_badness(const SpotNode &n1, const SpotNode &n2) const {
+std::tuple<bool, double> SpotsTracker::jump_badness(const SpotNode &n1, const SpotNode &n2) const {
 
   double ret = 0.0;
   double time = n2.time - n1.time;
@@ -56,8 +56,8 @@ std::tuple<bool, float> SpotsTracker::jump_badness(const SpotNode &n1, const Spo
     ret += this->appearance_badness;
   } else if (!n1.present && !n2.present) {
     // Absent to absent
-    ret += this->absence_badness;
     if (skip > 0) return make_tuple(false, 0.0);
+    ret += this->absence_badness;
   }
 
   // Node weight
@@ -80,7 +80,7 @@ std::tuple<bool, float> SpotsTracker::jump_badness(const SpotNode &n1, const Spo
 
 }
 
-void SpotsTracker::push_back(vector< Spot > spots, float time) {
+void SpotsTracker::push_back(vector< Spot > spots, double time) {
 
   // Remember the reverse map from frame_num to time
   this->frame_num_rev_map[this->node_num] = time;

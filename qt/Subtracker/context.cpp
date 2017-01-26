@@ -1,13 +1,17 @@
-#include "context.h"
-#include "logging.h"
-#include "atomiccounter.h"
 
 #include <chrono>
 #include <sstream>
 #include <utility>
 
+#include <opencv2/core/core.hpp>
+
+#include "context.h"
+#include "logging.h"
+#include "atomiccounter.h"
+
 using namespace std;
 using namespace chrono;
+using namespace cv;
 
 Context::Context(size_t slave_num, FrameProducer *producer, const FrameSettings &settings) :
     active_threads_num(0), exhausted(false),
@@ -37,6 +41,9 @@ Context::~Context() {
         thread.join();
     }
     delete this->output;
+    for (auto &frame : this->waiting_frames) {
+        delete frame;
+    }
 }
 
 void Context::set_settings(const FrameSettings &settings) {
@@ -121,13 +128,31 @@ void Context::working_thread()
         frame->do_things();
 
         {
-            FrameWaiter waiter(this->output_waiter, frame_num);
-            unique_lock< mutex > lock(this->output_mutex);
-            while (this->output != NULL) {
-                this->output_empty.wait(lock);
+            FrameWaiter waiter(this->spots_waiter, frame_num);
+            this->spots_tracker.push_back(frame->get_spots(), frame->get_time().to_double());
+            this->waiting_frames.push_back(frame);
+            while (this->waiting_frames.size() > this->settings.spots_tracking_len) {
+                bool valid;
+                Point2f ball;
+                tie(valid, ball) = this->spots_tracker.front();
+                int front_num = this->spots_tracker.get_front_num();
+                this->spots_tracker.pop_front();
+                FrameAnalysis *out_frame = this->waiting_frames.front();
+                this->waiting_frames.pop_front();
+                assert(front_num == out_frame->get_frame_num());
+                out_frame->set_ball(valid, ball);
+                out_frame->do_rendering();
+
+                {
+                    FrameWaiter waiter(this->output_waiter, front_num);
+                    unique_lock< mutex > lock(this->output_mutex);
+                    while (this->output != NULL) {
+                        this->output_empty.wait(lock);
+                    }
+                    this->output = out_frame;
+                    this->output_full.notify_one();
+                }
             }
-            this->output = frame;
-            this->output_full.notify_one();
         }
     }
 }

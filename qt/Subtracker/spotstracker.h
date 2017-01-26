@@ -9,13 +9,13 @@
 
 struct Spot {
   cv::Point2f center;
-  float weight;
+  double weight;
 };
 
 struct SpotNode {
   Spot spot;
-  float badness;
-  float time;
+  double badness;
+  double time;
   int num;
   std::vector< SpotNode >::iterator prev;
   bool present;
@@ -25,14 +25,14 @@ struct SpotNode {
   int prev_num;
   bool prev_present;
   Spot prev_spot;
-  float prev_time;
+  double prev_time;
 
-  SpotNode(Spot spot, float time, int num, bool present);
+  SpotNode(Spot spot, double time, int num, bool present);
 };
 
 class SpotsTracker {
 public:
-  void push_back(std::vector< Spot > spot, float time);
+  void push_back(std::vector< Spot > spot, double time);
   std::tuple< bool, cv::Point2f > front();
   void pop_front();
   int get_front_num();
@@ -41,22 +41,22 @@ public:
 
 private:
   std::deque< std::vector< SpotNode > > timeline;
-  std::unordered_map< int, float > frame_num_rev_map;
+  std::unordered_map< int, double > frame_num_rev_map;
   int node_num;
   int front_num;
-  float back_badness;
+  double back_badness;
   std::vector< SpotNode >::iterator back_best;
 
   int dynamic_depth;
-  float appearance_badness;
-  float disappearance_badness;
-  float absence_badness;
-  float max_speed;
-  float max_unseen_distance;
-  float skip_badness;
-  float variance_parameter;
+  double appearance_badness;
+  double disappearance_badness;
+  double absence_badness;
+  double max_speed;
+  double max_unseen_distance;
+  double skip_badness;
+  double variance_parameter;
 
-  std::tuple< bool, float > jump_badness(const SpotNode &n1, const SpotNode &n2) const;
+  std::tuple< bool, double > jump_badness(const SpotNode &n1, const SpotNode &n2) const;
   SpotNode &_front();
   void _pop_front();
 };

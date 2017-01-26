@@ -7,9 +7,12 @@
 
 #include <turbojpeg.h>
 
+#include <opencv2/core/core.hpp>
+
 #include "framesettings.h"
 #include "framereader.h"
 #include "framewaiter.h"
+#include "spotstracker.h"
 
 std::string getImgType(int imgTypeInt);
 
@@ -66,6 +69,11 @@ public:
     void do_things();
     std::string gen_csv_line() const;
     bool does_have_fix() const;
+    std::vector<Spot> get_spots() const;
+    FrameClockTimePoint get_time() const;
+    int get_frame_num() const;
+    void set_ball(bool valid, cv::Point2f ball);
+    void do_rendering();
 
 private:
     void push_debug_frame(cv::Mat &frame);

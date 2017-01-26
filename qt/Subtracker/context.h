@@ -12,8 +12,6 @@
 #include <set>
 #include <condition_variable>
 
-#include <opencv2/core/core.hpp>
-
 class Context
 {
 public:
@@ -35,13 +33,17 @@ private:
     std::atomic< bool > exhausted;
     std::vector< std::thread > slaves;
 
-    // working thread
     std::atomic< int > frame_num;
     std::mutex get_frame_mutex, settings_mutex;
     FrameSettings settings;
     FrameCommands commands;
     FrameContext frame_ctx;
     FrameProducer *producer;
+
+    FrameWaiterContext spots_waiter;
+    SpotsTracker spots_tracker;
+    std::deque< FrameAnalysis* > waiting_frames;
+
     std::mutex output_mutex;
     std::condition_variable output_empty, output_full;
     FrameAnalysis *output;

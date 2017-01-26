@@ -65,6 +65,9 @@ struct FrameSettings {
     uint8_t maxima_count = 5;
     uint8_t maxima_radius = 15;
 
+    // Spots tracking
+    uint32_t spots_tracking_len = 200;
+
     // Actual size in meters (not all of them are actually used in computation)
     float table_length = 1.14f;
     float table_width = 0.71f;

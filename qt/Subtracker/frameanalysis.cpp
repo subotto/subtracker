@@ -148,6 +148,69 @@ void FrameAnalysis::find_ball() {
     this->ball_is_present = true;*/
 }
 
+void FrameAnalysis::do_rendering() {
+    this->frame.copyTo(this->frame_rendering);
+    this->table_frame.copyTo(this->table_frame_rendering);
+    for (int i = 0; i < 4; i++) {
+        line(this->frame_rendering, this->frame_corners[i], this->frame_corners[(i+1)%4], Scalar(0, 0, 255), 2);
+    }
+    for (uint8_t rod = 0; rod < this->settings.rod_num; rod++) {
+        auto coords = transform_pair(rod_coords(this->settings, rod), compute_physical_rectangle(this->settings), compute_table_frame_rectangle(intermediate_size));
+        line(this->table_frame_rendering, coords.first, coords.second, Scalar(0, 0, 255), 1);
+        coords = transform_pair(rod_coords(this->settings, rod), compute_physical_rectangle(this->settings), compute_frame_rectangle(this->frame_corners));
+        line(this->frame_rendering, coords.first, coords.second, Scalar(0, 0, 255), 1);
+        for (uint8_t fm = 0; fm < this->settings.rod_configuration[rod].num; fm++) {
+            auto orig_point = foosman_coords(this->settings, rod, fm);
+            orig_point += Point2f(0.0, this->rods[rod].shift);
+            auto point = transform_point(orig_point, compute_physical_rectangle(this->settings), compute_table_frame_rectangle(intermediate_size));
+            circle(this->table_frame_rendering, point, 3, Scalar(255, 0, 0), -1);
+            point = transform_point(orig_point, compute_physical_rectangle(this->settings), compute_frame_rectangle(this->frame_corners));
+            circle(this->frame_rendering, point, 3, Scalar(255, 0, 0), -1);
+        }
+    }
+    for (const auto &x : this->spots) {
+        const Point2f &p = x.first;
+        auto point = transform_point(p, compute_physical_rectangle(this->settings), compute_table_frame_rectangle(intermediate_size));
+        circle(this->table_frame_rendering, point, 3, Scalar(0, 255, 0), -1);
+        point = transform_point(p, compute_physical_rectangle(this->settings), compute_frame_rectangle(this->frame_corners));
+        circle(this->frame_rendering, point, 3, Scalar(0, 255, 0), -1);
+    }
+    if (this->ball_is_present) {
+        const Point2f &p = this->ball;
+        auto point = transform_point(p, compute_physical_rectangle(this->settings), compute_table_frame_rectangle(intermediate_size));
+        circle(this->table_frame_rendering, point, 5, Scalar(0, 255, 0), -1);
+        point = transform_point(p, compute_physical_rectangle(this->settings), compute_frame_rectangle(this->frame_corners));
+        circle(this->frame_rendering, point, 5, Scalar(0, 255, 0), -1);
+    }
+    this->push_debug_frame(this->frame_rendering);
+    this->push_debug_frame(this->table_frame_rendering);
+}
+
+std::vector<Spot> FrameAnalysis::get_spots() const
+{
+    vector< Spot > ret;
+    for (const auto &spot : this->spots) {
+        ret.push_back({ spot.first, spot.second });
+    }
+    return ret;
+}
+
+FrameClockTimePoint FrameAnalysis::get_time() const
+{
+    return this->time;
+}
+
+int FrameAnalysis::get_frame_num() const
+{
+    return this->frame_num;
+}
+
+void FrameAnalysis::set_ball(bool valid, Point2f ball)
+{
+    this->ball_is_present = valid;
+    this->ball = ball;
+}
+
 void FrameAnalysis::do_things()
 {
     this->begin_steady_time = steady_clock::now();
@@ -178,46 +241,9 @@ void FrameAnalysis::do_things()
         this->find_ball();
 
         // Assume that the best maximum is the ball
-        nth_element(this->spots.begin(), this->spots.begin()+1, this->spots.end(), [](const auto &a, const auto &b){ return a.second > b.second; });
+        /*nth_element(this->spots.begin(), this->spots.begin()+1, this->spots.end(), [](const auto &a, const auto &b){ return a.second > b.second; });
         this->ball_is_present = true;
-        this->ball = this->spots[0].first;
-
-        // Draw rendering
-        this->frame.copyTo(this->frame_rendering);
-        this->table_frame.copyTo(this->table_frame_rendering);
-        for (int i = 0; i < 4; i++) {
-            line(this->frame_rendering, this->frame_corners[i], this->frame_corners[(i+1)%4], Scalar(0, 0, 255), 2);
-        }
-        for (uint8_t rod = 0; rod < this->settings.rod_num; rod++) {
-            auto coords = transform_pair(rod_coords(this->settings, rod), compute_physical_rectangle(this->settings), compute_table_frame_rectangle(intermediate_size));
-            line(this->table_frame_rendering, coords.first, coords.second, Scalar(0, 0, 255), 1);
-            coords = transform_pair(rod_coords(this->settings, rod), compute_physical_rectangle(this->settings), compute_frame_rectangle(this->frame_corners));
-            line(this->frame_rendering, coords.first, coords.second, Scalar(0, 0, 255), 1);
-            for (uint8_t fm = 0; fm < this->settings.rod_configuration[rod].num; fm++) {
-                auto orig_point = foosman_coords(this->settings, rod, fm);
-                orig_point += Point2f(0.0, this->rods[rod].shift);
-                auto point = transform_point(orig_point, compute_physical_rectangle(this->settings), compute_table_frame_rectangle(intermediate_size));
-                circle(this->table_frame_rendering, point, 3, Scalar(255, 0, 0), -1);
-                point = transform_point(orig_point, compute_physical_rectangle(this->settings), compute_frame_rectangle(this->frame_corners));
-                circle(this->frame_rendering, point, 3, Scalar(255, 0, 0), -1);
-            }
-        }
-        for (const auto &x : this->spots) {
-            const Point2f &p = x.first;
-            auto point = transform_point(p, compute_physical_rectangle(this->settings), compute_table_frame_rectangle(intermediate_size));
-            circle(this->table_frame_rendering, point, 3, Scalar(0, 255, 0), -1);
-            point = transform_point(p, compute_physical_rectangle(this->settings), compute_frame_rectangle(this->frame_corners));
-            circle(this->frame_rendering, point, 3, Scalar(0, 255, 0), -1);
-        }
-        if (this->ball_is_present) {
-            const Point2f &p = this->ball;
-            auto point = transform_point(p, compute_physical_rectangle(this->settings), compute_table_frame_rectangle(intermediate_size));
-            circle(this->table_frame_rendering, point, 5, Scalar(0, 255, 0), -1);
-            point = transform_point(p, compute_physical_rectangle(this->settings), compute_frame_rectangle(this->frame_corners));
-            circle(this->frame_rendering, point, 5, Scalar(0, 255, 0), -1);
-        }
-        this->push_debug_frame(this->frame_rendering);
-        this->push_debug_frame(this->table_frame_rendering);
+        this->ball = this->spots[0].first;*/
     }
 
     this->end_steady_time = steady_clock::now();
