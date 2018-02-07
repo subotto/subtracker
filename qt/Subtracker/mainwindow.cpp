@@ -38,12 +38,14 @@ MainWindow::MainWindow(QWidget *parent) :
     this->add_all_frames();
 
     // These operations should be moved in a better place
-    this->settings.camera_parameters_filename = "/home/giovanni/progetti/subotto/subtracker/data/camera_parameters_24h_2016";
-    FileStorage fs(this->settings.camera_parameters_filename, FileStorage::READ);
-    fs["camera_matrix"] >> this->settings.camera_matrix;
-    fs["distortion_coefficients"] >> this->settings.distortion_coefficients;
-    initUndistortRectifyMap(this->settings.camera_matrix, this->settings.distortion_coefficients, Mat::eye(3, 3, CV_32F), this->settings.camera_matrix,
-                            Size(640, 480), CV_16SC2, this->settings.calibration_map1, this->settings.calibration_map2);
+    if (false) {
+      this->settings.camera_parameters_filename = "/home/giovanni/progetti/subotto/subtracker/data/camera_parameters_24h_2016";
+      FileStorage fs(this->settings.camera_parameters_filename, FileStorage::READ);
+      fs["camera_matrix"] >> this->settings.camera_matrix;
+      fs["distortion_coefficients"] >> this->settings.distortion_coefficients;
+      initUndistortRectifyMap(this->settings.camera_matrix, this->settings.distortion_coefficients, Mat::eye(3, 3, CV_32F), this->settings.camera_matrix,
+			      Size(640, 480), CV_16SC2, this->settings.calibration_map1, this->settings.calibration_map2);
+    }
 }
 
 void MainWindow::add_all_frames() {

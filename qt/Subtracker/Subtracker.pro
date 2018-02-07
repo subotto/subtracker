@@ -54,7 +54,7 @@ FORMS    += mainwindow.ui \
     beginningpanel.ui \
     debugpanel.ui
 
-QMAKE_CXXFLAGS += -std=c++17 -march=native -DBOOST_ALL_DYN_LINK $$system(pkg-config --cflags opencv)
+QMAKE_CXXFLAGS += -std=c++17 -march=native -g -DBOOST_ALL_DYN_LINK $$system(pkg-config --cflags opencv)
 QMAKE_LFLAGS += -lturbojpeg -lboost_log_setup -lboost_log -lboost_system -lboost_thread $$system(pkg-config --libs opencv)
 
 # We do not use qmake own system for interfacing with pkg-config, because I cannot make it honour PKG_CONFIG_PATH which is essential for using our own version of OpenCV
