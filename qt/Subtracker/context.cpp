@@ -85,7 +85,7 @@ void Context::working_thread()
              * This is due to the fact that we need to know if the decoding succeed before
              * incrementing this->frame_num, in order to not increment it if the frame is invalid.
              * However, frame_num incrementing must stay in the same critical region as producer->get(),
-             * otherwise the numbering monotonicity can file.
+             * otherwise the numbering monotonicity can fail.
              */
             unique_lock< mutex > lock(this->get_frame_mutex);
             if (this->frame_ctx.have_fix) {
