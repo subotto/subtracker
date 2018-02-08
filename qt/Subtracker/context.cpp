@@ -20,7 +20,7 @@ Context::Context(size_t slave_num, FrameProducer *producer, const FrameSettings 
 {
     for (size_t i = 0; i < slave_num; i++) {
         ostringstream oss;
-        oss << "worker " << i;
+        oss << "ctx wrk " << i;
         this->create_thread(oss.str(), &Context::working_thread, this);
     }
 }
@@ -74,6 +74,7 @@ void Context::working_thread()
     ThreadContext thread_ctx;
 
     while (true) {
+        BOOST_LOG_TRIVIAL(debug) << "Begin cycle";
         int frame_num;
         FrameInfo info;
         FrameSettings settings;
@@ -124,8 +125,12 @@ void Context::working_thread()
             this->commands = FrameCommands();
         }
 
+        BOOST_LOG_TRIVIAL(debug) << "Got a frame";
+
         FrameAnalysis *frame = new FrameAnalysis(info.data, info.buffer, frame_num, info.time, acquisition_time, acquisition_steady_time, settings, commands, this->frame_ctx, thread_ctx);
         frame->do_things();
+
+        BOOST_LOG_TRIVIAL(debug) << "Frame processed";
 
         {
             FrameWaiter waiter(this->spots_waiter, frame_num);
@@ -154,6 +159,7 @@ void Context::working_thread()
                 }
             }
         }
+        BOOST_LOG_TRIVIAL(debug) << "End cycle";
     }
 }
 

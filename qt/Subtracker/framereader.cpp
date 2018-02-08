@@ -115,9 +115,9 @@ void FrameCycle::push(FrameInfo info) {
     this_thread::sleep_until(info.playback_time);
   }
 
-  BOOST_LOG_TRIVIAL(debug) << "Request lock";
+  //BOOST_LOG_TRIVIAL(debug) << "Request lock";
   unique_lock<mutex> lock(queue_mutex);
-  BOOST_LOG_TRIVIAL(debug) << "Received lock";
+  //BOOST_LOG_TRIVIAL(debug) << "Received lock";
 
   if (this->droppy) {
         queue.clear();
@@ -128,17 +128,17 @@ void FrameCycle::push(FrameInfo info) {
 
   if (!can_drop_frames && info.valid) {
     while (queue.size() >= buffer_size) {
-      BOOST_LOG_TRIVIAL(debug) << "Waiting";
+      //BOOST_LOG_TRIVIAL(debug) << "Waiting";
       queue_not_full.wait(lock);
-      BOOST_LOG_TRIVIAL(debug) << "Wait finished";
+      //BOOST_LOG_TRIVIAL(debug) << "Wait finished";
       if (!this->running) {
         return;
       }
-      BOOST_LOG_TRIVIAL(info) << "queue is full, waiting";
+      //BOOST_LOG_TRIVIAL(info) << "queue is full, waiting";
     }
   }
 
-  BOOST_LOG_TRIVIAL(debug) << "Can do";
+  //BOOST_LOG_TRIVIAL(debug) << "Can do";
 
   // Prende tutti i frames finchè queue.size() < buffer_size, un frame
   // su 2 se queue.size() < 2*buffer_size, uno su 3 se queue.size() <
@@ -154,7 +154,7 @@ void FrameCycle::push(FrameInfo info) {
     //BOOST_LOG_TRIVIAL(debug) << "frame dropped";
   }
   count++;
-  BOOST_LOG_TRIVIAL(debug) << "Finished";
+  //BOOST_LOG_TRIVIAL(debug) << "Finished";
 
 }
 

@@ -13,7 +13,7 @@ static int safe_ideal_thread_count() {
 }
 
 Worker::Worker(const FrameSettings &settings, std::ostream &out_stream) :
-  jpeg_reader("socket://127.0.0.1:2204", true, true),
+  jpeg_reader("socket://127.0.0.1:2204", false, false),
   context(safe_ideal_thread_count(), &jpeg_reader, settings),
   last_frame(), running(true),
   out_stream(out_stream)
@@ -47,9 +47,9 @@ void Worker::run() {
     BOOST_LOG_NAMED_SCOPE("worker run");
     this->jpeg_reader.start();
     while (this->running) {
-        //BOOST_LOG_TRIVIAL(debug) << "Waiting frame";
+        BOOST_LOG_TRIVIAL(debug) << "Waiting frame";
         FrameAnalysis *frame = this->context.get();
-        //BOOST_LOG_TRIVIAL(debug) << "Got frame";
+        BOOST_LOG_TRIVIAL(debug) << "Got frame";
         if (this->context.is_finished()) {
             BOOST_LOG_TRIVIAL(debug) << "Worker ready to exit";
             break;
@@ -58,6 +58,7 @@ void Worker::run() {
             this->out_stream << frame->gen_csv_line() << "\n";
         }
         this->last_frame = QSharedPointer<FrameAnalysis>(frame);
+        BOOST_LOG_TRIVIAL(debug) << "Emitting frame produced";
         emit frame_produced();
     }
 }
