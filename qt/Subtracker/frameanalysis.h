@@ -57,7 +57,7 @@ class FrameAnalysis
     friend class DebugPanel;
 
 public:
-    FrameAnalysis(const cv::Mat &frame, int frame_num,
+    FrameAnalysis(const cv::Mat &frame, std::shared_ptr< std::vector< char > > raw_frame, int frame_num,
                   const std::chrono::time_point< FrameClock > &time,
                   const std::chrono::time_point< std::chrono::system_clock > &acquisition_time,
                   const std::chrono::time_point< std::chrono::steady_clock > &acquisition_steady_time,
@@ -86,6 +86,7 @@ private:
     void find_ball();
 
     cv::Mat frame;
+    std::shared_ptr< std::vector< char > > raw_frame;
     int frame_num;
     FrameClockTimePoint time;
     std::chrono::time_point< std::chrono::system_clock > acquisition_time;

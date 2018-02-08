@@ -15,6 +15,12 @@ FrameCycle::FrameCycle(bool droppy)
 
 void FrameCycle::start() {
   this->t = thread(&FrameCycle::cycle, this);
+
+    // Comment out the following if pthreads is not the underlying thread implementation
+    // Warning: thread names cannot be longer than 16 characters
+    // Failure is ignored
+    pthread_t handle = this->t.native_handle();
+    pthread_setname_np(handle, "frame cycle");
 }
 
 bool FrameCycle::init_thread() {

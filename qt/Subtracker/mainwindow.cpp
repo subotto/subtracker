@@ -181,7 +181,7 @@ static inline string size_to_string(size_t size) {
 void MainWindow::receive_frame()
 {
     BOOST_LOG_NAMED_SCOPE("when frame produced");
-    //BOOST_LOG_TRIVIAL(debug) << "Received frame";
+    BOOST_LOG_TRIVIAL(debug) << "Received frame";
     QSharedPointer< FrameAnalysis > frame = this->worker->get_last_frame();
     // There could be no frame if none has ever been produced (or maybe for other reasons)
     if (frame.isNull()) {

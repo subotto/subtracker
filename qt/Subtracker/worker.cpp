@@ -13,7 +13,7 @@ static int safe_ideal_thread_count() {
 }
 
 Worker::Worker(const FrameSettings &settings, std::ostream &out_stream) :
-  jpeg_reader("test.gjpeg", true, true),
+  jpeg_reader("socket://127.0.0.1:2204", true, true),
   context(safe_ideal_thread_count(), &jpeg_reader, settings),
   last_frame(), running(true),
   out_stream(out_stream)

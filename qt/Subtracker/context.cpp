@@ -124,7 +124,7 @@ void Context::working_thread()
             this->commands = FrameCommands();
         }
 
-        FrameAnalysis *frame = new FrameAnalysis(info.data, frame_num, info.time, acquisition_time, acquisition_steady_time, settings, commands, this->frame_ctx, thread_ctx);
+        FrameAnalysis *frame = new FrameAnalysis(info.data, info.buffer, frame_num, info.time, acquisition_time, acquisition_steady_time, settings, commands, this->frame_ctx, thread_ctx);
         frame->do_things();
 
         {
