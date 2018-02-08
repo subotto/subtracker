@@ -11,3 +11,5 @@ L'archiviazione dei frame su disco è attivata/disattivata premendo il tasto `r`
 Riassumendo, un comando ragionevole è `./v4l2_source -d /dev/video0 -a -f | ./monitor_tee.py 640 480`.
 Opzioni utili di `monitor_tee.py` sono: `-p PORT` (per indicare la porta), `-d DIRECTORY` (cartella per l'archiviazione).
 * Eseguire `Subtracker` (che si connette a localhost sulla porta 2204). 
+* Redirigere l'output di `Subtracker` a `web/insert.py` per inserire i dati nel database (controllare di avere più di 1 GB libero).
+* TODO: servizio che rende disponibili i dati ai client HTTP.
