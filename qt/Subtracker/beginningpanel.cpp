@@ -19,8 +19,8 @@ BeginningPanel::BeginningPanel(MainWindow *main, QWidget *parent) :
     ui->setupUi(this);
     this->set_main_on_children();
     this->main->get_main_video()->set_following(this->ui->frame);
-    this->load_image_filename("/home/giovanni/progetti/subotto/subtracker/data/ref2016-3.jpg", "image");
-    this->load_image_filename("/home/giovanni/progetti/subotto/subtracker/data/ref_mask2016-3.png", "mask");
+    this->load_image_filename("/afs/uz.sns.it/user/subotto/subtracker/data/ref2018.jpeg", "image");
+    this->load_image_filename("/afs/uz.sns.it/user/subotto/subtracker/data/ref_mask2018.png", "mask");
 }
 
 BeginningPanel::~BeginningPanel()

@@ -11,7 +11,7 @@ struct FrameSettings {
     // The four corners of the table, in this order: red defence, red attack, blue defence, blue attack
     //cv::Point2f table_corners[4] = { { 100.0, 400.0 }, { 600.0, 400.0 }, { 600.0, 100.0 }, { 100.0, 100.0 } };
     //std::vector< cv::Point2f > ref_corners = {{ 119.0, 382.0 }, { 547.0, 379.0 }, { 550.0, 122.0 }, { 116.0, 124.0 }};
-    std::vector< cv::Point2f > ref_corners = {{ 131.0, 361.0 }, { 498.0, 338.0 }, { 482.0, 115.0 }, { 117.0, 141.0 }};
+    std::vector< cv::Point2f > ref_corners = {{ 181.0, 334.0 }, { 516.0, 306.0 }, { 505.0, 98.0 }, { 158.0, 127.0 }};
     float intermediate_alpha = 1.0;
     //cv::Size intermediate_size = { 400, 300 };
     // OpenCV uses BGR colors; indexes are: 0 -> red foosmen, 1 -> blue foosmen, 2 -> ball
