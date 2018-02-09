@@ -1,0 +1,51 @@
+(gdb) bt
+#0  __GI_raise (sig=sig@entry=6) at ../sysdeps/unix/sysv/linux/raise.c:51
+#1  0x00007f7a06d813fa in __GI_abort () at abort.c:89
+#2  0x00007f7a076980ad in __gnu_cxx::__verbose_terminate_handler() () from /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+#3  0x00007f7a07696066 in ?? () from /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+#4  0x00007f7a076960b1 in std::terminate() () from /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+#5  0x00007f7a076962c9 in __cxa_throw () from /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+#6  0x00007f7a0916a2f2 in cv::error(cv::Exception const&) () from /afs/uz.sns.it/user/subotto/subtracker/opencv_install/lib/libopencv_core.so.3.1
+#7  0x00007f7a0916a460 in cv::error(int, cv::String const&, char const*, char const*, int) () from /afs/uz.sns.it/user/subotto/subtracker/opencv_install/lib/libopencv_core.so.3.1
+#8  0x00007f7a09099c8d in cv::Mat::copySize(cv::Mat const&) () from /afs/uz.sns.it/user/subotto/subtracker/opencv_install/lib/libopencv_core.so.3.1
+#9  0x00005569c9ce72a0 in cv::Mat::Mat (m=..., this=0x7fff6f2097c0) at /afs/uz.sns.it/user/subotto/subtracker/opencv_install/include/opencv2/core/mat.inl.hpp:400
+#10 BeginningPanel::receive_frame (this=0x5569cb42a580, frame=...) at ../Subtracker/beginningpanel.cpp:76
+#11 0x00005569c9caeb7a in MainWindow::receive_frame (this=<optimized out>) at ../Subtracker/mainwindow.cpp:203
+#12 0x00007f7a080c3499 in QObject::event(QEvent*) () from /usr/lib/x86_64-linux-gnu/libQt5Core.so.5
+#13 0x00007f7a089c146b in QWidget::event(QEvent*) () from /usr/lib/x86_64-linux-gnu/libQt5Widgets.so.5
+#14 0x00007f7a08ac092b in QMainWindow::event(QEvent*) () from /usr/lib/x86_64-linux-gnu/libQt5Widgets.so.5
+#15 0x00007f7a08979b8c in QApplicationPrivate::notify_helper(QObject*, QEvent*) () from /usr/lib/x86_64-linux-gnu/libQt5Widgets.so.5
+#16 0x00007f7a08981341 in QApplication::notify(QObject*, QEvent*) () from /usr/lib/x86_64-linux-gnu/libQt5Widgets.so.5
+#17 0x00007f7a080969e0 in QCoreApplication::notifyInternal2(QObject*, QEvent*) () from /usr/lib/x86_64-linux-gnu/libQt5Core.so.5
+#18 0x00007f7a0809916d in QCoreApplicationPrivate::sendPostedEvents(QObject*, int, QThreadData*) () from /usr/lib/x86_64-linux-gnu/libQt5Core.so.5
+#19 0x00007f7a080eac43 in ?? () from /usr/lib/x86_64-linux-gnu/libQt5Core.so.5
+#20 0x00007f7a02d307f7 in g_main_context_dispatch () from /lib/x86_64-linux-gnu/libglib-2.0.so.0
+#21 0x00007f7a02d30a60 in ?? () from /lib/x86_64-linux-gnu/libglib-2.0.so.0
+#22 0x00007f7a02d30b0c in g_main_context_iteration () from /lib/x86_64-linux-gnu/libglib-2.0.so.0
+#23 0x00007f7a080eb04f in QEventDispatcherGlib::processEvents(QFlags<QEventLoop::ProcessEventsFlag>) () from /usr/lib/x86_64-linux-gnu/libQt5Core.so.5
+#24 0x00007f7a080949ca in QEventLoop::exec(QFlags<QEventLoop::ProcessEventsFlag>) () from /usr/lib/x86_64-linux-gnu/libQt5Core.so.5
+#25 0x00007f7a0809d13c in QCoreApplication::exec() () from /usr/lib/x86_64-linux-gnu/libQt5Core.so.5
+#26 0x00005569c9ca96e6 in main (argc=<optimized out>, argv=0x7fff6f20b308) at ../Subtracker/main.cpp:37
+(gdb) info threads 
+  Id   Target Id         Frame 
+* 1    Thread 0x7f7a129fec00 (LWP 6175) __GI_raise (sig=sig@entry=6) at ../sysdeps/unix/sysv/linux/raise.c:51
+  2    Thread 0x7f79f29c9700 (LWP 6180) 0x00007f7a06e2c6ad in poll () at ../sysdeps/unix/syscall-template.S:84
+  3    Thread 0x7f79fc5a9700 (LWP 6179) 0x00007f7a06e2c6ad in poll () at ../sysdeps/unix/syscall-template.S:84
+  4    Thread 0x7f79f21c8700 (LWP 6181) 0x00007f7a06e2c6ad in poll () at ../sysdeps/unix/syscall-template.S:84
+  5    Thread 0x7f79f17f4700 (LWP 6182) 0x00007f7a06e2c6ad in poll () at ../sysdeps/unix/syscall-template.S:84
+  6    Thread 0x7f79c67fc700 (LWP 6193) pthread_cond_wait@@GLIBC_2.3.2 () at ../sysdeps/unix/sysv/linux/x86_64/pthread_cond_wait.S:185
+  7    Thread 0x7f79c5ffb700 (LWP 6194) pthread_cond_wait@@GLIBC_2.3.2 () at ../sysdeps/unix/sysv/linux/x86_64/pthread_cond_wait.S:185
+  8    Thread 0x7f79af7fe700 (LWP 6198) pthread_cond_wait@@GLIBC_2.3.2 () at ../sysdeps/unix/sysv/linux/x86_64/pthread_cond_wait.S:185
+  9    Thread 0x7f79c4ff9700 (LWP 6196) pthread_cond_wait@@GLIBC_2.3.2 () at ../sysdeps/unix/sysv/linux/x86_64/pthread_cond_wait.S:185
+  10   Thread 0x7f79e1d84700 (LWP 6187) __ieee754_log_avx (x=2.3843271043145891e-06) at ../sysdeps/ieee754/dbl-64/e_log.c:189
+  11   Thread 0x7f79e1583700 (LWP 6188) __lll_lock_wait () at ../sysdeps/unix/sysv/linux/x86_64/lowlevellock.S:135
+  12   Thread 0x7f79e0d82700 (LWP 6189) __lll_lock_wait () at ../sysdeps/unix/sysv/linux/x86_64/lowlevellock.S:135
+  13   Thread 0x7f79c7fff700 (LWP 6190) pthread_cond_wait@@GLIBC_2.3.2 () at ../sysdeps/unix/sysv/linux/x86_64/pthread_cond_wait.S:185
+  14   Thread 0x7f79c77fe700 (LWP 6191) 0x00007f7a06e360f3 in epoll_wait () at ../sysdeps/unix/syscall-template.S:84
+  15   Thread 0x7f79c6ffd700 (LWP 6192) pthread_cond_wait@@GLIBC_2.3.2 () at ../sysdeps/unix/sysv/linux/x86_64/pthread_cond_wait.S:185
+  16   Thread 0x7f79c57fa700 (LWP 6195) pthread_cond_wait@@GLIBC_2.3.2 () at ../sysdeps/unix/sysv/linux/x86_64/pthread_cond_wait.S:185
+  17   Thread 0x7f79affff700 (LWP 6197) pthread_cond_wait@@GLIBC_2.3.2 () at ../sysdeps/unix/sysv/linux/x86_64/pthread_cond_wait.S:185
+  18   Thread 0x7f79aeffd700 (LWP 6199) pthread_cond_wait@@GLIBC_2.3.2 () at ../sysdeps/unix/sysv/linux/x86_64/pthread_cond_wait.S:185
+  19   Thread 0x7f79e2585700 (LWP 6185) 0x00007f7a1260b938 in ?? () from /usr/lib/x86_64-linux-gnu/libturbojpeg.so.0
+(gdb) 
+
