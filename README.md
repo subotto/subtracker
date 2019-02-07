@@ -2,7 +2,19 @@
 
 ## Istruzioni per utilizzare il Subtracker ##
 
-* Compilare OpenCV, Boost e `subtracker/qt/Subtracker` (glisseremo su questi punti).
+### Compilare ###
+* Servono (un po' di) questi pacchetti: `qt5-default build-essential cmake qt5-qmake qtbase5-dev-tools libturbojpeg0-dev pkgconfig libboost-all-dev`
+* Dare il comando `mkdir my_opencv && cd my_opencv`
+* Clonare i repo `opencv` e `opencv-contrib`
+* Creare la cartella `mkdir opencv_install`
+* Dare `cd opencv && mkdir build && cd build`
+* Usare il comando che c'è nel file di questo repo, `opencv_cmake_line.txt`
+* Dare `make && make install`
+* Far conoscere a pkg-config il file `opencv_install/lib/pkgconfig/opencv.pc` (tipo copiandolo in `/usr/share/pkgconfig`)
+* Andare nella cartella `qt/Subtracker` e dare `qmake` (se si lamenta, dare `export QT_SELECT=qt5`)
+* Finalmente dare `make`
+
+### Usare ###
 * Collegare la webcam giusta via USB.
 * Utilizzare il programma `streaming/v4l2_source.c` per interfacciarsi con la webcam e scrivere frame in formato JPEG su standard output.
 Opzioni utili sono: `-d DEVICE` (per indicare la webcam), `-a` (si riavvia automaticamente ad ogni crash, per esempio se la webcam viene scollegata e ricollegata), `-f` (forza la risoluzione 640x480 e formato MPEG).
