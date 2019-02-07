@@ -10,9 +10,11 @@
 * Dare `cd opencv && mkdir build && cd build`
 * Usare il comando che c'è nel file di questo repo, `opencv_cmake_line.txt`
 * Dare `make && make install`
+* Esportare la variabile `LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HOME/my_opencv/opencv_install/lib`.
 * Far conoscere a pkg-config il file `opencv_install/lib/pkgconfig/opencv.pc` (tipo copiandolo in `/usr/share/pkgconfig`)
 * Andare nella cartella `qt/Subtracker` e dare `qmake` (se si lamenta, dare `export QT_SELECT=qt5`)
 * Finalmente dare `make`
+* Clonare il repo `streaming`, installarne le dipendenze come scritto nel README e dare `make`
 
 ### Usare ###
 * Collegare la webcam giusta via USB.
